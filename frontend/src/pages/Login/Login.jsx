@@ -27,8 +27,8 @@ export default function Login() {
 
             toast.success(`Bem-vindo, ${data.user?.name || "usuário"}!`)
 
+            login(data.token, data.user)
             setTimeout(() => {
-                login(data.token, data.user)
                 navigate("/")
             }, 2000)
 
