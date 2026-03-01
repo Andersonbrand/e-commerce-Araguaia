@@ -1,12 +1,11 @@
 import "./ProductCard.css";
-import { API_URL } from "../../config/api";
 
 function resolveImageUrl(imageUrl) {
     if (!imageUrl) return '';
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
         return imageUrl;
     }
-    return `${API_URL}${imageUrl}`;
+    return imageUrl;
 }
 
 export default function ProductCard({ product, onAdd, onClick }) {

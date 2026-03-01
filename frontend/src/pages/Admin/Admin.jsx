@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import api, { createProduct, updateProduct, deleteProduct } from '../../services/api';
-import { API_URL } from '../../config/api';
 import './admin.css';
 
 const EMPTY_FORM = {
@@ -27,7 +26,7 @@ export default function Admin() {
         if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
             return imageUrl;
         }
-        return `${API_URL}${imageUrl}`;
+        return imageUrl;
     }
 
     async function fetchProducts() {
@@ -189,7 +188,7 @@ export default function Admin() {
                                     <tr key={p._id}>
                                         <td data-label="Imagem">
                                             <img
-                                                src={`${API_URL}${p.imageUrl}`}
+                                                src={resolveImageUrl(p.imageUrl)}
                                                 alt={p.name}
                                                 className="admin-table__thumb"
                                             />
