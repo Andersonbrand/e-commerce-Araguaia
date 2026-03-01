@@ -1,19 +1,11 @@
 import "./ProductCard.css";
 
-function resolveImageUrl(imageUrl) {
-    if (!imageUrl) return '';
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-        return imageUrl;
-    }
-    return imageUrl;
-}
-
 export default function ProductCard({ product, onAdd, onClick }) {
     return (
         <div className="product-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default' }}>
             <div className="product-image">
                 <img
-                    src={resolveImageUrl(product.imageUrl)}
+                    src={(product.imageUrl)}
                     alt={product.name}
                 />
             </div>
