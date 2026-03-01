@@ -26,8 +26,10 @@ export function AuthProvider({ children }) {
     })
 
     const decoded = token ? decodeToken(token) : null
+    console.log('[AUTH] decoded:', decoded)
     const user = userData || decoded
     const isAdmin = decoded?.role === "admin" || decoded?.isAdmin === true
+    console.log('[AUTH] isAdmin:', isAdmin)
 
     function login(newToken, userInfo) {
         localStorage.setItem("token", newToken)
