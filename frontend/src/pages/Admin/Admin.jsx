@@ -21,14 +21,6 @@ export default function Admin() {
         fetchProducts();
     }, []);
 
-    function resolveImageUrl(imageUrl) {
-        if (!imageUrl) return '';
-        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-            return imageUrl;
-        }
-        return imageUrl;
-    }
-
     async function fetchProducts() {
         const res = await api.get('/products');
         setProducts(res.data.products || []);
@@ -53,7 +45,7 @@ export default function Admin() {
             description: product.description || '',
             image: null,
         });
-        setPreview(resolveImageUrl(product.imageUrl));
+        setPreview((product.imageUrl));
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -188,7 +180,7 @@ export default function Admin() {
                                     <tr key={p._id}>
                                         <td data-label="Imagem">
                                             <img
-                                                src={resolveImageUrl(p.imageUrl)}
+                                                src={(p.imageUrl)}
                                                 alt={p.name}
                                                 className="admin-table__thumb"
                                             />

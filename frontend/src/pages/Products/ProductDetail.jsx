@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useCart } from '../../context/CartContext';
-import { API_URL } from '../../config/api';
 import './productDetail.css';
 
 export default function ProductDetail() {
@@ -43,7 +42,7 @@ export default function ProductDetail() {
             <div className="pd-card">
                 <div className="pd-image-wrap">
                     <img
-                        src={`${API_URL}${product.imageUrl}`}
+                        src={product.imageUrl}
                         alt={product.name}
                         className="pd-image"
                     />

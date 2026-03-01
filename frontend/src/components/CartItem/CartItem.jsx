@@ -1,4 +1,3 @@
-import { API_URL } from '../../config/api';
 import "./cartItem.css";
 
 export default function CartItem({ item, onRemove, onUpdateQuantity }) {
@@ -6,7 +5,7 @@ export default function CartItem({ item, onRemove, onUpdateQuantity }) {
         <li className="cart-item">
             <div className="cart-item__image-wrap">
                 <img
-                    src={`${API_URL}${item.imageUrl}`}
+                    src={item.imageUrl}
                     alt={item.name}
                     className="cart-item__image"
                 />
