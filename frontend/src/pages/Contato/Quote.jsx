@@ -3,7 +3,7 @@ import './quote.css';
 import { useState } from 'react';
 import { sendQuote } from '../../services/api';
 import { useCart } from '../../context/CartContext';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, } from 'react';
 
 const WHATSAPP_NUMBER = '5577981046133';
 
