@@ -1,11 +1,10 @@
 import './quote.css';
 
-import { useState } from 'react';
-import { sendQuote } from '../../services/api';
+import { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
-import { useEffect, } from 'react';
 
 const WHATSAPP_NUMBER = '5577981046133';
+const MAIL_TO = 'robertaaraguaia10@gmail.com';
 
 function formatDocument(value) {
     const digits = value.replace(/\D/g, '').slice(0, 14);
@@ -35,12 +34,7 @@ function validateDocument(value) {
 }
 
 export default function Quote() {
-
-    const [status, setStatus] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
     const { cartItems, clearCart } = useCart();
-    const [whatsappPending, setWhatsappPending] = useState(false);
-
 
     const [form, setForm] = useState({
         name: '',
@@ -50,17 +44,10 @@ export default function Quote() {
         document: '',
         message: '',
     });
+    const [status, setStatus] = useState(null);
+    const [whatsappPending, setWhatsappPending] = useState(false);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        if (name === 'document') {
-            setForm({ ...form, document: formatDocument(value) });
-        } else {
-            setForm({ ...form, [name]: value });
-        }
-        if (status) setStatus(null);
-    };
-
+    // Detecta retorno do WhatsApp e exibe sucesso + limpa carrinho
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && whatsappPending) {
@@ -74,13 +61,22 @@ export default function Quote() {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [whatsappPending, clearCart]);
 
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === 'document') {
+            setForm({ ...form, document: formatDocument(value) });
+        } else {
+            setForm({ ...form, [name]: value });
+        }
+        if (status) setStatus(null);
+    };
+
     function validateForm() {
-        // ✅ NOVO: bloqueia envio sem itens no carrinho
+        // Verifica se há itens no carrinho
         if (cartItems.length === 0) {
             setStatus({ type: 'error', text: 'Adicione pelo menos um item ao orçamento antes de enviar.' });
             return false;
         }
-
         if (!form.name.trim() || !form.email.trim() || !form.phone.trim() || !form.address.trim() || !form.document.trim() || !form.message.trim()) {
             setStatus({ type: 'error', text: 'Preencha todos os campos antes de enviar.' });
             return false;
@@ -92,27 +88,37 @@ export default function Quote() {
         return true;
     }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    // Monta o link mailto com todos os dados preenchidos
+    function buildMailtoLink() {
+        const docLabel = getDocumentLabel(form.document);
+        const itemsText = cartItems.length > 0
+            ? '\n\nItens do Orçamento:\n' + cartItems.map(i => `- ${i.name} (x${i.quantity})`).join('\n')
+            : '\n\nNenhum item no carrinho.';
 
-        if (!validateForm()) return;
+        const body =
+            `Nome: ${form.name}` +
+            `\nE-mail: ${form.email}` +
+            `\nTelefone: ${form.phone}` +
+            `\nEndereço: ${form.address}` +
+            `\n${docLabel}: ${form.document}` +
+            itemsText +
+            `\n\nMensagem: ${form.message}`;
 
-        setSubmitting(true);
-        try {
-            await sendQuote({
-                ...form,
-                items: cartItems.map((item) => ({ name: item.name, quantity: item.quantity })),
-            });
-            setStatus({ type: 'success', text: 'Orçamento enviado com sucesso! Entraremos em contato em breve.' });
-            setForm({ name: '', email: '', phone: '', address: '', document: '', message: '' });
-            if (cartItems.length > 0) clearCart();
-        } catch {
-            setStatus({ type: 'error', text: 'Erro ao enviar orçamento. Tente novamente ou use o WhatsApp.' });
-        } finally {
-            setSubmitting(false);
+        return `mailto:${MAIL_TO}?subject=${encodeURIComponent('Novo Orçamento - ' + form.name)}&body=${encodeURIComponent(body)}`;
+    }
+
+    // Clique no botão de e-mail: valida, abre app de e-mail, exibe sucesso e limpa
+    const handleEmailClick = (e) => {
+        if (!validateForm()) {
+            e.preventDefault();
+            return;
         }
+        setStatus({ type: 'success', text: 'Abrindo seu e-mail com o orçamento preenchido!' });
+        clearCart();
+        setForm({ name: '', email: '', phone: '', address: '', document: '', message: '' });
     };
 
+    // Monta o link do WhatsApp
     function buildWhatsAppLink() {
         const docLabel = getDocumentLabel(form.document);
         const docInfo = form.document ? `\n${docLabel}: ${form.document}` : '';
@@ -158,12 +164,13 @@ export default function Quote() {
                         </div>
                     )}
 
-                    <form className="quote-form" onSubmit={handleSubmit} noValidate>
+                    <form className="quote-form" noValidate>
                         <input
                             name="name"
                             placeholder="Nome *"
                             value={form.name}
                             onChange={handleChange}
+                            autoComplete="name"
                             required
                         />
                         <input
@@ -172,20 +179,25 @@ export default function Quote() {
                             placeholder="E-mail *"
                             value={form.email}
                             onChange={handleChange}
+                            autoComplete="email"
                             required
                         />
                         <input
                             name="phone"
                             type="tel"
-                            placeholder="Telefone"
+                            placeholder="Telefone *"
                             value={form.phone}
                             onChange={handleChange}
+                            autoComplete="tel"
+                            required
                         />
                         <input
                             name="address"
-                            placeholder="Endereço"
+                            placeholder="Endereço *"
                             value={form.address}
                             onChange={handleChange}
+                            autoComplete="street-address"
+                            required
                         />
 
                         <div className="quote-document-field">
@@ -195,6 +207,7 @@ export default function Quote() {
                                 value={form.document}
                                 onChange={handleChange}
                                 inputMode="numeric"
+                                autoComplete="off"
                             />
                             {form.document.replace(/\D/g, '').length > 0 && (
                                 <span className="quote-document-label">{docLabel}</span>
@@ -204,16 +217,23 @@ export default function Quote() {
                         <textarea
                             className="quote-textarea"
                             name="message"
-                            placeholder="Mensagem"
+                            placeholder="Mensagem *"
                             value={form.message}
                             onChange={handleChange}
+                            autoComplete="off"
                         />
 
                         <div className="quote-actions">
-                            <button className="quote-button" type="submit" disabled={submitting}>
-                                {submitting ? 'Enviando...' : 'Enviar por e-mail →'}
-                            </button>
+                            {/* Abre o app de e-mail do usuário com tudo preenchido */}
+                            <a
+                                className="quote-button"
+                                href={buildMailtoLink()}
+                                onClick={handleEmailClick}
+                            >
+                                Enviar por e-mail →
+                            </a>
 
+                            {/* Abre o WhatsApp com os dados preenchidos */}
                             <a
                                 className="quote-whatsapp"
                                 href={buildWhatsAppLink()}
@@ -244,7 +264,7 @@ export default function Quote() {
                         <div className="contact-item">
                             <h4>📞 Telefone</h4>
                             <p>
-                                <a className="contact-link" href="tel:+557734512175">+55 77 98104-6133</a>
+                                <a className="contact-link" href="tel:+557798104613">+55 77 98104-6133</a>
                             </p>
                         </div>
 
