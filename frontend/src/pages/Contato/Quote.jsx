@@ -47,7 +47,6 @@ export default function Quote() {
     const [status, setStatus] = useState(null);
     const [whatsappPending, setWhatsappPending] = useState(false);
 
-    // Detecta retorno do WhatsApp e exibe sucesso + limpa carrinho
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && whatsappPending) {
@@ -72,7 +71,6 @@ export default function Quote() {
     };
 
     function validateForm() {
-        // Verifica se há itens no carrinho
         if (cartItems.length === 0) {
             setStatus({ type: 'error', text: 'Adicione pelo menos um item ao orçamento antes de enviar.' });
             return false;
@@ -88,37 +86,54 @@ export default function Quote() {
         return true;
     }
 
-    // Monta o link mailto com todos os dados preenchidos
-    function buildMailtoLink() {
-        const docLabel = getDocumentLabel(form.document);
-        const itemsText = cartItems.length > 0
-            ? '\n\nItens do Orçamento:\n' + cartItems.map(i => `- ${i.name} (x${i.quantity})`).join('\n')
-            : '\n\nNenhum item no carrinho.';
-
-        const body =
-            `Nome: ${form.name}` +
-            `\nE-mail: ${form.email}` +
-            `\nTelefone: ${form.phone}` +
-            `\nEndereço: ${form.address}` +
-            `\n${docLabel}: ${form.document}` +
-            itemsText +
-            `\n\nMensagem: ${form.message}`;
-
-        return `mailto:${MAIL_TO}?subject=${encodeURIComponent('Novo Orçamento - ' + form.name)}&body=${encodeURIComponent(body)}`;
+    function getEmailProvider(email) {
+        const domain = email.trim().toLowerCase().split('@')[1] || '';
+        if (domain === 'gmail.com') return 'gmail';
+        if (domain === 'outlook.com' || domain === 'hotmail.com' || domain === 'live.com') return 'outlook';
+        if (domain === 'yahoo.com' || domain === 'yahoo.com.br') return 'yahoo';
+        return 'default';
     }
 
-    // Clique no botão de e-mail: valida, abre app de e-mail, exibe sucesso e limpa
+    function buildEmailBody(currentForm, currentItems) {
+        const docLabel = getDocumentLabel(currentForm.document);
+        const itemsText = currentItems.length > 0
+            ? '\n\nItens do Orçamento:\n' + currentItems.map(i => `- ${i.name} (x${i.quantity})`).join('\n')
+            : '\n\nNenhum item no carrinho.';
+
+        return (
+            `Nome: ${currentForm.name}` +
+            `\nE-mail: ${currentForm.email}` +
+            `\nTelefone: ${currentForm.phone}` +
+            `\nEndereço: ${currentForm.address}` +
+            `\n${docLabel}: ${currentForm.document}` +
+            itemsText +
+            `\n\nMensagem: ${currentForm.message}`
+        );
+    }
+
     const handleEmailClick = (e) => {
-        if (!validateForm()) {
-            e.preventDefault();
-            return;
+        e.preventDefault();
+        if (!validateForm()) return;
+
+        const subject = encodeURIComponent('Novo Orçamento - ' + form.name);
+        const body = encodeURIComponent(buildEmailBody(form, cartItems));
+        const provider = getEmailProvider(form.email);
+
+        if (provider === 'gmail') {
+            window.open(`https://mail.google.com/mail/?view=cm&to=${MAIL_TO}&su=${subject}&body=${body}`, '_blank');
+        } else if (provider === 'outlook') {
+            window.open(`https://outlook.live.com/mail/0/deeplink/compose?to=${MAIL_TO}&subject=${subject}&body=${body}`, '_blank');
+        } else if (provider === 'yahoo') {
+            window.open(`https://compose.mail.yahoo.com/?to=${MAIL_TO}&subject=${subject}&body=${body}`, '_blank');
+        } else {
+            window.location.href = `mailto:${MAIL_TO}?subject=${subject}&body=${body}`;
         }
+
         setStatus({ type: 'success', text: 'Abrindo seu e-mail com o orçamento preenchido!' });
         clearCart();
         setForm({ name: '', email: '', phone: '', address: '', document: '', message: '' });
     };
 
-    // Monta o link do WhatsApp
     function buildWhatsAppLink() {
         const docLabel = getDocumentLabel(form.document);
         const docInfo = form.document ? `\n${docLabel}: ${form.document}` : '';
@@ -135,7 +150,6 @@ export default function Quote() {
         <section className="quote-section">
             <div className="quote-wrapper">
 
-                {/* COLUNA ESQUERDA */}
                 <div className="quote-left">
                     <h2 className="quote-title">Orçamento</h2>
 
@@ -224,16 +238,14 @@ export default function Quote() {
                         />
 
                         <div className="quote-actions">
-                            {/* Abre o app de e-mail do usuário com tudo preenchido */}
-                            <a
+                            <button
+                                type="button"
                                 className="quote-button"
-                                href={buildMailtoLink()}
                                 onClick={handleEmailClick}
                             >
                                 Enviar por e-mail →
-                            </a>
+                            </button>
 
-                            {/* Abre o WhatsApp com os dados preenchidos */}
                             <a
                                 className="quote-whatsapp"
                                 href={buildWhatsAppLink()}
@@ -253,7 +265,6 @@ export default function Quote() {
                     </form>
                 </div>
 
-                {/* COLUNA DIREITA */}
                 <div className="quote-right">
                     <div className="contact-card">
                         <div className="contact-item">
@@ -264,7 +275,7 @@ export default function Quote() {
                         <div className="contact-item">
                             <h4>📞 Telefone</h4>
                             <p>
-                                <a className="contact-link" href="tel:+557798104613">+55 77 98104-6133</a>
+                                <a className="contact-link" href="tel:+5577981046133">+55 77 98104-6133</a>
                             </p>
                         </div>
 
