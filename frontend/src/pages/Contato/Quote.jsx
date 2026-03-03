@@ -2,6 +2,7 @@ import './quote.css';
 
 import { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
+import { toast } from "react-toastify"
 
 const WHATSAPP_NUMBER = '5577981046133';
 const MAIL_TO = 'robertaaraguaia10@gmail.com';
@@ -129,7 +130,7 @@ export default function Quote() {
             window.location.href = `mailto:${MAIL_TO}?subject=${subject}&body=${body}`;
         }
 
-        setStatus({ type: 'success', text: 'Abrindo seu e-mail com o orçamento preenchido!' });
+        toast.success('Orçamento enviado com sucesso!');
         clearCart();
         setForm({ name: '', email: '', phone: '', address: '', document: '', message: '' });
     };

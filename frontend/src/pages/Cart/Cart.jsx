@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
+import { toast } from 'react-toastify';
 import CartItem from '../../components/CartItem/CartItem';
 import './cart.css';
 
@@ -9,6 +10,8 @@ export default function Cart() {
 
     const handleCheckout = () => {
         navigate('/orcamento');
+
+        toast.success('Adicione suas informações para envio!');
     };
 
     if (cartItems.length === 0) {
