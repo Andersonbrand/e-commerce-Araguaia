@@ -82,7 +82,7 @@ export default function Login() {
                             type="submit"
                             disabled={loading}
                         >
-                            {loading ? 'Entrando...' : 'Entrar'}
+                            {loading ? 'Carregando...' : 'Entrar'}
                         </button>
 
                     </form>

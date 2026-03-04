@@ -11,6 +11,8 @@ export default function CartItem({ item, onRemove, onUpdateQuantity }) {
 
     return (
         <li className="cart-item">
+
+            {/* IMAGEM */}
             <div className="cart-item__image-wrap">
                 <img
                     src={item.imageUrl}
@@ -19,6 +21,7 @@ export default function CartItem({ item, onRemove, onUpdateQuantity }) {
                 />
             </div>
 
+            {/* INFORMAÇÕES */}
             <div className="cart-item__info">
                 <p className="cart-item__name">{item.name}</p>
                 {item.category && (
@@ -26,7 +29,10 @@ export default function CartItem({ item, onRemove, onUpdateQuantity }) {
                 )}
             </div>
 
+            {/* CONTROLES */}
             <div className="cart-item__controls">
+
+                {/* QUANTIDADE */}
                 <div className="cart-item__qty">
                     <button
                         className="qty-btn"
@@ -36,14 +42,16 @@ export default function CartItem({ item, onRemove, onUpdateQuantity }) {
                     >
                         −
                     </button>
+
                     <input
-                        className="qty-value qty-input"
+                        className="qty-input"
                         type="number"
                         min="1"
                         value={item.quantity}
                         onChange={handleQtyInput}
                         aria-label="Quantidade"
                     />
+
                     <button
                         className="qty-btn"
                         onClick={() => onUpdateQuantity(item._id, item.quantity + 1)}
@@ -53,10 +61,17 @@ export default function CartItem({ item, onRemove, onUpdateQuantity }) {
                     </button>
                 </div>
 
-                <button className="cart-item__remove" onClick={() => onRemove(item._id)} aria-label="Remover item">
-                    Remover
+                {/* REMOVER */}
+                <button
+                    className="cart-item__remove"
+                    onClick={() => onRemove(item._id)}
+                    aria-label="Remover item"
+                    title="Remover item"
+                >
+                    🗑
                 </button>
             </div>
+
         </li>
     );
 }

@@ -1,4 +1,6 @@
-/* PÁGINA DO CARRINHO */
+/* =============================================
+   PÁGINA DO CARRINHO
+   ============================================= */
 .cart-page {
     display: flex;
     gap: 32px;
@@ -8,7 +10,9 @@
     align-items: flex-start;
 }
 
-/* LISTA DE ITENS */
+/* =============================================
+   HEADER DO CARRINHO
+   ============================================= */
 .cart-content {
     flex: 1;
     min-width: 0;
@@ -19,66 +23,118 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.cart-header__left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .cart-title {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: #0b2a44;
     margin: 0;
 }
 
-.cart-clear {
-    background: none;
-    border: none;
-    color: #ef4444;
-    font-size: 0.85rem;
-    cursor: pointer;
-    font-weight: 500;
-    text-decoration: underline;
-    padding: 0;
+.cart-badge {
+    background: #0b2a44;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
 }
 
+.cart-clear {
+    background: none;
+    border: 1px solid #fca5a5;
+    color: #ef4444;
+    font-size: 0.82rem;
+    cursor: pointer;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.cart-clear:hover {
+    background: #fee2e2;
+    border-color: #ef4444;
+}
+
+/* =============================================
+   LISTA DE ITENS
+   ============================================= */
 .cart-list {
     list-style: none;
     padding: 0;
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
-/* RESUMO LATERAL */
+/* =============================================
+   RESUMO LATERAL
+   ============================================= */
 .cart-summary {
     width: 320px;
     flex-shrink: 0;
     background: #fff;
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 28px;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
     position: sticky;
-    top: 20px;
+    top: 24px;
 }
 
 .cart-summary__title {
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #0b2a44;
     margin: 0 0 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #e2e8f0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .cart-summary__rows {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-bottom: 16px;
+    margin-bottom: 4px;
 }
 
 .cart-summary__row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.85rem;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.84rem;
     color: #475569;
+    line-height: 1.4;
+}
+
+.cart-summary__row-name {
+    flex: 1;
+    color: #334155;
+}
+
+.cart-summary__row-qty {
+    font-weight: 600;
+    color: #0b2a44;
+    background: #f1f5f9;
+    padding: 1px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 .cart-summary__divider {
@@ -87,52 +143,73 @@
     margin: 16px 0;
 }
 
-.cart-summary__total {
+.cart-summary__total-row {
     display: flex;
     justify-content: space-between;
-    font-size: 1.1rem;
-    font-weight: 700;
+    align-items: center;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: #0f172a;
-    margin-bottom: 24px;
 }
 
+.cart-summary__total-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0b2a44;
+    background: #f1f5f9;
+    padding: 2px 12px;
+    border-radius: 20px;
+}
+
+/* =============================================
+   BOTÕES DO RESUMO
+   ============================================= */
 .cart-checkout {
     width: 100%;
-    background: #15803d;
+    background: #002b80;
     color: #fff;
     border: none;
     padding: 14px;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 600;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: background 0.2s;
-    margin-bottom: 12px;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    letter-spacing: 0.01em;
 }
 
 .cart-checkout:hover {
-    background: #166534;
+    background: #001a4d;
+    transform: translateY(-1px);
+}
+
+.cart-checkout:active {
+    transform: translateY(0);
 }
 
 .cart-back {
     width: 100%;
     background: none;
-    border: 2px solid #e2e8f0;
-    color: #475569;
-    padding: 12px;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 500;
+    border: 2px solid #002b80;
+    color: #002b80;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .cart-back:hover {
-    border-color: #0b2a44;
-    color: #0b2a44;
+    background: #002b80;
+    color: #fff;
 }
 
-/* CARRINHO VAZIO */
+/* =============================================
+   CARRINHO VAZIO
+   ============================================= */
 .cart-empty {
     display: flex;
     flex-direction: column;
@@ -163,29 +240,36 @@
 
 .cart-empty__btn {
     margin-top: 16px;
-    background: #0b2a44;
+    background: #002b80;
     color: #fff;
     border: none;
     padding: 12px 28px;
-    border-radius: 10px;
+    border-radius: 8px;
     font-size: 0.95rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.2s;
 }
 
 .cart-empty__btn:hover {
-    background: #0e3a61;
+    background: #001a4d;
 }
 
-/* RESPONSIVO */
+/* =============================================
+   RESPONSIVO
+   ============================================= */
 @media (max-width: 768px) {
     .cart-page {
         flex-direction: column;
+        padding: 24px 16px;
     }
 
     .cart-summary {
         width: 100%;
         position: static;
+    }
+
+    .cart-title {
+        font-size: 1.3rem;
     }
 }
