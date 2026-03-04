@@ -149,7 +149,7 @@
 /* =============================================
    BOTÃO REMOVER
    ============================================= */
-.slds-icon slds-icon-text-default {
+.svg-icon {
     background: none;
     border: 1px solid #fca5a5;
     color: #ef4444;
@@ -165,7 +165,7 @@
     flex-shrink: 0;
 }
 
-.slds-icon slds-icon-text-default:hover {
+.svg-icon:hover {
     background: #fee2e2;
     border-color: #ef4444;
 }

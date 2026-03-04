@@ -63,9 +63,19 @@ export default function CartItem({ item, onRemove, onUpdateQuantity }) {
 
                 {/* REMOVER */}
                 <div>
-                    <svg onClick={() => onRemove(item._id)} focusable="false" aria-hidden="true" viewBox="0 0 52 52" part="icon" lwc-54ea36r85ci="" data-key="delete" class="slds-icon slds-icon-text-default"><g lwc-54ea36r85ci=""><path d="M45.5 10H33V6a4 4 0 00-4-4h-6a4 4 0 00-4 4v4H6.5c-.8 0-1.5.7-1.5 1.5v3c0 .8.7 1.5 1.5 1.5h39c.8 0 1.5-.7 1.5-1.5v-3c0-.8-.7-1.5-1.5-1.5zM23 7c0-.6.4-1 1-1h4c.6 0 1 .4 1 1v3h-6zm18.5 13h-31c-.8 0-1.5.7-1.5 1.5V45a5 5 0 005 5h24a5 5 0 005-5V21.5c0-.8-.7-1.5-1.5-1.5zM23 42c0 .6-.4 1-1 1h-2c-.6 0-1-.4-1-1V28c0-.6.4-1 1-1h2c.6 0 1 .4 1 1zm10 0c0 .6-.4 1-1 1h-2c-.6 0-1-.4-1-1V28c0-.6.4-1 1-1h2c.6 0 1 .4 1 1z" lwc-54ea36r85ci=""></path></g></svg>
+                    <svg onClick={() => onRemove(item._id)} fill="#f90606" width="10px" height="10px" viewBox="-2.94 0 31.716 31.716" xmlns="http://www.w3.org/2000/svg" className="svg-icon">
+                        <g transform="translate(-355.957 -579)">
+                            <path d="M376.515,610.716H361.231a2.361,2.361,0,0,1-2.358-2.359V584.1a1,1,0,0,1,2,0v24.255a.36.36,0,0,0,.358.359h15.284a.36.36,0,0,0,.358-.359V584.1a1,1,0,0,1,2,0v24.255A2.361,2.361,0,0,1,376.515,610.716Z" />
+                            <path d="M365.457,604.917a1,1,0,0,1-1-1v-14a1,1,0,0,1,2,0v14A1,1,0,0,1,365.457,604.917Z" />
+                            <path d="M372.29,604.917a1,1,0,0,1-1-1v-14a1,1,0,0,1,2,0v14A1,1,0,0,1,372.29,604.917Z" />
+                            <path d="M380.79,585.1H356.957a1,1,0,0,1,0-2H380.79a1,1,0,0,1,0,2Z" />
+                            <path d="M372.79,581h-7.917a1,1,0,1,1,0-2h7.917a1,1,0,0,1,0,2Z" />
+                        </g>
+                    </svg>
+
                 </div>
             </div>
+
         </li>
     );
 }
