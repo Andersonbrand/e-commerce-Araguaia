@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+:root {
+    /* Vermelho como cor primária */
+    --primary: #af1518;
+    --primary-dark: #8a0f12;
+    --primary-light: #fdf0f0;
+    /* Azul como cor de destaque/secundária */
+    --accent: #0056a6;
+    --accent-dark: #003d7a;
+    --bg: #ffffff;
+    --surface: #f5f7fa;
+    --surface-2: #eef1f6;
+    --foreground: #0d1117;
+    --muted: #5a6272;
+    --border: #dde3ed;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background-color: var(--bg);
+    color: var(--foreground);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.font-display { font-family: 'Fraunces', serif; }
+
+.text-gradient-red {
+    background: linear-gradient(135deg, #af1518 0%, #e03235 60%, #8a0f12 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-blue {
+    background: linear-gradient(135deg, #0056a6 0%, #0080ff 60%, #003d7a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.glass {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(175, 21, 24, 0.08);
+}
+
+.glass-dark {
+    background: rgba(175, 21, 24, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(175, 21, 24, 0.12);
+}
+
+.noise-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Product card hover */
+.product-card .product-img {
+    transition: transform 0.7s cubic-bezier(0.2, 1, 0.3, 1);
+}
+.product-card:hover .product-img { transform: scale(1.06); }
+
+/* Hover lift */
+.hover-lift {
+    transition: transform 0.3s cubic-bezier(0.2, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(175, 21, 24, 0.12);
+}
+
+/* Category pills */
+.cat-pill { transition: all 0.2s; }
+.cat-pill.active {
+    background: var(--primary);
+    color: white;
+}
+
+/* Badge */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+/* Form inputs */
+.form-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background: white;
+    font-size: 0.875rem;
+    color: var(--foreground);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(175, 21, 24, 0.08);
+}
+.form-input::placeholder { color: rgba(90, 98, 114, 0.5); }
+
+/* Admin row */
+.admin-row:hover { background: var(--surface); }
+
+/* Modal backdrop */
+.modal-backdrop {
+    background: rgba(13, 17, 23, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+/* Marquee */
+@keyframes marquee-ltr {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.marquee-track {
+    animation: marquee-ltr 30s linear infinite;
+    white-space: nowrap;
+}
+
+/* Float animations */
+@keyframes float-gentle {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-12px); }
+}
+.animate-float        { animation: float-gentle 7s ease-in-out infinite; }
+.animate-float-delay  { animation: float-gentle 7s ease-in-out 1.5s infinite; }
+.animate-float-slow   { animation: float-gentle 9s ease-in-out 3s infinite; }
+
+.animate-on-scroll {
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
