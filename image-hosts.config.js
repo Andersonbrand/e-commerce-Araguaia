@@ -1,4 +1,5 @@
-export const imageHosts = [
+/** @type {import('next').NextConfig['images']['remotePatterns']} */
+const imageHosts = [
     { protocol: 'https', hostname: 'images.unsplash.com' },
     { protocol: 'https', hostname: 'images.pexels.com' },
     { protocol: 'https', hostname: 'img.rocket.new' },
@@ -8,3 +9,5 @@ export const imageHosts = [
         pathname: '/storage/v1/object/public/**',
     },
 ];
+
+module.exports = { imageHosts };

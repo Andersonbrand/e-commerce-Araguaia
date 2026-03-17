@@ -1,4 +1,6 @@
-import { imageHosts } from './image-hosts.config.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { imageHosts } = require('./image-hosts.config.js');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
