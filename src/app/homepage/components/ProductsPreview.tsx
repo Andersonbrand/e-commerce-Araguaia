@@ -10,26 +10,32 @@ import { useCart } from '@/context/CartContext';
 import { useCompany, COMPANIES, CompanyId, COMPANY_ORDER, COMPANY_CATEGORIES } from '@/context/CompanyContext';
 import toast from 'react-hot-toast';
 
-// Imagens fallback por categoria (usando fotos reais de produtos quando possível)
+// Imagens por categoria — imagens de stock confiáveis, nunca dependem do banco
+// Unsplash: imagens livres de direitos para uso em desenvolvimento
 const CATEGORY_IMAGES: Record<string, string> = {
-  'Cimento':            '/assets/images/about/sacos-cimento.jpg',
-  'Vergalhões':         '/assets/images/about/vergalhoes.jpg',
-  'Ferragens':          '/assets/images/about/estoque.jpg',
-  'Serralheria':        '/assets/images/about/estoque.jpg',
-  'Barras e Perfis':    '/assets/images/about/vergalhoes.jpg',
-  'Aços Planos':        '/assets/images/about/vergalhoes.jpg',
-  'Arames':             '/assets/images/about/estoque.jpg',
-  'Chapas':             '/assets/images/about/estoque.jpg',
-  'Telhas':             'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800',
-  'Telhas de Zinco':    'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800',
-  'Bobinas de Zinco':   'https://images.unsplash.com/photo-1566837945700-30057527ade0?w=800',
-  'Colunas e Treliças': '/assets/images/about/vergalhoes.jpg',
-  'Colunas':            '/assets/images/about/vergalhoes.jpg',
-  'Treliças':           '/assets/images/about/vergalhoes.jpg',
-  'Tubos':              '/assets/images/about/vergalhoes.jpg',
-  'Parafusos':          '/assets/images/about/estoque.jpg',
+  // Araguaia
+  'Cimento':                '/assets/images/about/sacos-cimento.jpg',
+  'Vergalhões':             '/assets/images/about/vergalhoes.jpg',
+  'Barras e Perfis':        '/assets/images/about/vergalhoes.jpg',
+  'Aços Planos':            '/assets/images/about/vergalhoes.jpg',
+  'Arames':                 '/assets/images/about/vergalhoes.jpg',
+  'Chapas':                 '/assets/images/about/vergalhoes.jpg',
+  'Tubos':                  '/assets/images/about/vergalhoes.jpg',
+  'Ferragens':              '/assets/images/about/estoque.jpg',
+  'Serralheria':            '/assets/images/about/estoque.jpg',
+  'Parafusos':              '/assets/images/about/estoque.jpg',
+  'Argamassas':             '/assets/images/about/sacos-cimento.jpg',
+  // Confiance Indústria
+  'Telhas de Zinco':        'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80',
+  'Telhas':                 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80',
+  'Bobinas de Zinco':       'https://images.unsplash.com/photo-1581092921461-39b9d08a9b21?w=800&q=80',
+  'Colunas e Treliças':     '/assets/images/about/vergalhoes.jpg',
+  'Colunas':                '/assets/images/about/vergalhoes.jpg',
+  'Treliças':               '/assets/images/about/vergalhoes.jpg',
+  // Aços Confiance (as categorias compartilhadas já estão acima)
+  'Telhas de Fibrocimento': 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80',
 };
-const FALLBACK_IMAGE = '/assets/images/about/estoque.jpg';
+const FALLBACK_IMAGE = '/assets/images/about/vergalhoes.jpg';
 
 export default function ProductsPreview() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -78,12 +84,10 @@ export default function ProductsPreview() {
   });
   const categories = Array.from(categoryMap.entries()).slice(0, 4);
 
-  // Para o bento: usa image_url do produto representativo da categoria se disponível,
-  // senão cai no CATEGORY_IMAGES da categoria específica.
-  // O produto já foi filtrado por empresa antes de chegar aqui (filteredProducts),
-  // portanto product.image_url é sempre de um produto da empresa correta.
-  const getBentoCatImage = (cat: string, product: Product) =>
-    product.image_url || CATEGORY_IMAGES[cat] || FALLBACK_IMAGE;
+  // Para o bento: usa SEMPRE o mapa de imagens por categoria.
+  // NÃO usa product.image_url pois o produto no banco pode ter imagem incorreta.
+  const getBentoCatImage = (cat: string, _product?: Product) =>
+    CATEGORY_IMAGES[cat] || FALLBACK_IMAGE;
 
   // Para cards de produto: usa image_url do produto com fallback
   const getProductImage = (product: Product) =>

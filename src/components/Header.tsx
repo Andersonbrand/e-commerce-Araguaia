@@ -46,7 +46,8 @@ export default function Header() {
   // Bloqueia troca de empresa na página individual de produto
   // Rotas que limpam a empresa (sem seleção ativa)
   const isProductPage    = pathname?.startsWith('/products/') && pathname !== '/products';
-  const isCompanyCleared = pathname === '/sobre' || pathname === '/cart';
+  const isCompanyCleared = pathname === '/sobre' || pathname === '/cart' || 
+                            pathname?.startsWith('/admin-dashboard') || pathname === '/perfil';
   const isLockedPage     = isProductPage || isCompanyCleared;
 
   const { totalItems }            = useCart();
