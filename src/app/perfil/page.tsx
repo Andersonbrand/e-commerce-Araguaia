@@ -19,13 +19,14 @@ const BR_STATES = [
 ];
 
 export default function PerfilPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const [tab, setTab]                  = useState<Tab>('profile');
   const [profile, setProfile]          = useState<Partial<UserProfile>>({});
   const [responses, setResponses]      = useState<QuoteResponse[]>([]);
   const [loading, setLoading]          = useState(true);
   const [saving, setSaving]            = useState(false);
   const [unread, setUnread]            = useState(0);
+  const [sentReplies, setSentReplies]  = useState<any[]>([]);
 
   useEffect(() => {
     // Aguarda o AuthContext terminar de carregar o usuário
@@ -49,19 +50,27 @@ export default function PerfilPage() {
         full_name: user.user_metadata?.full_name ?? '',
       });
 
-      // Respostas de orçamento — busca pelo email do usuário autenticado
-      const { data: respData, error: respError } = await supabase
-        .from('quote_responses')
-        .select('*')
-        .eq('customer_email', user.email)
-        .order('created_at', { ascending: false });
-
-      if (respError) {
-        console.error('Erro ao buscar respostas:', respError.message);
+      if (isAdmin) {
+        // Admin: carrega respostas que ELE enviou (sem filtro de email)
+        const { data: sentData } = await supabase
+          .from('quote_responses')
+          .select('*')
+          .order('created_at', { ascending: false });
+        setSentReplies(sentData ?? []);
       } else {
-        const resp = respData ?? [];
-        setResponses(resp);
-        setUnread(resp.filter((r) => r.status === 'sent').length);
+        // Usuário normal: respostas recebidas para o email dele
+        const { data: respData, error: respError } = await supabase
+          .from('quote_responses')
+          .select('*')
+          .eq('customer_email', user.email)
+          .order('created_at', { ascending: false });
+        if (respError) {
+          console.error('Erro ao buscar respostas:', respError.message);
+        } else {
+          const resp = respData ?? [];
+          setResponses(resp);
+          setUnread(resp.filter((r) => r.status === 'sent').length);
+        }
       }
 
       setLoading(false);
@@ -137,7 +146,9 @@ export default function PerfilPage() {
               </h1>
               <p className="text-muted text-sm mt-1">{user?.email}</p>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span className="badge bg-primary/8 text-primary border border-primary/20 text-[10px]">Cliente</span>
+                <span className={`badge text-[10px] border ${isAdmin ? 'bg-[#0a1a3a]/8 text-[#0a1a3a] border-[#0a1a3a]/20' : 'bg-primary/8 text-primary border-primary/20'}`}>
+                  {isAdmin ? 'Admin' : 'Cliente'}
+                </span>
                 {unread > 0 && (
                   <span className="badge bg-primary text-white text-[10px] animate-pulse">
                     {unread} resposta{unread > 1 ? 's' : ''} nova{unread > 1 ? 's' : ''}
@@ -152,8 +163,8 @@ export default function PerfilPage() {
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           {[
-            { id: 'profile'   as Tab, label: 'Meu Perfil',      icon: 'UserIcon'         },
-            { id: 'responses' as Tab, label: 'Minhas Respostas', icon: 'DocumentTextIcon', badge: unread },
+            { id: 'profile'   as Tab, label: 'Meu Perfil',                                        icon: 'UserIcon'           },
+            { id: 'responses' as Tab, label: isAdmin ? 'Respostas Enviadas' : 'Minhas Respostas', icon: 'PaperAirplaneIcon', badge: isAdmin ? undefined : unread },
           ].map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all border ${
@@ -234,148 +245,181 @@ export default function PerfilPage() {
         {/* ── RESPOSTAS ── */}
         {tab === 'responses' && (
           <div className="space-y-4">
-            {loading ? (
-              <div className="bg-white rounded-3xl p-8 border border-border">
-                <div className="space-y-4">
-                  {[...Array(2)].map((_, i) => (
-                    <div key={i} className="h-32 bg-surface rounded-2xl animate-pulse" />
-                  ))}
-                </div>
-              </div>
-            ) : responses.length === 0 ? (
-              <div className="bg-white rounded-3xl p-16 border border-border text-center">
-                <div className="w-16 h-16 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-4">
-                  <AppIcon name="DocumentTextIcon" size={32} className="text-primary" />
-                </div>
-                <p className="font-bold text-foreground text-lg">Nenhuma resposta ainda</p>
-                <p className="text-muted text-sm mt-2 max-w-sm mx-auto">
-                  Quando o comercial responder sua solicitação de orçamento, a resposta aparecerá aqui.
-                </p>
-              </div>
-            ) : responses.map((resp) => (
-              <div key={resp.id}
-                className={`bg-white rounded-3xl p-6 border transition-all ${
-                  resp.status === 'sent' ? 'border-primary/30 shadow-red-lg' : 'border-border'
-                }`}>
-
-                {/* Header da resposta */}
-                <div className="flex items-start justify-between gap-4 mb-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <AppLogo size={24} />
+            {isAdmin ? (
+              /* Admin: vê respostas que ELE enviou */
+              <>
+                {loading ? (
+                  <div className="bg-white rounded-3xl p-8 border border-border">
+                    <div className="space-y-4">{[...Array(2)].map((_,i) => <div key={i} className="h-24 bg-surface rounded-2xl animate-pulse" />)}</div>
+                  </div>
+                ) : sentReplies.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-16 border border-border text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-4">
+                      <AppIcon name="PaperAirplaneIcon" size={32} className="text-primary" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-bold text-foreground text-sm">Comercial Araguaia</p>
-                        {resp.status === 'sent' && (
-                          <span className="badge bg-primary text-white text-[9px]">Nova</span>
-                        )}
+                    <p className="font-bold text-foreground text-lg">Nenhuma resposta enviada ainda</p>
+                    <p className="text-muted text-sm mt-2 max-w-sm mx-auto">
+                      Responda solicitações pelo Painel Admin e elas aparecerão aqui.
+                    </p>
+                  </div>
+                ) : sentReplies.map((reply: any) => (
+                  <div key={reply.id} className="bg-white rounded-3xl p-6 border border-border shadow-sm">
+                    <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                      <div>
+                        <p className="font-bold text-foreground">{reply.customer_name}</p>
+                        <p className="text-sm text-muted">{reply.customer_email}</p>
+                        <p className="text-[11px] text-muted">{new Date(reply.created_at).toLocaleString('pt-BR')}</p>
                       </div>
-                      <p className="text-[11px] text-muted">
-                        {new Date(resp.created_at).toLocaleString('pt-BR')}
-                      </p>
+                      <span className={`badge text-[9px] border ${reply.status === 'read' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                        {reply.status === 'read' ? '✓ Lida pelo cliente' : '→ Enviada'}
+                      </span>
                     </div>
-                  </div>
-                  {resp.status === 'sent' && (
-                    <button onClick={() => markRead(resp.id)}
-                      className="text-[11px] text-muted hover:text-primary font-medium transition-colors shrink-0 flex items-center gap-1">
-                      <AppIcon name="CheckIcon" size={12} />
-                      Marcar como lida
-                    </button>
-                  )}
-                </div>
-
-                {/* Mensagem */}
-                {resp.message && (
-                  <div className="bg-surface rounded-2xl p-5 mb-4 border border-border">
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-muted mb-2">Mensagem</p>
-                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{resp.message}</p>
-                  </div>
-                )}
-
-                {/* Produtos (pedidos do carrinho) */}
-                {resp.products_summary &&
-                  resp.products_summary.length > 0 &&
-                  resp.request_type === 'cart' && (
-                  <div className="mb-4">
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-muted mb-3">Itens do Orçamento</p>
-                    <div className="border border-border rounded-2xl overflow-hidden">
-                      {resp.products_summary.map((item: any, i: number) => (
-                        <div key={i}
-                          className="flex items-center justify-between px-4 py-3 border-b border-border/50 last:border-0">
-                          <span className="text-sm text-foreground font-medium">
-                            {item.quantity}× {item.name}
-                            <span className="text-muted text-[11px] ml-1">/ {item.unit}</span>
-                          </span>
-                          <span className="text-sm font-bold text-primary">
-                            R$ {Number(item.total ?? item.price * item.quantity).toFixed(2).replace('.', ',')}
-                          </span>
+                    {reply.message && (
+                      <div className="bg-surface rounded-2xl p-4 mb-3 border border-border">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-muted mb-1">Mensagem</p>
+                        <p className="text-sm text-foreground leading-relaxed">{reply.message}</p>
+                      </div>
+                    )}
+                    {reply.products_summary && reply.products_summary.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-muted mb-2">Produtos cotados</p>
+                        <div className="flex flex-wrap gap-2">
+                          {reply.products_summary.map((p: any, i: number) => (
+                            <div key={i} className="flex items-center gap-1.5 bg-surface border border-border rounded-xl px-3 py-1.5 text-sm">
+                              <span className="font-bold text-foreground">{p.name}</span>
+                              {p.price > 0 && <span className="text-primary font-bold ml-1">R$ {Number(p.price).toFixed(2).replace('.', ',')}</span>}
+                            </div>
+                          ))}
                         </div>
+                      </div>
+                    )}
+                    {reply.pdf_url && (
+                      <a href={reply.pdf_url} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border text-[11px] font-bold text-muted hover:text-primary hover:border-primary/30 transition-all">
+                        <AppIcon name="DocumentArrowDownIcon" size={13} />
+                        {reply.pdf_name ?? 'Ver PDF'}
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </>
+            ) : (
+              /* Usuário normal: respostas RECEBIDAS */
+              <>
+                {loading ? (
+                  <div className="bg-white rounded-3xl p-8 border border-border">
+                    <div className="space-y-4">
+                      {[...Array(2)].map((_, i) => (
+                        <div key={i} className="h-32 bg-surface rounded-2xl animate-pulse" />
                       ))}
                     </div>
                   </div>
-                )}
-
-                {/* Observações */}
-                {resp.observations && (
-                  <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-accent mb-1">Observações</p>
-                    <p className="text-sm text-foreground leading-relaxed">{resp.observations}</p>
-                  </div>
-                )}
-
-                {/* Requisitos para fechar */}
-                {resp.requirements && (
-                  <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
-                    <p className="text-[10px] uppercase tracking-widest font-bold text-amber-700 mb-1">
-                      Para Finalizar a Compra
+                ) : responses.length === 0 ? (
+                  <div className="bg-white rounded-3xl p-16 border border-border text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/8 flex items-center justify-center mx-auto mb-4">
+                      <AppIcon name="DocumentTextIcon" size={32} className="text-primary" />
+                    </div>
+                    <p className="font-bold text-foreground text-lg">Nenhuma resposta ainda</p>
+                    <p className="text-muted text-sm mt-2 max-w-sm mx-auto">
+                      Quando o comercial responder sua solicitação, a resposta aparecerá aqui.
                     </p>
-                    <p className="text-sm text-foreground leading-relaxed">{resp.requirements}</p>
                   </div>
-                )}
-
-                {/* PDF */}
-                {resp.pdf_url && (
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-surface border border-border mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <AppIcon name="DocumentTextIcon" size={20} className="text-primary" />
+                ) : responses.map((resp) => (
+                  <div key={resp.id}
+                    className={`bg-white rounded-3xl p-6 border transition-all ${resp.status === 'sent' ? 'border-primary/30 shadow-red-lg' : 'border-border'}`}>
+                    <div className="flex items-start justify-between gap-4 mb-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          <AppLogo size={24} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-foreground text-sm">Grupo HC</p>
+                            {resp.status === 'sent' && <span className="badge bg-primary text-white text-[9px]">Nova</span>}
+                          </div>
+                          <p className="text-[11px] text-muted">{new Date(resp.created_at).toLocaleString('pt-BR')}</p>
+                        </div>
+                      </div>
+                      {resp.status === 'sent' && (
+                        <button onClick={() => markRead(resp.id)}
+                          className="text-[11px] text-muted hover:text-primary font-medium transition-colors shrink-0 flex items-center gap-1">
+                          <AppIcon name="CheckIcon" size={12} />
+                          Marcar como lida
+                        </button>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate">
-                        {resp.pdf_name ?? 'Orçamento.pdf'}
-                      </p>
-                      <p className="text-[11px] text-muted">Documento PDF anexado</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <a href={resp.pdf_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-border text-sm font-bold text-muted hover:text-primary hover:border-primary/30 transition-all">
-                        <AppIcon name="EyeIcon" size={14} />
-                        <span className="hidden sm:inline">Visualizar</span>
-                      </a>
-                      <a href={resp.pdf_url} download={resp.pdf_name ?? 'orcamento.pdf'}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg">
-                        <AppIcon name="ArrowDownTrayIcon" size={14} />
-                        <span className="hidden sm:inline">Baixar</span>
+                    {resp.message && (
+                      <div className="bg-surface rounded-2xl p-5 mb-4 border border-border">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-muted mb-2">Mensagem</p>
+                        <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{resp.message}</p>
+                      </div>
+                    )}
+                    {resp.products_summary && resp.products_summary.length > 0 && resp.request_type === 'cart' && (
+                      <div className="mb-4">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-muted mb-3">Itens do Orçamento</p>
+                        <div className="border border-border rounded-2xl overflow-hidden">
+                          {resp.products_summary.map((item: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-border/50 last:border-0">
+                              <span className="text-sm text-foreground font-medium">
+                                {item.quantity}× {item.name}
+                                <span className="text-muted text-[11px] ml-1">/ {item.unit}</span>
+                              </span>
+                              <span className="text-sm font-bold text-primary">
+                                R$ {Number(item.total ?? item.price * item.quantity).toFixed(2).replace('.', ',')}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {resp.observations && (
+                      <div className="mb-4 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-accent mb-1">Observações</p>
+                        <p className="text-sm text-foreground leading-relaxed">{resp.observations}</p>
+                      </div>
+                    )}
+                    {resp.requirements && (
+                      <div className="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-amber-700 mb-1">Para Finalizar a Compra</p>
+                        <p className="text-sm text-foreground leading-relaxed">{resp.requirements}</p>
+                      </div>
+                    )}
+                    {resp.pdf_url && (
+                      <div className="flex items-center gap-3 p-4 rounded-xl bg-surface border border-border mb-4">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                          <AppIcon name="DocumentTextIcon" size={20} className="text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate">{resp.pdf_name ?? 'Orçamento.pdf'}</p>
+                          <p className="text-[11px] text-muted">Documento PDF anexado</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <a href={resp.pdf_url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-border text-sm font-bold text-muted hover:text-primary hover:border-primary/30 transition-all">
+                            <AppIcon name="EyeIcon" size={14} />
+                            <span className="hidden sm:inline">Visualizar</span>
+                          </a>
+                          <a href={resp.pdf_url} download={resp.pdf_name ?? 'orcamento.pdf'}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg">
+                            <AppIcon name="ArrowDownTrayIcon" size={14} />
+                            <span className="hidden sm:inline">Baixar</span>
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    <div className="pt-4 border-t border-border/40 flex items-center justify-between">
+                      <p className="text-[11px] text-muted">Dúvidas? Entre em contato com nossa equipe.</p>
+                      <a href="https://wa.me/5577981046133?text=Olá! Recebi a resposta do meu orçamento e gostaria de continuar."
+                        target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-border hover:border-primary/30 hover:bg-primary/5 text-sm font-bold text-muted hover:text-primary transition-all">
+                        <AppIcon name="ChatBubbleLeftRightIcon" size={16} />
+                        WhatsApp
                       </a>
                     </div>
                   </div>
-                )}
-
-                {/* CTA WhatsApp */}
-                <div className="pt-4 border-t border-border/40 flex items-center justify-between">
-                  <p className="text-[11px] text-muted">
-                    Dúvidas? Entre em contato com nossa equipe.
-                  </p>
-                  <a
-                    href={`https://wa.me/5577981046133?text=Olá! Recebi a resposta do meu orçamento e gostaria de continuar.`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-border hover:border-primary/30 hover:bg-primary/5 text-sm font-bold text-muted hover:text-primary transition-all">
-                    <AppIcon name="ChatBubbleLeftRightIcon" size={16} />
-                    WhatsApp
-                  </a>
-                </div>
-              </div>
-            ))}
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>

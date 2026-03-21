@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AppIcon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
+import { COMPANIES, COMPANY_ORDER, CompanyId } from '@/context/CompanyContext';
 import { Product } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -26,7 +27,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
     const [form, setForm]             = useState<FormData>({
         name: '', category: allCategories[0] ?? 'Cimento',
-        description: '', image_url: null, price: 0, unit: UNITS[0], stock: 0, is_active: true,
+        description: '', image_url: null, price: 0, unit: UNITS[0], stock: 0, is_active: true, companies: ['araguaia'], is_featured: false,
     });
     const [imageMode, setImageMode]   = useState<ImageMode>('upload');
     const [urlInput, setUrlInput]     = useState('');
@@ -41,7 +42,13 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
     useEffect(() => {
         if (product) {
             const { id: _id, created_at: _c, updated_at: _u, ...rest } = product;
-            setForm(rest);
+            // Garantir que companies é array
+            const formData = { ...rest };
+            if ((formData as any).company && !(formData as any).companies) {
+              (formData as any).companies = [(formData as any).company];
+            }
+            if (!(formData as any).companies) (formData as any).companies = ['araguaia'];
+            setForm(formData);
             setPreview(rest.image_url);
             if (rest.image_url) setUrlInput(rest.image_url);
         }
@@ -122,7 +129,12 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         if (!form.category.trim()) { toast.error('Categoria é obrigatória.'); return; }
         setSaving(true);
         try {
-            const payload = { ...form, price: Number(form.price), stock: Number(form.stock) };
+            const payload = {
+                ...form,
+                price: Number(form.price),
+                stock: Number(form.stock),
+                companies: (form as any).companies ?? ['araguaia'],
+            };
             if (product) {
                 const { error } = await supabase.from('products')
                     .update({ ...payload, updated_at: new Date().toISOString() })
@@ -306,6 +318,55 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                         <textarea name="description" value={form.description ?? ''} onChange={handleChange} rows={3}
                             placeholder="Especificações técnicas, marca, características..."
                             className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors resize-none" />
+                    </div>
+
+                    {/* Empresas — seleção múltipla */}
+                    <div>
+                        <label className="block text-[11px] uppercase tracking-widest font-bold text-muted mb-1">
+                            Empresas que vendem este produto
+                        </label>
+                        <p className="text-[10px] text-muted mb-2">Selecione uma ou mais empresas do Grupo HC</p>
+                        <div className="grid grid-cols-3 gap-2">
+                            {COMPANY_ORDER.map((id) => {
+                                const co = COMPANIES[id];
+                                const companies = (form as any).companies as string[] ?? [];
+                                const isSelected = companies.includes(id);
+                                return (
+                                    <button key={id} type="button"
+                                        onClick={() => {
+                                            const cur = (form as any).companies as string[] ?? [];
+                                            const next = isSelected
+                                                ? cur.filter((x: string) => x !== id)
+                                                : [...cur, id];
+                                            setForm(prev => ({ ...prev, companies: next.length ? next : [id] }));
+                                        }}
+                                        className="flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border-2 transition-all relative"
+                                        style={{
+                                            borderColor: isSelected ? co.primaryColor : '#dde3ed',
+                                            backgroundColor: isSelected ? co.bgLight : 'white',
+                                        }}>
+                                        {isSelected && (
+                                            <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full flex items-center justify-center text-white text-[8px] font-bold"
+                                                style={{ backgroundColor: co.primaryColor }}>✓</span>
+                                        )}
+                                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: co.primaryColor }} />
+                                        <span className="text-[11px] font-bold leading-tight text-center" style={{ color: isSelected ? co.primaryColor : '#9ca3af' }}>{co.shortName}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Destaque na homepage */}
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200">
+                        <div>
+                            <p className="text-sm font-bold text-foreground">⭐ Produto em destaque</p>
+                            <p className="text-[11px] text-muted">Aparece nas "Categorias Principais" da homepage</p>
+                        </div>
+                        <button type="button" onClick={() => setForm((prev) => ({ ...prev, is_featured: !(prev as any).is_featured }))}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(form as any).is_featured ? 'bg-amber-500' : 'bg-border'}`}>
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${(form as any).is_featured ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
                     </div>
 
                     {/* Ativo */}

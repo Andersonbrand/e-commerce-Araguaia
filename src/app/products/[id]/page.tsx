@@ -9,6 +9,7 @@ import AppIcon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import { Product } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
+import { useCompany } from '@/context/CompanyContext';
 import { useCart } from '@/context/CartContext';
 import QuantityInput from '@/components/ui/QuantityInput';
 import toast from 'react-hot-toast';
@@ -22,6 +23,7 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [qty, setQty]         = useState(1);
   const { showPrices }        = usePrices();
+  const { activeCompany }     = useCompany();
   const { addToCart }         = useCart();
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function ProductDetailPage() {
   const handleAdd = () => {
     if (!product) return;
     // Adiciona a quantidade correta de itens
-    for (let i = 0; i < qty; i++) addToCart(product);
+    for (let i = 0; i < qty; i++) addToCart(product, activeCompany);
     toast.success(`${qty}x ${product.name} adicionado ao orçamento!`);
   };
 
@@ -75,7 +77,7 @@ export default function ProductDetailPage() {
         <div className="pt-40 text-center px-6">
           <p className="text-2xl font-bold text-foreground mb-4">Produto não encontrado</p>
           <button onClick={() => router.push('/products')}
-            className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark transition-all">
+            className="px-6 py-3 text-white rounded-xl font-bold transition-all" style={{ backgroundColor: '#151826' }}>
             Voltar
           </button>
         </div>
@@ -100,7 +102,7 @@ export default function ProductDetailPage() {
               Voltar aos produtos
             </button>
             <span className="text-border">›</span>
-            <span className="text-primary font-medium">{product.category}</span>
+            <span className="font-medium" style={{ color: '#151826' }}>{product.category}</span>
             <span className="text-border">›</span>
             <span className="text-foreground font-medium truncate max-w-xs">{product.name}</span>
           </div>
@@ -110,15 +112,16 @@ export default function ProductDetailPage() {
             <div className="relative group">
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-accent/5 rounded-5xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               <div className="absolute -top-3 -right-3 w-full h-full border-2 border-primary/15 rounded-4xl z-0" />
-              <div className="relative aspect-square rounded-4xl overflow-hidden border-2 border-white shadow-red-lg group-hover:shadow-red-xl transition-shadow duration-500 z-10">
+              <div className="relative aspect-square rounded-4xl overflow-hidden border-2 border-white shadow-red-lg group-hover:shadow-red-xl transition-shadow duration-500 z-10 bg-white">
                 <AppImage
                   src={product.image_url ?? '/assets/images/no_image.png'}
                   alt={product.name} fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  className="transition-transform duration-700 group-hover:scale-105"
+                  style={{ objectFit: 'contain', padding: '32px', backgroundColor: 'white' }}
                   priority
                 />
                 <div className="absolute top-4 left-4">
-                  <span className="badge bg-primary text-white text-[10px] shadow-red-lg">{product.category}</span>
+                  <span className="badge text-white text-[10px]" style={{ backgroundColor: '#151826' }}>{product.category}</span>
                 </div>
               </div>
             </div>
@@ -126,7 +129,7 @@ export default function ProductDetailPage() {
             {/* Info */}
             <div className="space-y-6 lg:pt-4">
               <div>
-                <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-primary">{product.category}</span>
+                <span className="text-[10px] uppercase tracking-[0.3em] font-bold" style={{ color: '#151826' }}>{product.category}</span>
                 <h1 className="text-4xl font-bold text-foreground mt-2 leading-tight">{product.name}</h1>
                 <p className="text-muted text-sm mt-1">Unidade: <strong>{product.unit}</strong></p>
               </div>
@@ -153,7 +156,7 @@ export default function ProductDetailPage() {
                 {showPrices && unitPrice > 0 ? (
                   <div className="flex items-end gap-3">
                     {/* Preço total em destaque */}
-                    <p className="text-4xl font-display font-bold text-primary">
+                    <p className="text-4xl font-display font-bold" style={{ color: '#151826' }}>
                       R$ {totalPrice.toFixed(2).replace('.', ',')}
                     </p>
                     {qty > 1 && (
@@ -170,7 +173,7 @@ export default function ProductDetailPage() {
                 <QuantityInput value={qty} onChange={setQty} min={1} max={9999} size="md" />
 
                 <button onClick={handleAdd}
-                  className="flex-1 py-3.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-all shadow-red-lg hover:shadow-red-xl hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                  className="flex-1 py-3.5 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2" style={{ backgroundColor: '#151826', boxShadow: '0 4px 20px #15182640' }}>
                   <AppIcon name="ShoppingCartIcon" size={18} />
                   Adicionar ao Orçamento
                 </button>
@@ -205,20 +208,24 @@ export default function ProductDetailPage() {
           {related.length > 0 && (
             <div className="mt-20">
               <h2 className="text-2xl font-bold text-foreground mb-8">
-                Mais em <span className="text-primary">{product.category}</span>
+                Mais em <span style={{ color: '#151826' }}>{product.category}</span>
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {related.map((rel) => (
                   <a key={rel.id} href={`/products/${rel.id}`}
                     className="group bg-white border border-border rounded-3xl overflow-hidden hover-lift shadow-sm block">
-                    <div className="relative h-36 overflow-hidden bg-surface">
-                      <AppImage src={rel.image_url ?? '/assets/images/no_image.png'} alt={rel.name} fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <div className="relative overflow-hidden bg-white" style={{ height: '144px' }}>
+                      <AppImage
+                        src={rel.image_url ?? '/assets/images/no_image.png'}
+                        alt={rel.name} fill
+                        className="transition-transform duration-500 group-hover:scale-105"
+                        style={{ objectFit: 'contain', padding: '12px' }}
+                      />
                     </div>
                     <div className="p-4">
                       <p className="text-sm font-bold text-foreground leading-snug">{rel.name}</p>
                       {showPrices && rel.price > 0
-                        ? <p className="text-primary font-bold text-sm mt-1">R$ {rel.price.toFixed(2).replace('.', ',')}</p>
+                        ? <p className="font-bold text-sm mt-1" style={{ color: '#151826' }}>R$ {rel.price.toFixed(2).replace('.', ',')}</p>
                         : <p className="text-muted text-xs mt-1 italic">Sob consulta</p>}
                     </div>
                   </a>

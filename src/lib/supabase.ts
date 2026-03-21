@@ -15,6 +15,8 @@ export interface Product {
   unit: string;
   stock: number;
   is_active: boolean;
+  companies: string[];      // array: ['araguaia', 'acos-confiance'] — produto pode pertencer a múltiplas empresas
+  is_featured: boolean;     // aparece como destaque na homepage
   created_at: string;
   updated_at: string;
 }

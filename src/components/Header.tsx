@@ -7,22 +7,60 @@ import AppLogo from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { usePathname } from 'next/navigation';
+import { useCompany, COMPANIES, CompanyId, Company } from '@/context/CompanyContext';
 
-const navLinks = [
+const NAV_LINKS = [
   { label: 'Início',    href: '/homepage' },
   { label: 'Produtos',  href: '/products' },
-  { label: 'Sobre Nós', href: '/sobre' },
+  { label: 'Sobre', href: '/sobre' },
   { label: 'Orçamento', href: '/homepage#orcamento' },
 ];
 
-export default function Header() {
-  const [scrolled, setScrolled]    = useState(false);
-  const [menuOpen, setMenuOpen]    = useState(false);
-  const { totalItems }             = useCart();
-  const { user, isAdmin, signOut } = useAuth();
-  const router                     = useRouter();
+const COMPANY_ORDER: CompanyId[] = ['araguaia', 'confiance-industria', 'acos-confiance'];
 
-  // Nome curto do usuário (primeiro nome)
+function CompanyPill({ company, isActive, onClick, locked }: {
+  company: Company; isActive: boolean; onClick: () => void; locked?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={locked ? 'Navegue para outra página para trocar de empresa' : undefined}
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border whitespace-nowrap ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''}`}
+      style={{
+        backgroundColor: isActive ? company.primaryColor : 'transparent',
+        color: isActive ? '#fff' : company.primaryColor,
+        borderColor: isActive ? company.primaryColor : `${company.primaryColor}40`,
+      }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: isActive ? '#fff' : company.primaryColor }} />
+      {company.shortName}
+    </button>
+  );
+}
+
+export default function Header() {
+  const [scrolled, setScrolled]   = useState(false);
+  const [menuOpen, setMenuOpen]   = useState(false);
+  const pathname                  = usePathname();
+  // Bloqueia troca de empresa na página individual de produto
+  // Rotas que limpam a empresa (sem seleção ativa)
+  const isProductPage    = pathname?.startsWith('/products/') && pathname !== '/products';
+  const isCompanyCleared = pathname === '/sobre' || pathname === '/cart';
+  const isLockedPage     = isProductPage || isCompanyCleared;
+
+  const { totalItems }            = useCart();
+  const { user, isAdmin, signOut }= useAuth();
+  const router                    = useRouter();
+  const { activeCompany, company, setActiveCompany, isGrupoView } = useCompany();
+
+  // Limpa empresa ativa ao entrar em /sobre ou /cart
+  useEffect(() => {
+    if (isCompanyCleared) {
+      setActiveCompany(null);
+    }
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const displayName = user?.user_metadata?.full_name
     ? (user.user_metadata.full_name as string).split(' ')[0]
     : user?.email?.split('@')[0] ?? '';
@@ -34,77 +72,121 @@ export default function Header() {
   }, []);
 
   const handleSignOut = async () => { await signOut(); router.push('/homepage'); };
+  const headerAccent = company?.primaryColor ?? '#af1518';
 
   return (
     <header className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'py-0' : 'py-2'}`}>
+      {/* Stripe tricolor do Grupo / cor da empresa */}
+      <div
+        className="absolute top-0 left-0 right-0 h-0.5 transition-all duration-700"
+        style={{ background: isGrupoView
+          ? 'linear-gradient(90deg, #af1518 0%, #af1518 33%, #1a3a6b 33%, #1a3a6b 66%, #b04d00 66%, #b04d00 100%)'
+          : company?.gradient ?? '#af1518'
+        }}
+      />
+
       <div className={`mx-4 md:mx-8 lg:mx-12 transition-all duration-500 ${
         scrolled
-          ? 'bg-white/95 backdrop-blur-xl border border-border/60 shadow-red-lg rounded-2xl mt-3 px-6 py-3'
-          : 'bg-white/80 backdrop-blur-md border border-white/40 rounded-2xl mt-4 px-6 py-4'
+          ? 'bg-white/95 backdrop-blur-xl border border-border/60 shadow-lg rounded-2xl mt-3 px-6 py-3'
+          : 'bg-white/85 backdrop-blur-md border border-white/40 rounded-2xl mt-4 px-6 py-4'
       }`}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
+
           {/* Logo */}
-          <Link href="/homepage" className="flex items-center gap-3 group">
+          <Link href="/homepage" onClick={() => setActiveCompany(null)} className="flex items-center gap-3 group flex-shrink-0">
             <AppLogo size={38} />
             <div className="flex flex-col leading-none">
-              <span className="font-display font-bold text-lg tracking-tight text-foreground">
-                Comercial <span className="text-primary">Araguaia</span>
-              </span>
-              <span className="text-[9px] uppercase tracking-[0.2em] text-muted font-medium hidden sm:block">
-                Materiais de Construção
-              </span>
+              {isGrupoView ? (
+                <>
+                  <span className="font-display font-bold text-base tracking-tight text-foreground">
+                    Grupo <span className="text-foreground">HC</span>
+                  </span>
+                  <span className="text-[8px] uppercase tracking-[0.25em] text-muted font-medium hidden sm:block">
+                    Hugo Costa · Confiança & Responsabilidade
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="font-display font-bold text-base tracking-tight transition-colors duration-300"
+                    style={{ color: headerAccent }}>
+                    {company?.name}
+                  </span>
+                  <span className="text-[8px] uppercase tracking-[0.25em] font-medium hidden sm:block transition-colors duration-300"
+                    style={{ color: `${headerAccent}80` }}>
+                    {company?.segment}
+                  </span>
+                </>
+              )}
             </div>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
+          {/* Seletor de empresa — desktop */}
+          <div className="hidden lg:flex items-center gap-1.5 bg-[#f5f7fa] rounded-2xl px-3 py-2 border border-[#dde3ed]">
+            <span className="text-[9px] uppercase tracking-[0.25em] font-bold text-muted/60 mr-0.5">Grupo HC</span>
+            <div className="w-px h-3.5 bg-[#dde3ed] mx-0.5" />
+            {COMPANY_ORDER.map((id) => (
+              <CompanyPill
+                key={id}
+                company={COMPANIES[id]}
+                isActive={activeCompany === id}
+                onClick={() => {
+                  if (isLockedPage) return; // bloqueado nesta página
+                  setActiveCompany(activeCompany === id ? null : id);
+                }}
+                locked={isLockedPage}
+              />
+            ))}
+            {!isGrupoView && (
+              <button
+                onClick={() => setActiveCompany(null)}
+                className="ml-1 w-6 h-6 flex items-center justify-center rounded-lg bg-[#dde3ed] hover:bg-[#c8cdd8] transition-colors text-muted"
+                title="Ver grupo completo"
+              >
+                <AppIcon name="XMarkIcon" size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* Nav desktop */}
+          <nav className="hidden lg:flex items-center gap-3">
+            {NAV_LINKS.map((link) => (
               <Link key={link.href} href={link.href}
-                className="text-[11px] uppercase tracking-[0.18em] font-bold text-muted hover:text-primary transition-colors duration-300">
+                className="text-[11px] uppercase tracking-[0.08em] font-bold text-muted hover:text-foreground transition-colors duration-300 whitespace-nowrap">
                 {link.label}
               </Link>
             ))}
           </nav>
 
           {/* Direita */}
-          <div className="hidden lg:flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
             {isAdmin && (
-              <Link href="/admin-dashboard"
-                className="text-[11px] uppercase tracking-widest font-bold text-primary hover:text-primary-dark transition-colors">
-                Admin
-              </Link>
+              <Link href="/admin-dashboard" className="text-[11px] uppercase tracking-widest font-bold transition-colors"
+                style={{ color: headerAccent }}>Admin</Link>
             )}
-
             {user ? (
-              /* Usuário logado: avatar + nome + sair */
-              <div className="flex items-center gap-3">
-                <Link href="/perfil" className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface border border-border hover:border-primary/30 hover:bg-primary/5 transition-all">
-                  <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <AppIcon name="UserIcon" size={14} className="text-primary" />
+              <div className="flex items-center gap-2">
+                <Link href="/perfil" className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface border border-border hover:border-primary/30 transition-all">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: `${headerAccent}15`, border: `1px solid ${headerAccent}30` }}>
+                    <AppIcon name="UserIcon" size={14} style={{ color: headerAccent }} />
                   </div>
-                  <span className="text-[12px] font-bold text-foreground max-w-[100px] truncate">{displayName}</span>
+                  <span className="text-[12px] font-bold text-foreground max-w-[80px] truncate">{displayName}</span>
                 </Link>
-                <button onClick={handleSignOut}
-                  className="text-[11px] uppercase tracking-widest font-bold text-muted hover:text-primary transition-colors flex items-center gap-1.5">
-                  <AppIcon name="ArrowLeftEndOnRectangleIcon" size={14} />
-                  Sair
+                <button onClick={handleSignOut} className="text-[11px] uppercase tracking-widest font-bold text-muted hover:text-foreground transition-colors flex items-center gap-1">
+                  <AppIcon name="ArrowLeftEndOnRectangleIcon" size={13} />Sair
                 </button>
               </div>
             ) : (
-              <Link href="/login"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all text-[11px] font-bold text-muted hover:text-primary uppercase tracking-widest">
-                <AppIcon name="UserIcon" size={14} />
-                Entrar
+              <Link href="/login" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border hover:bg-surface transition-all text-[11px] font-bold text-muted uppercase tracking-widest">
+                <AppIcon name="UserIcon" size={14} />Entrar
               </Link>
             )}
-
-            {/* Carrinho */}
-            <Link href="/cart"
-              className="relative p-2.5 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all"
-              aria-label="Meu orçamento">
+            <Link href="/cart" className="relative p-2.5 rounded-xl border transition-all"
+              style={{ borderColor: `${headerAccent}30` }} aria-label="Orçamento">
               <AppIcon name="ShoppingCartIcon" size={18} className="text-foreground" />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
+                  style={{ backgroundColor: headerAccent }}>
                   {totalItems > 9 ? '9+' : totalItems}
                 </span>
               )}
@@ -112,54 +194,59 @@ export default function Header() {
           </div>
 
           {/* Mobile */}
-          <div className="lg:hidden flex items-center gap-3">
-            <Link href="/cart" className="relative p-2 rounded-xl border border-border" aria-label="Orçamento">
+          <div className="lg:hidden flex items-center gap-2">
+            <Link href="/cart" className="relative p-2 rounded-xl border border-border">
               <AppIcon name="ShoppingCartIcon" size={18} className="text-foreground" />
               {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[9px] font-bold flex items-center justify-center">
-                  {totalItems}
-                </span>
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
+                  style={{ backgroundColor: headerAccent }}>{totalItems}</span>
               )}
             </Link>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="flex flex-col gap-1.5 p-2" aria-label="Menu">
-              <span className={`block h-[2px] bg-foreground transition-all duration-300 ${menuOpen ? 'w-6 rotate-45 translate-y-[7px]' : 'w-6'}`} />
-              <span className={`block h-[2px] bg-foreground transition-all duration-300 ${menuOpen ? 'opacity-0 w-0' : 'w-4'}`} />
-              <span className={`block h-[2px] bg-foreground transition-all duration-300 ${menuOpen ? 'w-6 -rotate-45 -translate-y-[7px]' : 'w-6'}`} />
+            <button onClick={() => setMenuOpen(!menuOpen)} className="flex flex-col gap-1.5 p-2">
+              <span className={`block h-[2px] transition-all duration-300 ${menuOpen ? 'w-6 rotate-45 translate-y-[7px]' : 'w-6'}`} style={{ backgroundColor: menuOpen ? headerAccent : '#0d1117' }} />
+              <span className={`block h-[2px] transition-all duration-300 ${menuOpen ? 'opacity-0 w-0' : 'w-4'}`} style={{ backgroundColor: '#0d1117' }} />
+              <span className={`block h-[2px] transition-all duration-300 ${menuOpen ? 'w-6 -rotate-45 -translate-y-[7px]' : 'w-6'}`} style={{ backgroundColor: menuOpen ? headerAccent : '#0d1117' }} />
             </button>
           </div>
         </div>
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="lg:hidden mt-4 pt-4 border-t border-border/40 space-y-3 pb-2">
-            {navLinks.map((link) => (
+          <div className="lg:hidden mt-4 pt-4 border-t border-border/40 space-y-2 pb-2">
+            <div className="mb-4">
+              <p className="text-[9px] uppercase tracking-[0.3em] font-bold text-muted mb-2">Selecionar empresa</p>
+              <div className="flex flex-wrap gap-2">
+                {COMPANY_ORDER.map((id) => (
+                  <CompanyPill key={id} company={COMPANIES[id]} isActive={activeCompany === id}
+                    locked={isLockedPage}
+                    onClick={() => {
+                      if (isLockedPage) return;
+                      setActiveCompany(activeCompany === id ? null : id);
+                      setMenuOpen(false);
+                    }} />
+                ))}
+              </div>
+            </div>
+            <div className="h-px bg-border/40" />
+            {NAV_LINKS.map((link) => (
               <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}
-                className="block text-[12px] uppercase tracking-[0.18em] font-bold text-muted hover:text-primary transition-colors py-2">
+                className="block text-[12px] uppercase tracking-[0.18em] font-bold text-muted hover:text-foreground py-2">
                 {link.label}
               </Link>
             ))}
             {isAdmin && (
               <Link href="/admin-dashboard" onClick={() => setMenuOpen(false)}
-                className="block text-[12px] uppercase tracking-[0.18em] font-bold text-primary py-2">
+                className="block text-[12px] uppercase tracking-[0.18em] font-bold py-2" style={{ color: headerAccent }}>
                 Painel Admin
               </Link>
             )}
             {user ? (
               <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2">
-                  <AppIcon name="UserIcon" size={14} className="text-primary" />
-                  <span className="text-[12px] font-bold text-foreground">{displayName}</span>
-                </div>
-                <button onClick={() => { handleSignOut(); setMenuOpen(false); }}
-                  className="text-[12px] font-bold text-muted hover:text-primary transition-colors">
-                  Sair
-                </button>
+                <span className="text-[12px] font-bold text-foreground">{displayName}</span>
+                <button onClick={() => { handleSignOut(); setMenuOpen(false); }} className="text-[12px] font-bold text-muted">Sair</button>
               </div>
             ) : (
-              <Link href="/login" onClick={() => setMenuOpen(false)}
-                className="block text-[12px] uppercase tracking-[0.18em] font-bold text-muted hover:text-primary transition-colors py-2">
-                Entrar
-              </Link>
+              <Link href="/login" onClick={() => setMenuOpen(false)} className="block text-[12px] uppercase tracking-[0.18em] font-bold text-muted py-2">Entrar</Link>
             )}
           </div>
         )}

@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import AppLogo from '@/components/ui/AppLogo';
+import AppLogo, { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
 import ProductModal from './ProductModal';
 import QuoteResponseModal from './QuoteResponseModal';
 import { supabase, Product, Order, Quote } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
+import { COMPANIES, COMPANY_ORDER, CompanyId } from '@/context/CompanyContext';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -52,7 +53,10 @@ export default function AdminPanel() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteConfirm, setDeleteConfirm]   = useState<string | null>(null);
   const [respondingTo, setRespondingTo]     = useState<any | null>(null);
+  const [activeCompanyFilter, setActiveCompanyFilter] = useState<CompanyId | 'all'>('all');
   const [togglingPrices, setTogglingPrices] = useState(false);
+  const [showCatManager, setShowCatManager] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -84,12 +88,20 @@ export default function AdminPanel() {
   const categories = useMemo(() => ['Todos', ...Array.from(new Set(products.map((p) => p.category)))], [products]);
   const filteredProducts = useMemo(() =>
     products.filter((p) => {
-      const matchCat    = activeCategory === 'Todos' || p.category === activeCategory;
-      const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      return matchCat && matchSearch;
-    }), [products, activeCategory, search]);
+      const matchCat     = activeCategory === 'Todos' || p.category === activeCategory;
+      const matchSearch  = p.name.toLowerCase().includes(search.toLowerCase());
+      const pCompanies = (p as any).companies as string[] | undefined;
+      const matchCompany = activeCompanyFilter === 'all' ||
+        (pCompanies ? pCompanies.includes(activeCompanyFilter) : (p as any).company === activeCompanyFilter);
+      return matchCat && matchSearch && matchCompany;
+    }), [products, activeCategory, search, activeCompanyFilter]);
 
   const pendingCount = requests.filter((r) => r.status === 'new' || r.status === 'pending').length;
+  const filteredRequests = useMemo(() =>
+    activeCompanyFilter === 'all'
+      ? requests
+      : requests.filter((r) => (r as any).company === activeCompanyFilter || !((r as any).company)),
+    [requests, activeCompanyFilter]);
 
   const handleTogglePrices = async () => {
     setTogglingPrices(true);
@@ -112,6 +124,15 @@ export default function AdminPanel() {
     fetchAll();
   };
 
+  const handleDeleteCategory = async (cat: string) => {
+    // Move todos os produtos dessa categoria para 'Outros' e deleta a categoria
+    await supabase.from('products').update({ category: 'Outros' }).eq('category', cat);
+    toast.success(`Categoria "${cat}" removida. Produtos movidos para "Outros".`);
+    setDeletingCategory(null);
+    setShowCatManager(false);
+    fetchAll();
+  };
+
   const handleToggleActive = async (product: Product) => {
     await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id);
     fetchAll();
@@ -120,22 +141,16 @@ export default function AdminPanel() {
   const navItems: { id: Tab; label: string; icon: string; badge?: number }[] = [
     { id: 'products', label: 'Produtos',     icon: 'Squares2X2Icon' },
     { id: 'quotes',   label: 'Solicitações', icon: 'DocumentTextIcon', badge: pendingCount || undefined },
+
   ];
 
   return (
     <div className="min-h-screen bg-surface">
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-border z-40 hidden lg:flex flex-col">
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <AppLogo size={36} />
-            <div>
-              <span className="font-display font-bold text-base text-foreground">
-                Comercial <span className="text-primary">Araguaia</span>
-              </span>
-              <p className="text-[9px] uppercase tracking-widest text-muted">Admin Panel</p>
-            </div>
-          </div>
+        <div className="p-5 border-b border-border">
+          <GrupoHCLogoFull width={160} />
+          <p className="text-[9px] uppercase tracking-[0.25em] text-muted font-bold mt-2">Painel Administrativo</p>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
@@ -199,11 +214,18 @@ export default function AdminPanel() {
             </div>
 
             {tab === 'products' && (
-              <button onClick={() => { setEditingProduct(null); setModalOpen(true); }}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg">
-                <AppIcon name="PlusIcon" size={16} />
-                Novo Produto
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => setShowCatManager(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold text-muted hover:bg-surface transition-all">
+                  <AppIcon name="TagIcon" size={15} />
+                  Categorias
+                </button>
+                <button onClick={() => { setEditingProduct(null); setModalOpen(true); }}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg">
+                  <AppIcon name="PlusIcon" size={16} />
+                  Novo Produto
+                </button>
+              </div>
             )}
           </div>
         </header>
@@ -231,6 +253,31 @@ export default function AdminPanel() {
           {/* PRODUTOS */}
           {tab === 'products' && (
             <>
+              {/* Seletor de empresa */}
+              <div className="bg-white border border-border rounded-2xl p-4 flex flex-wrap gap-2 items-center">
+                <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted mr-1">Empresa:</span>
+                <button onClick={() => setActiveCompanyFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all ${activeCompanyFilter === 'all' ? 'bg-foreground text-white border-foreground' : 'border-border text-muted hover:border-foreground/30 bg-white'}`}>
+                  Todas
+                </button>
+                {COMPANY_ORDER.map((id) => {
+                  const co = COMPANIES[id];
+                  const isSelected = activeCompanyFilter === id;
+                  return (
+                    <button key={id} onClick={() => setActiveCompanyFilter(id)}
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1.5"
+                      style={{
+                        backgroundColor: isSelected ? co.primaryColor : 'white',
+                        color: isSelected ? 'white' : co.primaryColor,
+                        borderColor: isSelected ? co.primaryColor : `${co.primaryColor}40`,
+                      }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isSelected ? 'white' : co.primaryColor }} />
+                      {co.shortName}
+                    </button>
+                  );
+                })}
+              </div>
+
               <div className="bg-white border border-border rounded-2xl p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                 <div className="flex flex-wrap gap-2">
                   {categories.map((cat) => (
@@ -266,12 +313,34 @@ export default function AdminPanel() {
                         {/* Imagem clicável → página do produto */}
                         <a href={`/products/${product.id}`} target="_blank" rel="noopener noreferrer"
                           className="w-10 h-10 rounded-xl overflow-hidden bg-surface shrink-0 hover:ring-2 hover:ring-primary transition-all">
-                          <img src={product.image_url ?? '/assets/images/no_image.png'} alt={product.name} className="w-full h-full object-cover" />
+                          <img src={product.image_url ?? '/assets/images/no_image.png'} alt={product.name} className="w-full h-full object-contain p-1" />
                         </a>
                         <div className="min-w-0">
                           <a href={`/products/${product.id}`} target="_blank" rel="noopener noreferrer"
-                            className="text-sm font-bold text-foreground truncate hover:text-primary transition-colors block">{product.name}</a>
-                          <p className="text-[11px] text-muted">{product.unit}</p>
+                            className="text-sm font-bold text-foreground truncate hover:text-primary transition-colors block">
+                            {(product as any).is_featured && <span className="text-amber-500 mr-1">⭐</span>}
+                            {product.name}
+                          </a>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <p className="text-[11px] text-muted">{product.unit}</p>
+                            {(() => {
+                              const pCos = (product as any).companies as string[] | undefined;
+                              const coIds = pCos?.length ? pCos : [(product as any).company].filter(Boolean);
+                              return coIds.length ? (
+                                <div className="flex gap-1">
+                                  {coIds.map((cid: string) => {
+                                    const co = COMPANIES[cid as CompanyId];
+                                    return co ? (
+                                      <span key={cid} className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                                        style={{ backgroundColor: `${co.primaryColor}15`, color: co.primaryColor }}>
+                                        {co.shortName}
+                                      </span>
+                                    ) : null;
+                                  })}
+                                </div>
+                              ) : null;
+                            })()}
+                          </div>
                         </div>
                       </div>
                       <div className="col-span-2 hidden md:block">
@@ -309,13 +378,37 @@ export default function AdminPanel() {
           {/* SOLICITAÇÕES */}
           {tab === 'quotes' && (
             <div className="space-y-4">
+              {/* Seletor de empresa nas solicitações */}
+              <div className="bg-white border border-border rounded-2xl p-4 flex flex-wrap gap-2 items-center">
+                <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted mr-1">Filtrar por empresa:</span>
+                <button onClick={() => setActiveCompanyFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all ${activeCompanyFilter === 'all' ? 'bg-foreground text-white border-foreground' : 'border-border text-muted bg-white'}`}>
+                  Todas
+                </button>
+                {COMPANY_ORDER.map((id) => {
+                  const co = COMPANIES[id];
+                  const isSelected = activeCompanyFilter === id;
+                  return (
+                    <button key={id} onClick={() => setActiveCompanyFilter(id)}
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1.5"
+                      style={{
+                        backgroundColor: isSelected ? co.primaryColor : 'white',
+                        color: isSelected ? 'white' : co.primaryColor,
+                        borderColor: isSelected ? co.primaryColor : `${co.primaryColor}40`,
+                      }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: isSelected ? 'white' : co.primaryColor }} />
+                      {co.shortName}
+                    </button>
+                  );
+                })}
+              </div>
               {loading ? <div className="bg-white border border-border rounded-2xl p-8 text-center text-muted">Carregando...</div>
                 : requests.length === 0 ? (
                   <div className="bg-white border border-border rounded-2xl p-16 text-center">
                     <AppIcon name="DocumentTextIcon" size={48} className="text-muted mx-auto mb-4" />
                     <p className="font-bold text-foreground text-lg">Nenhuma solicitação ainda</p>
                   </div>
-                ) : requests.map((req) => (
+                ) : filteredRequests.map((req) => (
                   <div key={req.id} className={`bg-white border rounded-2xl p-6 transition-all ${req.status === 'new' || req.status === 'pending' ? 'border-primary/20 shadow-red-lg' : 'border-border'}`}>
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
                       <div className="space-y-1">
@@ -398,6 +491,75 @@ export default function AdminPanel() {
           onClose={() => setRespondingTo(null)}
           onSent={() => { setRespondingTo(null); fetchAll(); }}
         />
+      )}
+
+      {/* Modal de Gerenciamento de Categorias */}
+      {showCatManager && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingTop: '68px' }}
+          onClick={(e) => e.target === e.currentTarget && setShowCatManager(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col" style={{ maxHeight: 'calc(100dvh - 76px)' }}>
+            <div className="flex items-center justify-between p-5 border-b border-border flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-primary/10">
+                  <AppIcon name="TagIcon" size={18} className="text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-base text-foreground">Gerenciar Categorias</h2>
+                  <p className="text-[11px] text-muted">{categories.filter(c => c !== 'Todos').length} categorias cadastradas</p>
+                </div>
+              </div>
+              <button onClick={() => setShowCatManager(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <AppIcon name="XMarkIcon" size={18} className="text-muted" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-2">
+              <p className="text-xs text-muted mb-3">
+                Ao excluir uma categoria, todos os produtos dela serão movidos para "Outros".
+              </p>
+              {categories.filter(cat => cat !== 'Todos').map((cat) => {
+                const count = products.filter(p => p.category === cat).length;
+                const isDeleting = deletingCategory === cat;
+                return (
+                  <div key={cat} className="flex items-center justify-between p-3 rounded-xl border border-border bg-white hover:bg-surface transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                      <span className="text-sm font-bold text-foreground">{cat}</span>
+                      <span className="text-[11px] text-muted">{count} produto{count !== 1 ? 's' : ''}</span>
+                    </div>
+                    {!isDeleting ? (
+                      <button
+                        onClick={() => setDeletingCategory(cat)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50 transition-colors"
+                        disabled={cat === 'Outros'}
+                        title={cat === 'Outros' ? 'Categoria padrão não pode ser excluída' : ''}>
+                        <AppIcon name="TrashIcon" size={12} />
+                        {cat === 'Outros' ? 'Padrão' : 'Excluir'}
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-red-600 font-bold">Confirmar?</span>
+                        <button onClick={() => handleDeleteCategory(cat)}
+                          className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-colors">
+                          Sim
+                        </button>
+                        <button onClick={() => setDeletingCategory(null)}
+                          className="px-2.5 py-1 rounded-lg border border-border text-muted text-[11px] font-bold hover:bg-surface transition-colors">
+                          Não
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 py-4 border-t border-border flex-shrink-0">
+              <button onClick={() => setShowCatManager(false)}
+                className="w-full py-2.5 rounded-xl border border-border text-sm font-bold text-muted hover:bg-surface transition-colors">
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {modalOpen && (

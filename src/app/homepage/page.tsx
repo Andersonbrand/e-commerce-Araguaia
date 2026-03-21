@@ -2,9 +2,10 @@ import React from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import HeroSection from './components/HeroSection';
-import AboutSection from './components/AboutSection';
+import GrupoHCSection from './components/GrupoHCSection';
 import StatsSection from './components/StatsSection';
 import ProductsPreview from './components/ProductsPreview';
+import AboutSection from './components/AboutSection';
 import QuoteForm from './components/QuoteForm';
 
 export default function HomePage() {
@@ -12,6 +13,7 @@ export default function HomePage() {
         <main className="min-h-screen bg-white">
             <Header />
             <HeroSection />
+            <GrupoHCSection />
             <StatsSection />
             <ProductsPreview />
             <AboutSection />

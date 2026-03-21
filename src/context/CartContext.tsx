@@ -6,6 +6,7 @@ import { Product } from '@/lib/supabase';
 export interface CartItem {
   product: Product;
   quantity: number;
+  addedFromCompany?: string | null; // empresa ativa quando o item foi adicionado
 }
 
 interface CartState {
@@ -13,7 +14,7 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD'; product: Product }
+  | { type: 'ADD'; product: Product; company?: string | null }
   | { type: 'REMOVE'; productId: string }
   | { type: 'UPDATE_QTY'; productId: string; quantity: number }
   | { type: 'CLEAR' }
@@ -30,7 +31,11 @@ function cartReducer(state: CartState, action: CartAction): CartState {
           ),
         };
       }
-      return { items: [...state.items, { product: action.product, quantity: 1 }] };
+      return { items: [...state.items, {
+        product: action.product,
+        quantity: 1,
+        addedFromCompany: action.company ?? null,
+      }] };
     }
     case 'REMOVE':
       return { items: state.items.filter((i) => i.product.id !== action.productId) };
@@ -55,7 +60,7 @@ interface CartContextType {
   items: CartItem[];
   totalItems: number;
   subtotal: number;
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product, company?: string | null) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -91,7 +96,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         items: state.items,
         totalItems,
         subtotal,
-        addToCart: (product) => dispatch({ type: 'ADD', product }),
+        addToCart: (product, company) => dispatch({ type: 'ADD', product, company }),
         removeFromCart: (productId) => dispatch({ type: 'REMOVE', productId }),
         updateQuantity: (productId, quantity) => dispatch({ type: 'UPDATE_QTY', productId, quantity }),
         clearCart: () => dispatch({ type: 'CLEAR' }),
