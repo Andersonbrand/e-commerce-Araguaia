@@ -3,10 +3,18 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Product } from '@/lib/supabase';
 
+export interface SelectedVariant {
+  id: string;
+  label: string;
+  priceDelta: number;
+}
+
 export interface CartItem {
   product: Product;
   quantity: number;
-  addedFromCompany?: string | null; // empresa ativa quando o item foi adicionado
+  addedFromCompany?: string | null;
+  selectedVariant?: SelectedVariant | null;
+  cartKey: string; // `${product.id}:${variantId || 'base'}`
 }
 
 interface CartState {
@@ -14,35 +22,44 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD'; product: Product; company?: string | null }
-  | { type: 'REMOVE'; productId: string }
-  | { type: 'UPDATE_QTY'; productId: string; quantity: number }
+  | { type: 'ADD'; product: Product; company?: string | null; variant?: SelectedVariant | null }
+  | { type: 'REMOVE'; cartKey: string }
+  | { type: 'UPDATE_QTY'; cartKey: string; quantity: number }
   | { type: 'CLEAR' }
   | { type: 'LOAD'; items: CartItem[] };
+
+function makeCartKey(productId: string, variantId?: string | null): string {
+  return `${productId}:${variantId ?? 'base'}`;
+}
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD': {
-      const existing = state.items.find((i) => i.product.id === action.product.id);
+      const key = makeCartKey(action.product.id, action.variant?.id);
+      const existing = state.items.find((i) => i.cartKey === key);
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.product.id === action.product.id ? { ...i, quantity: i.quantity + 1 } : i
+            i.cartKey === key ? { ...i, quantity: i.quantity + 1 } : i
           ),
         };
       }
-      return { items: [...state.items, {
-        product: action.product,
-        quantity: 1,
-        addedFromCompany: action.company ?? null,
-      }] };
+      return {
+        items: [...state.items, {
+          product: action.product,
+          quantity: 1,
+          addedFromCompany: action.company ?? null,
+          selectedVariant: action.variant ?? null,
+          cartKey: key,
+        }],
+      };
     }
     case 'REMOVE':
-      return { items: state.items.filter((i) => i.product.id !== action.productId) };
+      return { items: state.items.filter((i) => i.cartKey !== action.cartKey) };
     case 'UPDATE_QTY':
       return {
         items: state.items.map((i) =>
-          i.product.id === action.productId
+          i.cartKey === action.cartKey
             ? { ...i, quantity: Math.max(1, action.quantity) }
             : i
         ),
@@ -50,7 +67,13 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case 'CLEAR':
       return { items: [] };
     case 'LOAD':
-      return { items: action.items };
+      // Garante que itens carregados do localStorage tenham cartKey
+      return {
+        items: action.items.map((i) => ({
+          ...i,
+          cartKey: i.cartKey ?? makeCartKey(i.product.id, i.selectedVariant?.id),
+        })),
+      };
     default:
       return state;
   }
@@ -60,9 +83,9 @@ interface CartContextType {
   items: CartItem[];
   totalItems: number;
   subtotal: number;
-  addToCart: (product: Product, company?: string | null) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: Product, company?: string | null, variant?: SelectedVariant | null) => void;
+  removeFromCart: (cartKey: string) => void;
+  updateQuantity: (cartKey: string, quantity: number) => void;
   clearCart: () => void;
 }
 
@@ -88,7 +111,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [state.items]);
 
   const totalItems = state.items.reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = state.items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+  // Preço efetivo = product.price + priceDelta da variante (se houver)
+  const subtotal = state.items.reduce(
+    (sum, i) => sum + (i.product.price + (i.selectedVariant?.priceDelta ?? 0)) * i.quantity,
+    0
+  );
 
   return (
     <CartContext.Provider
@@ -96,9 +123,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         items: state.items,
         totalItems,
         subtotal,
-        addToCart: (product, company) => dispatch({ type: 'ADD', product, company }),
-        removeFromCart: (productId) => dispatch({ type: 'REMOVE', productId }),
-        updateQuantity: (productId, quantity) => dispatch({ type: 'UPDATE_QTY', productId, quantity }),
+        addToCart: (product, company, variant) =>
+          dispatch({ type: 'ADD', product, company, variant }),
+        removeFromCart: (cartKey) => dispatch({ type: 'REMOVE', cartKey }),
+        updateQuantity: (cartKey, quantity) =>
+          dispatch({ type: 'UPDATE_QTY', cartKey, quantity }),
         clearCart: () => dispatch({ type: 'CLEAR' }),
       }}
     >

@@ -10,32 +10,31 @@ import { useCart } from '@/context/CartContext';
 import { useCompany, COMPANIES, CompanyId, COMPANY_ORDER, COMPANY_CATEGORIES } from '@/context/CompanyContext';
 import toast from 'react-hot-toast';
 
-// Imagens por categoria — imagens de stock confiáveis, nunca dependem do banco
-// Unsplash: imagens livres de direitos para uso em desenvolvimento
+// Imagens por categoria — fotos reais do estoque da Comercial Araguaia
 const CATEGORY_IMAGES: Record<string, string> = {
   // Araguaia
-  'Cimento':                '/assets/images/about/sacos-cimento.jpg',
-  'Vergalhões':             '/assets/images/about/vergalhoes.jpg',
-  'Barras e Perfis':        '/assets/images/about/vergalhoes.jpg',
-  'Aços Planos':            '/assets/images/about/vergalhoes.jpg',
-  'Arames':                 '/assets/images/about/vergalhoes.jpg',
-  'Chapas':                 '/assets/images/about/vergalhoes.jpg',
-  'Tubos':                  '/assets/images/about/vergalhoes.jpg',
-  'Ferragens':              '/assets/images/about/estoque.jpg',
-  'Serralheria':            '/assets/images/about/estoque.jpg',
-  'Parafusos':              '/assets/images/about/estoque.jpg',
-  'Argamassas':             '/assets/images/about/sacos-cimento.jpg',
+  'Cimento':                '/assets/images/categories/cimento.png',
+  'Vergalhões':             '/assets/images/categories/vergalhoes.png',
+  'Barras e Perfis':        '/assets/images/categories/barras-perfis.png',
+  'Aços Planos':            '/assets/images/categories/acos-planos.png',
+  'Arames':                 '/assets/images/categories/arames.png',
+  'Chapas':                 '/assets/images/categories/chapas.png',
+  'Tubos':                  '/assets/images/categories/tubos.png',
+  'Ferragens':              '/assets/images/categories/ferragens.png',
+  'Serralheria':            '/assets/images/categories/serralheria.png',
+  'Parafusos':              '/assets/images/categories/ferragens.png',
+  'Argamassas':             '/assets/images/categories/argamassas.png',
   // Confiance Indústria
-  'Telhas de Zinco':        'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80',
-  'Telhas':                 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80',
+  'Telhas de Zinco':        '/assets/images/categories/telhas.png',
+  'Telhas':                 '/assets/images/categories/telhas.png',
   'Bobinas de Zinco':       'https://images.unsplash.com/photo-1581092921461-39b9d08a9b21?w=800&q=80',
-  'Colunas e Treliças':     '/assets/images/about/vergalhoes.jpg',
-  'Colunas':                '/assets/images/about/vergalhoes.jpg',
-  'Treliças':               '/assets/images/about/vergalhoes.jpg',
+  'Colunas e Treliças':     '/assets/images/categories/barras-perfis.png',
+  'Colunas':                '/assets/images/categories/barras-perfis.png',
+  'Treliças':               '/assets/images/categories/acos-planos.png',
   // Aços Confiance (as categorias compartilhadas já estão acima)
-  'Telhas de Fibrocimento': 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80',
+  'Telhas de Fibrocimento': '/assets/images/categories/telhas.png',
 };
-const FALLBACK_IMAGE = '/assets/images/about/vergalhoes.jpg';
+const FALLBACK_IMAGE = '/assets/images/categories/estoque-geral.png';
 
 export default function ProductsPreview() {
   const [products, setProducts] = useState<Product[]>([]);

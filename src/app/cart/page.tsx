@@ -10,7 +10,7 @@ import { useCart } from '@/context/CartContext';
 import QuantityInput from '@/components/ui/QuantityInput';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useCompany, COMPANIES, CompanyId, SHARED_CATEGORIES } from '@/context/CompanyContext';
+import { useCompany, COMPANIES, CompanyId } from '@/context/CompanyContext';
 import toast from 'react-hot-toast';
 
 function pluralUnit(unit: string, qty: number): string {
@@ -24,51 +24,12 @@ function pluralUnit(unit: string, qty: number): string {
   return unit + 's';
 }
 
-// Categorias por empresa para inferir de qual empresa é o produto
-const COMPANY_CATEGORIES: Record<CompanyId, string[]> = {
-  'araguaia':            ['Cimento', 'Vergalhões', 'Barras e Perfis', 'Tubos', 'Chapas', 'Parafusos', 'Arames', 'Aços Planos', 'Ferragens', 'Argamassas', 'Serralheria'],
-  'acos-confiance':      ['Vergalhões', 'Barras e Perfis', 'Tubos', 'Chapas', 'Arames', 'Aços Planos', 'Serralheria'],
-  'confiance-industria': ['Telhas de Zinco', 'Bobinas de Zinco', 'Colunas e Treliças', 'Colunas', 'Treliças'],
-};
-
-// Categorias EXCLUSIVAS da Confiance (não compartilhadas)
-const CONFIANCE_EXCLUSIVE = ['Telhas de Zinco', 'Bobinas de Zinco', 'Colunas e Treliças', 'Colunas', 'Treliças'];
-
-function inferCompanies(product: any): CompanyId[] {
-  // 1. Campo companies[] do banco (após migration SQL)
-  if (product.companies && Array.isArray(product.companies) && product.companies.length > 0) {
-    return product.companies as CompanyId[];
-  }
-  // 2. Campo company singular do banco
-  if (product.company && product.company in COMPANIES) return [product.company as CompanyId];
-  // 3. Verificar se é exclusivo da Confiance (prioridade)
-  const cat = (product.category ?? '').toLowerCase();
-  const isConfiance = CONFIANCE_EXCLUSIVE.some(c => c.toLowerCase() === cat || cat.includes(c.toLowerCase()));
-  if (isConfiance) return ['confiance-industria'];
-  // 4. Categorias exatas por empresa
-  const matched: CompanyId[] = [];
-  for (const [id, cats] of Object.entries(COMPANY_CATEGORIES)) {
-    if (cats.some((c: string) => c.toLowerCase() === cat)) {
-      matched.push(id as CompanyId);
-    }
-  }
-  return matched.length > 0 ? matched : ['araguaia'];
-}
-
-function inferCompany(category: string, productCompany?: string): CompanyId {
-  if (productCompany && productCompany in COMPANIES) return productCompany as CompanyId;
-  for (const [id, cats] of Object.entries(COMPANY_CATEGORIES)) {
-    if (cats.some((c: string) => category.toLowerCase().includes(c.toLowerCase()))) return id as CompanyId;
-  }
-  return 'araguaia';
-}
-
 interface CheckoutForm { name: string; email: string; phone: string; observation: string; }
 
 export default function CartPage() {
   const { items, totalItems, subtotal, removeFromCart, updateQuantity, clearCart } = useCart();
   const { user } = useAuth();
-  const { activeCompany } = useCompany(); // empresa selecionada pelo usuário
+  const { activeCompany } = useCompany();
   const [done, setDone]           = useState(false);
   const [loading, setLoading]     = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -81,28 +42,6 @@ export default function CartPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
-  // Agrupar itens por empresa usando a empresa gravada no momento da adição
-  const groupedByCompany = items.reduce((acc, item) => {
-    const cartItem = item as typeof item & { addedFromCompany?: string | null };
-    const companies = inferCompanies(item.product);
-
-    // Prioridade: 1) empresa gravada no item (addedFromCompany)
-    //             2) empresa ativa do contexto se compatível
-    //             3) primeira empresa do produto
-    let compId: string;
-    if (cartItem.addedFromCompany && companies.includes(cartItem.addedFromCompany as CompanyId)) {
-      compId = cartItem.addedFromCompany;
-    } else if (activeCompany && companies.includes(activeCompany)) {
-      compId = activeCompany;
-    } else {
-      compId = companies[0];
-    }
-
-    if (!acc[compId]) acc[compId] = [];
-    acc[compId].push({ ...item, _allCompanies: companies });
-    return acc;
-  }, {} as Record<string, Array<typeof items[0] & { _allCompanies: CompanyId[] }>>);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!items.length) return;
@@ -111,10 +50,11 @@ export default function CartPage() {
       const orderItems = items.map((i) => ({
         product_id: i.product.id,
         name: i.product.name,
-        price: i.product.price,
+        price: i.product.price + (i.selectedVariant?.priceDelta ?? 0),
         quantity: i.quantity,
         unit: i.product.unit,
-        company: inferCompany(i.product.category, (i.product as any).company),
+        variant_label: i.selectedVariant?.label ?? null,
+        companies: (i.product as any).companies ?? [],
       }));
       const { error } = await supabase.from('orders').insert([{
         user_id: user?.id ?? null,
@@ -216,56 +156,83 @@ export default function CartPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Itens agrupados por empresa */}
-              <div className="lg:col-span-2 space-y-6">
-                {Object.entries(groupedByCompany).map(([compId, compItems]) => {
-                  const co = COMPANIES[compId as CompanyId];
-                  if (!co) return null;
+              {/* Lista flat de itens */}
+              <div className="lg:col-span-2 space-y-3">
+                {items.map((item) => {
+                  const { product, quantity, selectedVariant, cartKey } = item;
+                  const productCompanies = (product as any).companies as string[] | undefined;
+                  const effectivePrice = product.price + (selectedVariant?.priceDelta ?? 0);
+
                   return (
-                    <div key={compId}>
-                      {/* Header da empresa */}
-                      <div className="flex items-center gap-3 mb-3 px-1">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: co.primaryColor }} />
-                        <span className="text-[11px] uppercase tracking-[0.25em] font-bold" style={{ color: co.primaryColor }}>
-                          {co.name}
-                        </span>
-                        <span className="text-xs text-muted">({compItems.length} item{compItems.length > 1 ? 's' : ''})</span>
-                        <div className="flex-1 h-px" style={{ backgroundColor: `${co.primaryColor}20` }} />
+                    <div key={cartKey} className="rounded-2xl p-4 border border-border flex gap-4 items-start hover-lift bg-white">
+                      {/* Imagem */}
+                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-surface flex-shrink-0 flex items-center justify-center border border-[#f0f0f0]">
+                        <AppImage
+                          src={product.image_url ?? '/assets/images/no_image.png'}
+                          alt={product.name} width={80} height={80}
+                          className="w-full h-full object-contain p-1"
+                        />
                       </div>
 
-                      <div className="space-y-3">
-                        {compItems.map(({ product, quantity }) => (
-                          <div key={product.id} className="rounded-2xl p-4 border flex gap-4 items-start hover-lift bg-white"
-                            style={{ borderColor: `${co.primaryColor}20` }}>
-                            {/* Imagem contida */}
-                            <div className="w-20 h-20 rounded-xl overflow-hidden bg-surface flex-shrink-0 flex items-center justify-center border border-[#f0f0f0]">
-                              <AppImage
-                                src={product.image_url ?? '/assets/images/no_image.png'}
-                                alt={product.name} width={80} height={80}
-                                className="w-full h-full object-contain p-1"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <div>
-                                  <span className="text-[10px] uppercase tracking-[0.15em] font-bold" style={{ color: co.primaryColor }}>
-                                    {product.category}
-                                  </span>
-                                  <h3 className="font-bold text-foreground text-base leading-tight mt-0.5">{product.name}</h3>
-                                  <p className="text-[12px] text-muted">Unidade: {product.unit}</p>
-                                </div>
-                                <button onClick={() => removeFromCart(product.id)}
-                                  className="p-1.5 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0">
-                                  <AppIcon name="TrashIcon" size={15} />
-                                </button>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            {/* Badges de empresa */}
+                            {productCompanies && productCompanies.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mb-1">
+                                {productCompanies.map((compId) => {
+                                  const co = COMPANIES[compId as CompanyId];
+                                  if (!co) return null;
+                                  return (
+                                    <span
+                                      key={compId}
+                                      className="inline-flex items-center gap-1 text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
+                                      style={{ backgroundColor: `${co.primaryColor}15`, color: co.primaryColor }}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: co.primaryColor }} />
+                                      {co.shortName}
+                                    </span>
+                                  );
+                                })}
                               </div>
-                              <div className="flex items-center justify-between mt-3">
-                                <QuantityInput value={quantity} onChange={(val) => updateQuantity(product.id, val)} min={1} size="sm" />
-                                <span className="text-sm font-bold text-muted">{quantity} {pluralUnit(product.unit, quantity)}</span>
-                              </div>
-                            </div>
+                            )}
+
+                            <h3 className="font-bold text-foreground text-base leading-tight">{product.name}</h3>
+
+                            {/* Espessura selecionada */}
+                            {selectedVariant && (
+                              <p className="text-[11px] text-primary font-semibold mt-0.5">
+                                Espessura: {selectedVariant.label}
+                              </p>
+                            )}
+
+                            <p className="text-[12px] text-muted mt-0.5">
+                              {product.category} · {product.unit}
+                            </p>
                           </div>
-                        ))}
+
+                          <button onClick={() => removeFromCart(cartKey)}
+                            className="p-1.5 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0">
+                            <AppIcon name="TrashIcon" size={15} />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-3">
+                          <QuantityInput
+                            value={quantity}
+                            onChange={(val) => updateQuantity(cartKey, val)}
+                            min={1}
+                            size="sm"
+                          />
+                          <span className="text-sm font-bold text-muted">
+                            {quantity} {pluralUnit(product.unit, quantity)}
+                            {effectivePrice > 0 && (
+                              <span className="ml-2 text-foreground">
+                                · R$ {(effectivePrice * quantity).toFixed(2).replace('.', ',')}
+                              </span>
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );

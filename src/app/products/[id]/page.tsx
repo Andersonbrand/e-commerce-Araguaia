@@ -7,10 +7,10 @@ import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import AppIcon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
-import { Product } from '@/lib/supabase';
+import { Product, ProductVariant } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
 import { useCompany } from '@/context/CompanyContext';
-import { useCart } from '@/context/CartContext';
+import { useCart, SelectedVariant } from '@/context/CartContext';
 import QuantityInput from '@/components/ui/QuantityInput';
 import toast from 'react-hot-toast';
 
@@ -20,6 +20,8 @@ export default function ProductDetailPage() {
   const supabase              = createClient();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<SelectedVariant | null>(null);
   const [loading, setLoading] = useState(true);
   const [qty, setQty]         = useState(1);
   const { showPrices }        = usePrices();
@@ -32,9 +34,24 @@ export default function ProductDetailPage() {
       .then(({ data }) => {
         setProduct(data);
         if (data) {
-          supabase.from('products').select('*')
-            .eq('category', data.category).neq('id', id).eq('is_active', true).limit(4)
-            .then(({ data: rel }) => setRelated(rel ?? []));
+          Promise.all([
+            supabase
+              .from('product_variants')
+              .select('*')
+              .eq('product_id', id)
+              .eq('is_active', true)
+              .order('sort_order'),
+            supabase
+              .from('products')
+              .select('*')
+              .eq('category', data.category)
+              .neq('id', id)
+              .eq('is_active', true)
+              .limit(4),
+          ]).then(([{ data: vars }, { data: rel }]) => {
+            setVariants(vars ?? []);
+            setRelated(rel ?? []);
+          });
         }
         setLoading(false);
       });
@@ -42,13 +59,17 @@ export default function ProductDetailPage() {
 
   const handleAdd = () => {
     if (!product) return;
-    // Adiciona a quantidade correta de itens
-    for (let i = 0; i < qty; i++) addToCart(product, activeCompany);
-    toast.success(`${qty}x ${product.name} adicionado ao orçamento!`);
+    if (variants.length > 0 && !selectedVariant) {
+      toast.error('Selecione uma espessura antes de adicionar.');
+      return;
+    }
+    for (let i = 0; i < qty; i++) addToCart(product, activeCompany, selectedVariant);
+    const variantSuffix = selectedVariant ? ` (${selectedVariant.label})` : '';
+    toast.success(`${qty}x ${product.name}${variantSuffix} adicionado ao orçamento!`);
   };
 
-  // Preço total calculado pela quantidade
-  const unitPrice  = product?.price ?? 0;
+  // Preço efetivo = preço base + delta da variante selecionada
+  const unitPrice  = (product?.price ?? 0) + (selectedVariant?.priceDelta ?? 0);
   const totalPrice = unitPrice * qty;
 
   if (loading) {
@@ -140,11 +161,56 @@ export default function ProductDetailPage() {
                 </p>
               )}
 
+              {/* Seletor de espessura / variante */}
+              {variants.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">Espessura</span>
+                    <div className="flex-1 h-px bg-border" />
+                    {!selectedVariant && (
+                      <span className="text-[10px] text-primary font-bold animate-pulse">Selecione uma opção</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {variants.map((v) => {
+                      const isSelected = selectedVariant?.id === v.id;
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onClick={() =>
+                            setSelectedVariant(
+                              isSelected ? null : { id: v.id, label: v.label, priceDelta: v.price_delta }
+                            )
+                          }
+                          className="px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all"
+                          style={{
+                            borderColor: isSelected ? '#af1518' : '#dde3ed',
+                            backgroundColor: isSelected ? '#af151810' : 'white',
+                            color: isSelected ? '#af1518' : '#6b7280',
+                          }}
+                        >
+                          {v.label}
+                          {v.price_delta !== 0 && (
+                            <span className="ml-1 text-[10px] font-normal">
+                              ({v.price_delta > 0 ? '+' : ''}R$ {v.price_delta.toFixed(2).replace('.', ',')})
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Preço */}
               <div className="p-5 rounded-2xl bg-surface border border-border space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] uppercase tracking-widest text-muted font-bold">
                     Preço unitário / {product.unit}
+                    {selectedVariant && (
+                      <span className="ml-2 normal-case text-primary font-bold">— {selectedVariant.label}</span>
+                    )}
                   </p>
                   {qty > 1 && showPrices && unitPrice > 0 && (
                     <span className="text-[11px] text-muted">
@@ -155,7 +221,6 @@ export default function ProductDetailPage() {
 
                 {showPrices && unitPrice > 0 ? (
                   <div className="flex items-end gap-3">
-                    {/* Preço total em destaque */}
                     <p className="text-4xl font-display font-bold" style={{ color: '#151826' }}>
                       R$ {totalPrice.toFixed(2).replace('.', ',')}
                     </p>
@@ -172,16 +237,21 @@ export default function ProductDetailPage() {
               <div className="flex items-center gap-4">
                 <QuantityInput value={qty} onChange={setQty} min={1} max={9999} size="md" />
 
-                <button onClick={handleAdd}
-                  className="flex-1 py-3.5 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2" style={{ backgroundColor: '#151826', boxShadow: '0 4px 20px #15182640' }}>
+                <button
+                  onClick={handleAdd}
+                  disabled={variants.length > 0 && !selectedVariant}
+                  title={variants.length > 0 && !selectedVariant ? 'Selecione uma espessura' : undefined}
+                  className="flex-1 py-3.5 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  style={{ backgroundColor: '#151826', boxShadow: '0 4px 20px #15182640' }}
+                >
                   <AppIcon name="ShoppingCartIcon" size={18} />
-                  Adicionar ao Orçamento
+                  {variants.length > 0 && !selectedVariant ? 'Selecione uma espessura' : 'Adicionar ao Orçamento'}
                 </button>
               </div>
 
               {/* WhatsApp */}
               <a
-                href={`https://wa.me/5577981046133?text=Olá! Tenho interesse no produto: ${encodeURIComponent(product.name)}${qty > 1 ? `, quantidade: ${qty}` : ''}`}
+                href={`https://wa.me/5577981046133?text=Olá! Tenho interesse no produto: ${encodeURIComponent(product.name)}${selectedVariant ? `, espessura: ${selectedVariant.label}` : ''}${qty > 1 ? `, quantidade: ${qty}` : ''}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-bold text-muted hover:text-primary"
               >

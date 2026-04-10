@@ -60,6 +60,17 @@ export default function HeroSection() {
               className="px-8 py-4 rounded-xl border border-border bg-white text-foreground font-bold text-sm hover:bg-surface transition-all hover:border-primary/30">
               Ver Catálogo
             </Link>
+            <button
+              disabled
+              title="Catálogo online do Grupo HC — em breve"
+              className="relative px-8 py-4 rounded-xl border border-border bg-surface text-muted font-bold text-sm flex items-center gap-2 cursor-not-allowed opacity-75"
+            >
+              <AppIcon name="BookOpenIcon" size={18} />
+              Catálogo Grupo HC
+              <span className="absolute -top-2 -right-2 text-[9px] uppercase tracking-widest font-bold bg-primary text-white px-2 py-0.5 rounded-full leading-none">
+                Em breve
+              </span>
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-6 pt-2">

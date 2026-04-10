@@ -5,6 +5,17 @@ import { createClient } from '@/lib/supabase/client';
 export const supabase = createClient();
 
 // Tipos
+export interface ProductVariant {
+  id: string;
+  product_id: string;
+  label: string;       // ex: "1,5mm", "2,0mm", "3,0mm"
+  price_delta: number; // acréscimo (+) ou desconto (-) em R$ sobre o preço base
+  stock: number;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface Product {
   id: string;
   name: string;

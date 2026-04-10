@@ -21,6 +21,14 @@ const DEFAULT_CATEGORIES = ['Cimento', 'Vergalhões', 'Ferragens', 'Serralheria'
 type FormData = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
 type ImageMode = 'upload' | 'url';
 
+interface LocalVariant {
+    tempId: string;
+    id?: string;
+    label: string;
+    priceDelta: number;
+    stock: number;
+}
+
 export default function ProductModal({ product, categories, onSave, onClose }: Props) {
     const supabase      = createClient();
     const allCategories = Array.from(new Set([...DEFAULT_CATEGORIES, ...categories]));
@@ -34,15 +42,18 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
     const [uploading, setUploading]   = useState(false);
     const [saving, setSaving]         = useState(false);
     const [preview, setPreview]       = useState<string | null>(null);
-    // Nova categoria: digitação em tempo real → já atualiza form.category
     const [showNewCat, setShowNewCat] = useState(false);
     const [newCat, setNewCat]         = useState('');
     const fileRef                     = useRef<HTMLInputElement>(null);
 
+    // Variantes
+    const [hasVariants, setHasVariants]         = useState(false);
+    const [variants, setVariants]               = useState<LocalVariant[]>([]);
+    const [deletedVariantIds, setDeletedVariantIds] = useState<string[]>([]);
+
     useEffect(() => {
         if (product) {
             const { id: _id, created_at: _c, updated_at: _u, ...rest } = product;
-            // Garantir que companies é array
             const formData = { ...rest };
             if ((formData as any).company && !(formData as any).companies) {
               (formData as any).companies = [(formData as any).company];
@@ -51,6 +62,25 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
             setForm(formData);
             setPreview(rest.image_url);
             if (rest.image_url) setUrlInput(rest.image_url);
+
+            supabase
+                .from('product_variants')
+                .select('*')
+                .eq('product_id', product.id)
+                .eq('is_active', true)
+                .order('sort_order')
+                .then(({ data }) => {
+                    if (data && data.length > 0) {
+                        setHasVariants(true);
+                        setVariants(data.map((v: any) => ({
+                            tempId: v.id,
+                            id: v.id,
+                            label: v.label,
+                            priceDelta: v.price_delta,
+                            stock: v.stock,
+                        })));
+                    }
+                });
         }
     }, [product]);
 
@@ -69,11 +99,9 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         }));
     };
 
-    // Nova categoria: atualiza form.category em tempo real enquanto digita
     const handleNewCatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setNewCat(val);
-        // Persiste no form em tempo real
         setForm((prev) => ({ ...prev, category: val }));
     };
 
@@ -123,10 +151,58 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         setUrlInput('');
     };
 
+    // --- Variantes ---
+    const addVariant = () => {
+        setVariants((prev) => [
+            ...prev,
+            { tempId: `new-${Date.now()}`, label: '', priceDelta: 0, stock: 0 },
+        ]);
+    };
+
+    const updateVariant = (tempId: string, field: keyof Omit<LocalVariant, 'tempId' | 'id'>, value: string | number) => {
+        setVariants((prev) => prev.map((v) => v.tempId === tempId ? { ...v, [field]: value } : v));
+    };
+
+    const removeVariant = (tempId: string) => {
+        const v = variants.find((x) => x.tempId === tempId);
+        if (v?.id) setDeletedVariantIds((prev) => [...prev, v.id!]);
+        setVariants((prev) => prev.filter((x) => x.tempId !== tempId));
+    };
+
+    const saveVariants = async (productId: string) => {
+        if (deletedVariantIds.length > 0) {
+            await supabase.from('product_variants').delete().in('id', deletedVariantIds);
+        }
+        if (!hasVariants || variants.length === 0) {
+            if (product?.id) {
+                await supabase.from('product_variants').update({ is_active: false }).eq('product_id', productId);
+            }
+            return;
+        }
+        const rows = variants
+            .filter((v) => v.label.trim())
+            .map((v, idx) => ({
+                ...(v.id ? { id: v.id } : {}),
+                product_id: productId,
+                label: v.label.trim(),
+                price_delta: v.priceDelta,
+                stock: v.stock,
+                sort_order: idx,
+                is_active: true,
+            }));
+        if (rows.length > 0) {
+            const { error } = await supabase.from('product_variants').upsert(rows, { onConflict: 'id' });
+            if (error) throw error;
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.name.trim()) { toast.error('Nome é obrigatório.'); return; }
         if (!form.category.trim()) { toast.error('Categoria é obrigatória.'); return; }
+        if (hasVariants && variants.some((v) => !v.label.trim())) {
+            toast.error('Preencha o nome de todas as espessuras.'); return;
+        }
         setSaving(true);
         try {
             const payload = {
@@ -135,17 +211,23 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                 stock: Number(form.stock),
                 companies: (form as any).companies ?? ['araguaia'],
             };
+
+            let savedProductId = product?.id;
+
             if (product) {
                 const { error } = await supabase.from('products')
                     .update({ ...payload, updated_at: new Date().toISOString() })
                     .eq('id', product.id);
                 if (error) throw error;
-                toast.success('Produto atualizado!');
             } else {
-                const { error } = await supabase.from('products').insert([payload]);
+                const { data, error } = await supabase.from('products').insert([payload]).select('id').single();
                 if (error) throw error;
-                toast.success('Produto cadastrado!');
+                savedProductId = data.id;
             }
+
+            await saveVariants(savedProductId!);
+
+            toast.success(product ? 'Produto atualizado!' : 'Produto cadastrado!');
             onSave();
         } catch (err: any) {
             toast.error(err?.message ?? 'Erro ao salvar produto.');
@@ -266,7 +348,6 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                             <AppIcon name="XMarkIcon" size={16} />
                                         </button>
                                     </div>
-                                    {/* Preview em tempo real */}
                                     {newCat.trim() && (
                                         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/8 border border-primary/20">
                                             <AppIcon name="TagIcon" size={14} className="text-primary" />
@@ -320,7 +401,92 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                             className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors resize-none" />
                     </div>
 
-                    {/* Empresas — seleção múltipla */}
+                    {/* ===== VARIAÇÕES DE ESPESSURA / CHAPA ===== */}
+                    <div className="rounded-2xl border border-border overflow-hidden">
+                        <div
+                            className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${hasVariants ? 'bg-blue-50 border-b border-blue-100' : 'bg-surface'}`}
+                            onClick={() => {
+                                const next = !hasVariants;
+                                setHasVariants(next);
+                                if (next && variants.length === 0) {
+                                    setVariants([{ tempId: `new-${Date.now()}`, label: '', priceDelta: 0, stock: 0 }]);
+                                }
+                            }}
+                        >
+                            <div>
+                                <p className="text-sm font-bold text-foreground">📐 Variações de espessura / chapa</p>
+                                <p className="text-[11px] text-muted">
+                                    {hasVariants
+                                        ? `${variants.length} espessura${variants.length !== 1 ? 's' : ''} cadastrada${variants.length !== 1 ? 's' : ''}`
+                                        : 'Ative se este produto tem diferentes chapas ou espessuras'}
+                                </p>
+                            </div>
+                            <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${hasVariants ? 'bg-blue-500' : 'bg-border'}`}>
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${hasVariants ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </div>
+                        </div>
+
+                        {hasVariants && (
+                            <div className="p-4 space-y-3">
+                                <div className="grid grid-cols-12 gap-2 px-1">
+                                    <span className="col-span-5 text-[9px] uppercase tracking-widest font-bold text-muted">Espessura / label</span>
+                                    <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Δ Preço (R$)</span>
+                                    <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Estoque</span>
+                                    <span className="col-span-1" />
+                                </div>
+
+                                {variants.map((v) => (
+                                    <div key={v.tempId} className="grid grid-cols-12 gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            value={v.label}
+                                            onChange={(e) => updateVariant(v.tempId, 'label', e.target.value)}
+                                            placeholder="ex: 1,5mm"
+                                            className="col-span-5 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                        <input
+                                            type="number"
+                                            value={v.priceDelta || ''}
+                                            onChange={(e) => updateVariant(v.tempId, 'priceDelta', parseFloat(e.target.value) || 0)}
+                                            placeholder="0,00"
+                                            step="0.01"
+                                            className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                        <input
+                                            type="number"
+                                            value={v.stock || ''}
+                                            onChange={(e) => updateVariant(v.tempId, 'stock', parseInt(e.target.value) || 0)}
+                                            placeholder="0"
+                                            min="0"
+                                            className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeVariant(v.tempId)}
+                                            className="col-span-1 flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all"
+                                        >
+                                            <AppIcon name="XMarkIcon" size={15} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    onClick={addVariant}
+                                    className="w-full py-2.5 rounded-xl border-2 border-dashed border-blue-200 text-blue-600 text-[12px] font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <AppIcon name="PlusIcon" size={15} />
+                                    Adicionar espessura
+                                </button>
+
+                                <p className="text-[10px] text-muted">
+                                    Δ Preço: use 0 se todas as espessuras têm o mesmo preço, ou informe o acréscimo/desconto em R$.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Empresas */}
                     <div>
                         <label className="block text-[11px] uppercase tracking-widest font-bold text-muted mb-1">
                             Empresas que vendem este produto
@@ -364,7 +530,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                             <p className="text-[11px] text-muted">Aparece nas "Categorias Principais" da homepage</p>
                         </div>
                         <button type="button" onClick={() => setForm((prev) => ({ ...prev, is_featured: !(prev as any).is_featured }))}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(form as any).is_featured ? 'bg-amber-500' : 'bg-border'}`}>
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${(form as any).is_featured ? 'bg-amber-500' : 'bg-border'}`}>
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${(form as any).is_featured ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
                     </div>
@@ -376,7 +542,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                             <p className="text-[11px] text-muted">Exibir no catálogo público</p>
                         </div>
                         <button type="button" onClick={() => setForm((prev) => ({ ...prev, is_active: !prev.is_active }))}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.is_active ? 'bg-primary' : 'bg-border'}`}>
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${form.is_active ? 'bg-primary' : 'bg-border'}`}>
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${form.is_active ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
                     </div>

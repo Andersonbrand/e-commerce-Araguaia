@@ -65,8 +65,8 @@ export default function AboutSection() {
               </div>
               <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-xl">
                 <AppImage
-                  src="https://img.rocket.new/generatedImages/rocket_gen_img_156c56915-1773368820294.png"
-                  alt="Estoque de materiais"
+                  src="/assets/images/categories/estoque-geral.png"
+                  alt="Estoque de materiais Comercial Araguaia"
                   className="w-full h-full object-cover" fill />
               </div>
             </div>
