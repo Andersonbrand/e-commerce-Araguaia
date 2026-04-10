@@ -83,15 +83,16 @@ export default function ProductsPreview() {
   });
   const categories = Array.from(categoryMap.entries()).slice(0, 4);
 
-  // Para o bento: usa SEMPRE o mapa de imagens por categoria.
-  // NÃO usa product.image_url pois o produto no banco pode ter imagem incorreta.
-  const getBentoCatImage = (cat: string, _product?: Product) =>
-    CATEGORY_IMAGES[cat] || FALLBACK_IMAGE;
+  // Bento: usa a image_url do produto em destaque daquela categoria.
+  // O categoryMap já priorizou is_featured=true com imagem no loop acima.
+  // Fallback: mapa estático → imagem geral.
+  const getBentoCatImage = (cat: string, prod?: Product) =>
+    prod?.image_url || CATEGORY_IMAGES[cat] || FALLBACK_IMAGE;
 
-  // Para cards de produto em destaque: prefere imagem da categoria (real, verificada),
-  // usando a URL do produto apenas se não tiver imagem de categoria mapeada.
+  // Cards "Itens em Destaque": usa a imagem real do produto cadastrada pelo admin.
+  // Fallback: mapa de categoria → imagem geral.
   const getProductImage = (product: Product) =>
-    CATEGORY_IMAGES[product.category] || product.image_url || FALLBACK_IMAGE;
+    product.image_url || CATEGORY_IMAGES[product.category] || FALLBACK_IMAGE;
 
   // Verifica se a empresa atual tem categoria Cimento
   const hasCimento = categories.some(([cat]) => cat.toLowerCase() === 'cimento');
