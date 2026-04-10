@@ -165,7 +165,10 @@ export default function ProductDetailPage() {
               {variants.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">Espessura</span>
+                    <div>
+                      <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">Espessura</span>
+                      <span className="text-[10px] text-muted ml-1.5">· milímetros</span>
+                    </div>
                     <div className="flex-1 h-px bg-border" />
                     {!selectedVariant && (
                       <span className="text-[10px] text-primary font-bold animate-pulse">Selecione uma opção</span>
@@ -183,16 +186,17 @@ export default function ProductDetailPage() {
                               isSelected ? null : { id: v.id, label: v.label, priceDelta: v.price_delta }
                             )
                           }
-                          className="px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all"
+                          className="px-4 py-2 rounded-xl border-2 transition-all flex items-baseline gap-1.5"
                           style={{
                             borderColor: isSelected ? '#af1518' : '#dde3ed',
                             backgroundColor: isSelected ? '#af151810' : 'white',
                             color: isSelected ? '#af1518' : '#6b7280',
                           }}
                         >
-                          {v.label}
-                          {v.price_delta !== 0 && (
-                            <span className="ml-1 text-[10px] font-normal">
+                          <span className="text-sm font-bold">{v.label}</span>
+                          <span className="text-[10px] font-normal opacity-70">milímetros</span>
+                          {showPrices && v.price_delta !== 0 && (
+                            <span className="text-[10px] font-normal">
                               ({v.price_delta > 0 ? '+' : ''}R$ {v.price_delta.toFixed(2).replace('.', ',')})
                             </span>
                           )}

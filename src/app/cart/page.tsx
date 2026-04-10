@@ -11,15 +11,19 @@ import QuantityInput from '@/components/ui/QuantityInput';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useCompany, COMPANIES, CompanyId } from '@/context/CompanyContext';
+import { usePrices } from '@/context/PriceContext';
 import toast from 'react-hot-toast';
 
 function pluralUnit(unit: string, qty: number): string {
   if (qty <= 1) return unit;
+  // Unidades que não mudam no plural
   const noChange = ['kg', 'litro', 'litros', 'metro', 'metros', 'm²', 'm³'];
   if (noChange.includes(unit.toLowerCase())) return unit;
+  // Unidades compostas com dimensão numérica (ex: "barra 12m", "chapa 3x1,2m", "painel 6x2,4m")
+  // Ficam iguais — não se pluraliza "barra 12m" para "barra 12ms"
+  if (/\dm$/.test(unit)) return unit;
   if (unit.endsWith('ão')) return unit.replace(/ão$/, 'ões');
   if (unit.endsWith('al')) return unit.replace(/al$/, 'ais');
-  if (unit.endsWith('m'))  return unit.replace(/m$/, 'ns');
   if (unit.endsWith('r') || unit.endsWith('z')) return unit + 'es';
   return unit + 's';
 }
@@ -30,6 +34,7 @@ export default function CartPage() {
   const { items, totalItems, subtotal, removeFromCart, updateQuantity, clearCart } = useCart();
   const { user } = useAuth();
   const { activeCompany } = useCompany();
+  const { showPrices } = usePrices();
   const [done, setDone]           = useState(false);
   const [loading, setLoading]     = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -226,7 +231,7 @@ export default function CartPage() {
                           />
                           <span className="text-sm font-bold text-muted">
                             {quantity} {pluralUnit(product.unit, quantity)}
-                            {effectivePrice > 0 && (
+                            {showPrices && effectivePrice > 0 && (
                               <span className="ml-2 text-foreground">
                                 · R$ {(effectivePrice * quantity).toFixed(2).replace('.', ',')}
                               </span>
