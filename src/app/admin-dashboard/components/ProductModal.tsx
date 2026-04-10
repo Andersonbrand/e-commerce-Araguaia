@@ -430,7 +430,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                             <div className="p-4 space-y-3">
                                 <div className="grid grid-cols-12 gap-2 px-1">
                                     <span className="col-span-5 text-[9px] uppercase tracking-widest font-bold text-muted">Espessura / label</span>
-                                    <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Δ Preço (R$)</span>
+                                    <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Preço (R$)</span>
                                     <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Estoque</span>
                                     <span className="col-span-1" />
                                 </div>
@@ -480,7 +480,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                 </button>
 
                                 <p className="text-[10px] text-muted">
-                                    Δ Preço: use 0 se todas as espessuras têm o mesmo preço, ou informe o acréscimo/desconto em R$.
+                                    Preço: informe o preço individual de cada espessura. Deixe 0 se for o mesmo preço base do produto.
                                 </p>
                             </div>
                         )}

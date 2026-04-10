@@ -68,8 +68,8 @@ export default function ProductDetailPage() {
     toast.success(`${qty}x ${product.name}${variantSuffix} adicionado ao orçamento!`);
   };
 
-  // Preço efetivo = preço base + delta da variante selecionada
-  const unitPrice  = (product?.price ?? 0) + (selectedVariant?.priceDelta ?? 0);
+  // Preço efetivo: se a variante tem preço próprio, usa ele; senão usa o preço base do produto
+  const unitPrice  = selectedVariant?.priceDelta || (product?.price ?? 0);
   const totalPrice = unitPrice * qty;
 
   if (loading) {
@@ -195,9 +195,9 @@ export default function ProductDetailPage() {
                         >
                           <span className="text-sm font-bold">{v.label}</span>
                           <span className="text-[10px] font-normal opacity-70">milímetros</span>
-                          {showPrices && v.price_delta !== 0 && (
+                          {showPrices && v.price_delta > 0 && (
                             <span className="text-[10px] font-normal">
-                              ({v.price_delta > 0 ? '+' : ''}R$ {v.price_delta.toFixed(2).replace('.', ',')})
+                              (R$ {v.price_delta.toFixed(2).replace('.', ',')})
                             </span>
                           )}
                         </button>

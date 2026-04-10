@@ -111,9 +111,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [state.items]);
 
   const totalItems = state.items.reduce((sum, i) => sum + i.quantity, 0);
-  // Preço efetivo = product.price + priceDelta da variante (se houver)
+  // Preço efetivo: se a variante tem preço próprio, usa ele; senão usa o preço base do produto
   const subtotal = state.items.reduce(
-    (sum, i) => sum + (i.product.price + (i.selectedVariant?.priceDelta ?? 0)) * i.quantity,
+    (sum, i) => sum + (i.selectedVariant?.priceDelta || i.product.price) * i.quantity,
     0
   );
 

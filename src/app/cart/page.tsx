@@ -166,7 +166,7 @@ export default function CartPage() {
                 {items.map((item) => {
                   const { product, quantity, selectedVariant, cartKey } = item;
                   const productCompanies = (product as any).companies as string[] | undefined;
-                  const effectivePrice = product.price + (selectedVariant?.priceDelta ?? 0);
+                  const effectivePrice = selectedVariant?.priceDelta || product.price;
 
                   return (
                     <div key={cartKey} className="rounded-2xl p-4 border border-border flex gap-4 items-start hover-lift bg-white">

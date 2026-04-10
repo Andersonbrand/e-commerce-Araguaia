@@ -13,25 +13,25 @@ import toast from 'react-hot-toast';
 // Imagens por categoria — fotos reais do estoque da Comercial Araguaia
 const CATEGORY_IMAGES: Record<string, string> = {
   // Araguaia
-  'Cimento':                '/assets/images/categories/cimento.png',
-  'Vergalhões':             '/assets/images/categories/vergalhoes.png',
-  'Barras e Perfis':        '/assets/images/categories/barras-perfis.png',
-  'Aços Planos':            '/assets/images/categories/acos-planos.png',
-  'Arames':                 '/assets/images/categories/arames.png',
-  'Chapas':                 '/assets/images/categories/chapas.png',
-  'Tubos':                  '/assets/images/categories/tubos.png',
-  'Ferragens':              '/assets/images/categories/ferragens.png',
-  'Serralheria':            '/assets/images/categories/serralheria.png',
-  'Parafusos':              '/assets/images/categories/ferragens.png',
-  'Argamassas':             '/assets/images/categories/argamassas.png',
+  'Cimento':                '/assets/images/categories/cimento.png',        // bags Montes Claros (limpa)
+  'Vergalhões':             '/assets/images/categories/vergalhoes.png',      // vergalhão CA50 Gerdau
+  'Barras e Perfis':        '/assets/images/categories/estoque-tubos.png',   // galpão limpo c/ múltiplos perfis
+  'Aços Planos':            '/assets/images/categories/chapas.png',          // chapas planas em rack — literalmente "aços planos"
+  'Chapas':                 '/assets/images/categories/chapas.png',          // chapas planas em rack
+  'Arames':                 '/assets/images/categories/arames.png',          // bobinas de arame farpado
+  'Tubos':                  '/assets/images/categories/tubos.png',           // galpão de tubos/tubulações
+  'Ferragens':              '/assets/images/categories/ferragens.png',       // expositor de discos abrasivos
+  'Serralheria':            '/assets/images/categories/serralheria.png',    // discos Denver Soldas
+  'Parafusos':              '/assets/images/categories/ferragens.png',       // hardware/ferragens
+  'Argamassas':             '/assets/images/categories/argamassas.png',     // sacos Quartzolit cimentcola
   // Confiance Indústria
-  'Telhas de Zinco':        '/assets/images/categories/telhas.png',
+  'Telhas de Zinco':        '/assets/images/categories/telhas.png',         // telhas corrugadas
   'Telhas':                 '/assets/images/categories/telhas.png',
-  'Bobinas de Zinco':       'https://images.unsplash.com/photo-1581092921461-39b9d08a9b21?w=800&q=80',
-  'Colunas e Treliças':     '/assets/images/categories/barras-perfis.png',
-  'Colunas':                '/assets/images/categories/barras-perfis.png',
-  'Treliças':               '/assets/images/categories/acos-planos.png',
-  // Aços Confiance (as categorias compartilhadas já estão acima)
+  'Bobinas de Zinco':       '/assets/images/categories/acos-planos.png',    // bobinas de aço laminado
+  'Colunas e Treliças':     '/assets/images/categories/estoque-tubos.png',  // perfis estruturais
+  'Colunas':                '/assets/images/categories/estoque-tubos.png',
+  'Treliças':               '/assets/images/categories/vergalhoes.png',     // treliças são feitas de vergalhão
+  // Aços Confiance / compartilhadas
   'Telhas de Fibrocimento': '/assets/images/categories/telhas.png',
 };
 const FALLBACK_IMAGE = '/assets/images/categories/estoque-geral.png';
@@ -88,9 +88,10 @@ export default function ProductsPreview() {
   const getBentoCatImage = (cat: string, _product?: Product) =>
     CATEGORY_IMAGES[cat] || FALLBACK_IMAGE;
 
-  // Para cards de produto: usa image_url do produto com fallback
+  // Para cards de produto em destaque: prefere imagem da categoria (real, verificada),
+  // usando a URL do produto apenas se não tiver imagem de categoria mapeada.
   const getProductImage = (product: Product) =>
-    product.image_url || CATEGORY_IMAGES[product.category] || FALLBACK_IMAGE;
+    CATEGORY_IMAGES[product.category] || product.image_url || FALLBACK_IMAGE;
 
   // Verifica se a empresa atual tem categoria Cimento
   const hasCimento = categories.some(([cat]) => cat.toLowerCase() === 'cimento');
