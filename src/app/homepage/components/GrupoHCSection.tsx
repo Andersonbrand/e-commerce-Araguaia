@@ -62,7 +62,7 @@ export default function GrupoHCSection() {
               um grupo.
             </span>
           </h2>
-          <p className="text-lg text-[#5a6272] max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-[#5a6272] max-w-2xl mx-auto leading-relaxed text-justify">
             O Grupo HC nasceu da Comercial Araguaia e cresceu com a criação da Confiance Indústria e da Aços Confiance —
             todas com o propósito de oferecer os <strong className="text-[#0d1117]">melhores preços</strong> e{' '}
             <strong className="text-[#0d1117]">produtos de qualidade</strong> para o nosso cliente.
@@ -172,7 +172,7 @@ export default function GrupoHCSection() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
                 {[
                   { year: '1990', company: 'Comercial Araguaia', event: 'Fundação da primeira empresa do grupo em Guanambi, BA. Início como distribuidora de materiais de construção civil.', color: '#af1518' },
-                  { year: '2017', company: 'Confiance Indústria', event: 'Criação da indústria própria para fabricação de telhas de zinco, bobinas e estruturas metálicas. Mais de 7 anos no mercado.', color: '#1a3a6b' },
+                  { year: '2020', company: 'Confiance Indústria', event: 'Criação da indústria própria para fabricação de telhas de zinco, bobinas e estruturas metálicas. Desde 2020 no mercado.', color: '#1a3a6b' },
                   { year: '2022', company: 'Aços Confiance', event: 'Expansão com a distribuidora de aço no atacado, atendendo serralherias e construtoras com os melhores preços.', color: '#b04d00' },
                 ].map((item, i) => (
                   <div key={item.year} className="flex flex-col items-center text-center gap-4">

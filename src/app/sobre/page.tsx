@@ -46,13 +46,13 @@ const EMPRESAS = [
   {
     id: 'confiance-industria',
     nome: 'Confiance Indústria',
-    fundacao: '2017',
-    anos: '7+',
+    fundacao: '2020',
+    anos: '5+',
     cor: '#1a3a6b',
     gradiente: 'linear-gradient(135deg, #1a3a6b, #0f2247)',
     bgLight: '#f0f4ff',
     segmento: 'Indústria de Aço',
-    descricao: 'Criada em 2017 para fabricar com tecnologia e qualidade própria, a Confiance Indústria representa a expansão do grupo para o setor produtivo. Fabricamos telhas de zinco, bobinas, treliças, colunas e painéis, atendendo construtoras e agronegócio com preços direto da fábrica.',
+    descricao: 'Criada em 2020 para fabricar com tecnologia e qualidade própria, a Confiance Indústria representa a expansão do grupo para o setor produtivo. Fabricamos telhas de zinco, bobinas, treliças, colunas e painéis, atendendo construtoras e agronegócio com preços direto da fábrica.',
     categorias: ['Telhas de Zinco', 'Bobinas de Zinco', 'Treliças', 'Colunas', 'Painéis'],
     diferenciais: ['Fabricação própria sem intermediários', 'Telhas para agronegócio e construção', 'Capacidade produtiva industrial'],
   },
@@ -134,15 +134,15 @@ export default function SobrePage() {
                   <span className="font-display italic text-gradient-red">com propósito.</span>
                 </h2>
               </div>
-              <p className="text-lg text-muted leading-relaxed">
+              <p className="text-lg text-muted leading-relaxed text-justify">
                 O <strong className="text-foreground">Grupo Hugo Costa</strong> nasceu com a fundação da{' '}
                 <strong className="text-[#af1518]">Comercial Araguaia</strong> em 1990, em Guanambi, Bahia.
                 Nossa missão sempre foi democratizar o acesso a materiais de qualidade no interior da Bahia —
                 com preços justos e atendimento que faz diferença.
               </p>
-              <p className="text-base text-muted leading-relaxed">
+              <p className="text-base text-muted leading-relaxed text-justify">
                 Com o crescimento e a consolidação da Araguaia no mercado regional, expandimos o grupo com a criação
-                da <strong className="text-[#1a3a6b]">Confiance Indústria</strong> em 2017, passando a fabricar
+                da <strong className="text-[#1a3a6b]">Confiance Indústria</strong> em 2020, passando a fabricar
                 nossos próprios produtos metálicos. Em 2022, fundamos a{' '}
                 <strong className="text-[#b04d00]">Aços Confiance</strong>, distribuidora especializada no atacado.
               </p>
@@ -163,7 +163,7 @@ export default function SobrePage() {
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-5">
                 <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-lg">
-                  <AppImage src="https://images.unsplash.com/photo-1628839835275-2b24c0596853"
+                  <AppImage src="/assets/images/hero1.jpg"
                     alt="Obra de construção" className="w-full h-full object-cover" fill />
                 </div>
                 <div className="rounded-4xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #af1518, #8a0f12)' }}>
@@ -221,21 +221,21 @@ export default function SobrePage() {
                   por trás do grupo.
                 </h2>
               </div>
-              <p className="text-lg text-muted leading-relaxed">
+              <p className="text-lg text-muted leading-relaxed text-justify">
                 Natural de Guanambi, Bahia, <strong className="text-foreground">Hugo Costa</strong> fundou a
                 Comercial Araguaia em 1990 com um único propósito: levar materiais de construção de qualidade
                 ao interior da Bahia com preços justos e atendimento que faz diferença.
               </p>
-              <p className="text-base text-muted leading-relaxed">
+              <p className="text-base text-muted leading-relaxed text-justify">
                 Com uma trajetória marcada pela persistência e pelo olhar no cliente, Hugo transformou uma
-                pequena distribuidora em um grupo empresarial sólido. Em 2017, liderou a criação da{' '}
+                pequena distribuidora em um grupo empresarial sólido. Em 2020, liderou a criação da{' '}
                 <strong className="text-[#1a3a6b]">Confiance Indústria</strong>, tornando o grupo
                 autossuficiente na fabricação de telhas e estruturas metálicas. Em 2022, fundou a{' '}
                 <strong className="text-[#b04d00]">Aços Confiance</strong>, fechando o ciclo do grupo no
                 mercado do aço — da indústria ao atacado.
               </p>
               <blockquote className="pl-5 border-l-4 border-primary">
-                <p className="text-lg italic text-muted leading-relaxed">
+                <p className="text-lg italic text-muted leading-relaxed text-justify">
                   "Confiança não se declara — se conquista, entrega por entrega, produto por produto."
                 </p>
                 <footer className="mt-3 text-sm font-bold text-foreground">— Hugo Costa</footer>

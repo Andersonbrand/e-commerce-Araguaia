@@ -86,8 +86,10 @@ export default function ProductsPreview() {
   // Bento: usa a image_url do produto em destaque daquela categoria.
   // O categoryMap já priorizou is_featured=true com imagem no loop acima.
   // Fallback: mapa estático → imagem geral.
+  // Sempre usa a imagem da categoria do mapa estático quando disponível
+  // Isso garante que o bento exibe a imagem correta independente do produto representante
   const getBentoCatImage = (cat: string, prod?: Product) =>
-    prod?.image_url || CATEGORY_IMAGES[cat] || FALLBACK_IMAGE;
+    CATEGORY_IMAGES[cat] || prod?.image_url || FALLBACK_IMAGE;
 
   // Cards "Itens em Destaque": usa a imagem real do produto cadastrada pelo admin.
   // Fallback: mapa de categoria → imagem geral.
@@ -145,7 +147,7 @@ export default function ProductsPreview() {
         {isGrupoView && (
           <div className="mb-12 rounded-4xl border-2 border-dashed border-[#dde3ed] p-10 text-center">
             <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-muted mb-4">Grupo HC</p>
-            <h3 className="text-2xl font-bold text-foreground mb-2">Selecione uma empresa para ver os produtos</h3>
+            <h3 className="text-2xl font-bold text-foreground mb-2 text-center">Selecione uma empresa para ver os produtos</h3>
             <p className="text-muted mb-6 text-sm">Cada empresa tem seu próprio portfólio especializado.</p>
             <div className="flex flex-wrap justify-center gap-3">
               {COMPANY_ORDER.map((id) => {

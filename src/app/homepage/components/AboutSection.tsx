@@ -12,7 +12,7 @@ const values = [
 
 const empresas = [
   { nome: 'Comercial Araguaia', ano: '1990', cor: '#af1518', desc: 'A origem de tudo. Distribuidora de materiais de construção civil que abriu caminho para o grupo.' },
-  { nome: 'Confiance Indústria', ano: '2017', cor: '#1a3a6b', desc: 'Mais de 7 anos fabricando telhas de zinco, bobinas e estruturas metálicas com tecnologia própria.' },
+  { nome: 'Confiance Indústria', ano: '2020', cor: '#1a3a6b', desc: 'Com tecnologia própria fabricando telhas de zinco, bobinas e estruturas metálicas com tecnologia própria.' },
   { nome: 'Aços Confiance', ano: '2022', cor: '#b04d00', desc: 'A mais nova do grupo, focada em aço no atacado para serralherias e construtoras com preços imbatíveis.' },
 ];
 
@@ -48,7 +48,7 @@ export default function AboutSection() {
             <div className="space-y-5">
               <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-blue-lg">
                 <AppImage
-                  src="https://images.unsplash.com/photo-1628839835275-2b24c0596853"
+                  src="/assets/images/hero1.jpg"
                   alt="Operário trabalhando com materiais de construção"
                   className="w-full h-full object-cover" fill />
               </div>
@@ -85,15 +85,15 @@ export default function AboutSection() {
               </h2>
             </div>
 
-            <p className="text-lg text-muted leading-relaxed">
+            <p className="text-lg text-muted leading-relaxed text-justify">
               A <strong className="text-foreground">Comercial Araguaia</strong> nasceu em 1990 com a missão de democratizar o
               acesso a materiais de construção de qualidade no interior da Bahia. Ao longo dos anos, crescemos e expandimos
               nosso alcance com a criação de novas empresas dentro do{' '}
               <strong className="text-foreground">Grupo Hugo Costa</strong>.
             </p>
 
-            <p className="text-base text-muted leading-relaxed">
-              Em 2017, criamos a <strong className="text-foreground">Confiance Indústria</strong> para fabricar nossas próprias
+            <p className="text-base text-muted leading-relaxed text-justify">
+              Em 2020, criamos a <strong className="text-foreground">Confiance Indústria</strong> para fabricar nossas próprias
               telhas de zinco, bobinas e estruturas metálicas — garantindo ainda mais qualidade e preços competitivos.
               Mais recentemente, em 2022, fundamos a <strong className="text-foreground">Aços Confiance</strong>, nossa
               distribuidora de aço no atacado, completando o ecossistema do grupo.
@@ -133,7 +133,7 @@ export default function AboutSection() {
                   </span>
                 </div>
                 <h4 className="text-lg font-bold text-foreground mb-2">{emp.nome}</h4>
-                <p className="text-sm text-muted leading-relaxed">{emp.desc}</p>
+                <p className="text-sm text-muted leading-relaxed text-justify">{emp.desc}</p>
               </div>
             ))}
           </div>

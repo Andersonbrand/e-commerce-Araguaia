@@ -58,7 +58,7 @@ export const COMPANIES: Record<CompanyId, Company> = {
     tagline: 'Inovação em ferro e aço direto da fábrica.',
     description: 'A indústria do grupo, com mais de 7 anos fabricando telhas de zinco, bobinas, treliças, colunas e painéis com tecnologia própria e qualidade superior.',
     segment: 'Indústria de Aço',
-    founded: '2017',
+    founded: '2020',
     primaryColor: '#1a3a6b',
     primaryDark: '#0f2247',
     accentColor: '#4a7fd4',

@@ -90,13 +90,13 @@ export default function HeroSection() {
         {/* Direita — collage sem card de estoque */}
         <div className="lg:col-span-6 relative h-[580px] hidden lg:block">
           <div className="absolute top-0 right-0 w-[58%] aspect-[4/5] rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-10 animate-float">
-            <AppImage src="/assets/hero-1.jpg" alt="Metalons" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="/assets/images/hero1.jpg" alt="Metalons" className="product-img w-full h-full object-cover" fill />
           </div>
           <div className="absolute top-[22%] left-0 w-[48%] aspect-square rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-20 animate-float-delay">
-            <AppImage src="https://images.unsplash.com/photo-1628839835275-2b24c0596853" alt="Materiais de construção" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="/assets/images/hero2.jpg" alt="Materiais de construção" className="product-img w-full h-full object-cover" fill />
           </div>
           <div className="absolute bottom-[-2%] left-[22%] w-[42%] aspect-[3/4] rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-30 animate-float-slow">
-            <AppImage src="https://images.unsplash.com/photo-1561910733-0512c2b2e28a" alt="Sacos de cimento" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="/assets/images/hero3.jpg" alt="Sacos de cimento" className="product-img w-full h-full object-cover" fill />
           </div>
 
           {/* Único floating card — Desde 1990 */}
@@ -108,7 +108,7 @@ export default function HeroSection() {
 
         {/* Mobile hero */}
         <div className="lg:hidden w-full aspect-video rounded-4xl overflow-hidden shadow-2xl">
-          <AppImage src="https://images.unsplash.com/photo-1504307651254-35680f356dfd" alt="Comercial Araguaia" className="w-full h-full object-cover" fill priority />
+          <AppImage src="/assets/images/hero4.jpg" alt="Comercial Araguaia" className="w-full h-full object-cover" fill priority />
         </div>
       </div>
 
