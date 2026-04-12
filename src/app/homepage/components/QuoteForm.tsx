@@ -113,7 +113,7 @@ export default function QuoteForm() {
                                         : <><AppIcon name="PaperAirplaneIcon" size={16} />Solicitar Orçamento</>}
                                 </button>
                                 <p className="text-[11px] text-muted text-center sm:text-left">
-                                    Retorno em até <strong className="text-foreground">2 horas úteis</strong>. Sem compromisso.
+                                    Retorno em até <strong className="text-foreground">24 horas úteis</strong>. Sem compromisso.
                                 </p>
                             </div>
                         </form>
@@ -123,9 +123,9 @@ export default function QuoteForm() {
                 {/* Contact cards */}
                 <div className="mt-12 grid sm:grid-cols-3 gap-6">
                     {[
-                        { icon: 'ChatBubbleLeftRightIcon', label: 'WhatsApp', value: '(77) 9 8104-6133',                   sub: 'Resposta imediata', href: 'https://wa.me/5577981046133' },
+                        { icon: 'ChatBubbleLeftRightIcon', label: 'WhatsApp', value: '(77) 3451-2175',                   sub: 'Respostas em até 4 horas', href: 'https://wa.me/557734512175' },
                         { icon: 'EnvelopeIcon',            label: 'E-mail',   value: 'comercialaraguaia2018@outlook.com',  sub: 'Resposta em 24h',    href: 'mailto:comercialaraguaia2018@outlook.com' },
-                        { icon: 'MapPinIcon',              label: 'Endereço', value: 'Guanambi / Bahia',                  sub: 'Seg–Sex 8h–18h · Sáb 8h–12h', href: '#' },
+                        { icon: 'MapPinIcon',              label: 'Endereço', value: 'Guanambi / Bahia',                  sub: 'Seg–Sex 7h–17h · Sáb 8h–12h', href: '#' },
                     ].map((item) => (
                         <a key={item.label} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined}
                             rel="noopener noreferrer"

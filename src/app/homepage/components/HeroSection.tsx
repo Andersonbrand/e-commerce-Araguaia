@@ -51,7 +51,7 @@ export default function HeroSection() {
           </p>
 
           <div className="flex flex-wrap gap-4">
-            <a href="https://wa.me/5577981046133" target="_blank" rel="noopener noreferrer"
+            <a href="https://wa.me/557734512175" target="_blank" rel="noopener noreferrer"
               className="px-8 py-4 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-all shadow-red-lg hover:shadow-red-xl hover:-translate-y-0.5 flex items-center gap-2">
               <AppIcon name="ChatBubbleLeftRightIcon" size={18} />
               Falar no WhatsApp
@@ -90,13 +90,13 @@ export default function HeroSection() {
         {/* Direita — collage sem card de estoque */}
         <div className="lg:col-span-6 relative h-[580px] hidden lg:block">
           <div className="absolute top-0 right-0 w-[58%] aspect-[4/5] rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-10 animate-float">
-            <AppImage src="assets/hero-1.jpg" alt="Metalons" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="assets/hero-1" alt="Metalons" className="product-img w-full h-full object-cover" fill />
           </div>
           <div className="absolute top-[22%] left-0 w-[48%] aspect-square rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-20 animate-float-delay">
-            <AppImage src="assets/hero-2.jpg" alt="zarcao" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="assets/hero-2" alt="zarcao" className="product-img w-full h-full object-cover" fill />
           </div>
           <div className="absolute bottom-[-2%] left-[22%] w-[42%] aspect-[3/4] rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-30 animate-float-slow">
-            <AppImage src="assets/hero-3.jpg" alt="cimento liz" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="assets/hero-3" alt="cimento liz" className="product-img w-full h-full object-cover" fill />
           </div>
 
           {/* Único floating card — Desde 1990 */}

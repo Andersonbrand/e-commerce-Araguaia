@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 interface StatItem { value: number; suffix: string; label: string; color: string; }
 
 const stats: StatItem[] = [
-  { value: 25,   suffix: '+', label: 'Anos no mercado',               color: 'text-primary' },
+  { value: 35,   suffix: '+', label: 'Anos no mercado',               color: 'text-primary' },
   { value: 5000, suffix: '+', label: 'Clientes ativos',               color: 'text-accent'  },
   { value: 800,  suffix: '+', label: 'Produtos em estoque',           color: 'text-primary' },
   { value: 90,   suffix: '%', label: 'Clientes confiam na qualidade', color: 'text-accent'  },
