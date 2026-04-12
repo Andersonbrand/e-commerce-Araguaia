@@ -12,8 +12,8 @@ const values = [
 
 const empresas = [
   { nome: 'Comercial Araguaia', ano: '1990', cor: '#af1518', desc: 'A origem de tudo. Distribuidora de materiais de construção civil que abriu caminho para o grupo.' },
-  { nome: 'Confiance Indústria', ano: '2017', cor: '#1a3a6b', desc: 'Mais de 5 anos fabricando telhas de zinco, bobinas e estruturas metálicas com tecnologia própria.' },
-  { nome: 'Aços Confiance', ano: '2021', cor: '#b04d00', desc: 'A mais nova do grupo, focada em aço no atacado para serralherias e construtoras com preços imbatíveis.' },
+  { nome: 'Confiance Indústria', ano: '2020', cor: '#1a3a6b', desc: 'Mais de 5 anos fabricando telhas de zinco, bobinas e estruturas metálicas com tecnologia própria.' },
+  { nome: 'Aços Confiance', ano: '2022', cor: '#b04d00', desc: 'A mais nova do grupo, focada em aço no atacado para serralherias e construtoras com preços imbatíveis.' },
 ];
 
 export default function AboutSection() {

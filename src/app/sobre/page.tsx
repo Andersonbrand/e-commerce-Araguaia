@@ -46,20 +46,20 @@ const EMPRESAS = [
   {
     id: 'confiance-industria',
     nome: 'Confiance Indústria',
-    fundacao: '2017',
-    anos: '7+',
+    fundacao: '2020',
+    anos: '5+',
     cor: '#1a3a6b',
     gradiente: 'linear-gradient(135deg, #1a3a6b, #0f2247)',
     bgLight: '#f0f4ff',
     segmento: 'Indústria de Aço',
-    descricao: 'Criada em 2017 para fabricar com tecnologia e qualidade própria, a Confiance Indústria representa a expansão do grupo para o setor produtivo. Fabricamos telhas de zinco, bobinas, treliças, colunas e painéis, atendendo construtoras e agronegócio com preços direto da fábrica.',
+    descricao: 'Criada em 2020 para fabricar com tecnologia e qualidade própria, a Confiance Indústria representa a expansão do grupo para o setor produtivo. Fabricamos telhas de zinco, bobinas, treliças, colunas e painéis, atendendo construtoras e agronegócio com preços direto da fábrica.',
     categorias: ['Telhas de Zinco', 'Bobinas de Zinco', 'Treliças', 'Colunas', 'Painéis'],
     diferenciais: ['Fabricação própria sem intermediários', 'Telhas para agronegócio e construção', 'Capacidade produtiva industrial'],
   },
   {
     id: 'acos-confiance',
     nome: 'Aços Confiance',
-    fundacao: '2021',
+    fundacao: '2022',
     anos: '3+',
     cor: '#b04d00',
     gradiente: 'linear-gradient(135deg, #b04d00, #803800)',
@@ -142,8 +142,8 @@ export default function SobrePage() {
               </p>
               <p className="text-base text-muted leading-relaxed">
                 Com o crescimento e a consolidação da Araguaia no mercado regional, expandimos o grupo com a criação
-                da <strong className="text-[#1a3a6b]">Confiance Indústria</strong> em 2017, passando a fabricar
-                nossos próprios produtos metálicos. Em 2021, fundamos a{' '}
+                da <strong className="text-[#1a3a6b]">Confiance Indústria</strong> em 2020, passando a fabricar
+                nossos próprios produtos metálicos. Em 2022, fundamos a{' '}
                 <strong className="text-[#b04d00]">Aços Confiance</strong>, distribuidora especializada no atacado.
               </p>
               <div className="grid grid-cols-3 gap-4 pt-2">
@@ -228,9 +228,9 @@ export default function SobrePage() {
               </p>
               <p className="text-base text-muted leading-relaxed">
                 Com uma trajetória marcada pela persistência e pelo olhar no cliente, Hugo transformou uma
-                pequena distribuidora em um grupo empresarial sólido. Em 2017, liderou a criação da{' '}
+                pequena distribuidora em um grupo empresarial sólido. Em 2020, liderou a criação da{' '}
                 <strong className="text-[#1a3a6b]">Confiance Indústria</strong>, tornando o grupo
-                autossuficiente na fabricação de telhas e estruturas metálicas. Em 2021, fundou a{' '}
+                autossuficiente na fabricação de telhas e estruturas metálicas. Em 2022, fundou a{' '}
                 <strong className="text-[#b04d00]">Aços Confiance</strong>, fechando o ciclo do grupo no
                 mercado do aço — da indústria ao atacado.
               </p>
@@ -379,7 +379,7 @@ export default function SobrePage() {
             Fale com nossa equipe e receba um orçamento personalizado para seu projeto.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="https://wa.me/5577981046133" target="_blank" rel="noopener noreferrer"
+            <a href="https://wa.me/557734512175" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-8 py-4 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 shadow-lg"
               style={{ backgroundColor: '#af1518' }}>
               <AppIcon name="ChatBubbleLeftRightIcon" size={18} />
