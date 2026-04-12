@@ -82,9 +82,9 @@ export default function SobrePage() {
       {/* ── HERO ── */}
       <section className="relative min-h-[65vh] flex items-end pb-20 pt-32 overflow-hidden">
         <div className="absolute inset-0">
-          <AppImage src="/assets/images/about/estoque.jpg" alt="Estoque de serralheiro" fill
+          <AppImage src="/assets/images/about/estoque.jpg" alt="Estoque Grupo HC" fill
             className="object-cover object-center scale-105 transition-transform duration-[10s] hover:scale-100" priority />
-          <div className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/50 to-foreground/20" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(13,17,23,0.95) 0%, rgba(13,17,23,0.65) 40%, rgba(13,17,23,0.25) 100%)' }} />
           {/* Faixa tricolor no topo */}
           <div className="absolute top-0 left-0 right-0 h-1.5 flex">
             <div className="flex-1" style={{ backgroundColor: '#af1518' }} />
@@ -177,7 +177,7 @@ export default function SobrePage() {
                   <p className="text-[10px] uppercase tracking-widest text-muted mt-1">Bahia · nossa origem</p>
                 </div>
                 <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-xl">
-                  <AppImage src="/assets/images/about/vergalhoes.jpg"
+                  <AppImage src="/assets/images/hero-8.jpg"
                     alt="Materiais de aço" className="w-full h-full object-cover" fill />
                 </div>
               </div>
@@ -350,11 +350,13 @@ export default function SobrePage() {
               { icon: 'UserGroupIcon', title: 'Atendimento Humano',  desc: 'Equipe capacitada presente para auxiliar na escolha certa — do projeto à entrega.', cor: '#b04d00' },
             ].map(v => (
               <div key={v.title} className="p-7 rounded-4xl border border-[#dde3ed] bg-white hover:-translate-y-1 transition-transform duration-300">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
-                  style={{ backgroundColor: `${v.cor}12` }}>
-                  <AppIcon name={v.icon as any} size={22} style={{ color: v.cor }} />
+                <div className="flex justify-center mb-5">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
+                    style={{ backgroundColor: `${v.cor}12` }}>
+                    <AppIcon name={v.icon as any} size={22} style={{ color: v.cor }} />
+                  </div>
                 </div>
-                <h4 className="text-base font-bold text-foreground mb-2">{v.title}</h4>
+                <h4 className="text-base font-bold text-foreground mb-2 text-center">{v.title}</h4>
                 <p className="text-sm text-muted leading-relaxed text-justify">{v.desc}</p>
               </div>
             ))}

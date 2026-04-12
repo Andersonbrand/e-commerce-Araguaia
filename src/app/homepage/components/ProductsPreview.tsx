@@ -130,7 +130,7 @@ export default function ProductsPreview() {
             )}
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-primary block">Nosso Catálogo</span>
             <h2 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-foreground">
-              Categorias{' '}
+              Produtos{' '}
               <span className="font-display italic text-gradient-red">principais.</span>
             </h2>
           </div>
@@ -162,73 +162,9 @@ export default function ProductsPreview() {
           </div>
         )}
 
-        {/* Bento grid de categorias */}
-        {categories.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
-            {categoriesSorted[0] && (
-              <Link href={`/products?categoria=${encodeURIComponent(categoriesSorted[0][0])}`}
-                className="lg:col-span-5 product-card group relative rounded-4xl overflow-hidden shadow-red-lg hover-lift cursor-pointer bg-surface block">
-                <div className="relative h-[400px] overflow-hidden bg-white">
-                  {/* Usa imagem do Cimento Montes Claros se disponível, senão fallback da categoria */}
-                  <AppImage
-                    src={getBentoCatImage(categoriesSorted[0][0], categoriesSorted[0][1])}
-                    alt={categoriesSorted[0][0]}
-                    className="product-img transition-transform duration-700 group-hover:scale-105"
-                    style={{ objectFit: 'cover' }}
-                    fill
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent" />
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <span className="badge mb-3 bg-primary text-white">
-                    {hasCimento ? 'Mais vendido' : 'Destaque'}
-                  </span>
-                  <h3 className="text-2xl font-bold text-white mb-1">{categoriesSorted[0][0]}</h3>
-                  <p className="text-sm text-white/70">
-                    {filteredProducts.filter(p => p.category === categoriesSorted[0][0]).length} produtos disponíveis
-                  </p>
-                </div>
-              </Link>
-            )}
-
-            <div className="lg:col-span-3 grid grid-rows-2 gap-5">
-              {[categoriesSorted[1], categoriesSorted[2]].filter(Boolean).map(([cat, prod]) => (
-                <Link key={cat} href={`/products?categoria=${encodeURIComponent(cat)}`}
-                  className="product-card group relative rounded-4xl overflow-hidden shadow-sm hover-lift cursor-pointer bg-surface block">
-                  <div className="relative h-full min-h-[190px] overflow-hidden">
-                    <AppImage src={getBentoCatImage(cat, prod)} alt={cat}
-                      className="product-img w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" fill />
-                    <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <span className="badge mb-2 bg-surface-2 text-foreground">Destaque</span>
-                    <h3 className="text-base font-bold text-white">{cat}</h3>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {categoriesSorted[3] && (
-              <Link href={`/products?categoria=${encodeURIComponent(categoriesSorted[3][0])}`}
-                className="lg:col-span-4 product-card group relative rounded-4xl overflow-hidden shadow-red-lg hover-lift cursor-pointer bg-surface block">
-                <div className="relative h-[400px] overflow-hidden">
-                  <AppImage src={getBentoCatImage(categoriesSorted[3][0], categoriesSorted[3][1])} alt={categoriesSorted[3][0]}
-                    className="product-img w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" fill />
-                  <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent" />
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <span className="badge mb-3 bg-surface-2 text-foreground">Destaque</span>
-                  <h3 className="text-2xl font-bold text-white mb-1">{categoriesSorted[3][0]}</h3>
-                </div>
-              </Link>
-            )}
-          </div>
-        )}
-
         {/* Produtos destaque */}
         {featured.length > 0 && (
-          <div className="mt-20">
-            <h3 className="text-2xl font-bold text-foreground mb-8">Produtos em Destaque</h3>
+          <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {featured.map((product) => (
                 <div key={product.id} className="product-card group bg-white border border-border rounded-4xl overflow-hidden hover-lift shadow-sm">

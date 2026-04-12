@@ -6,16 +6,23 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import AdminPanel from './components/AdminPanel';
 import AppLogo from '@/components/ui/AppLogo';
+import { useCompany } from '@/context/CompanyContext';
 
 export default function AdminDashboardPage() {
     const { user, isAdmin, loading } = useAuth();
     const router = useRouter();
+    const { setActiveCompany } = useCompany();
 
     useEffect(() => {
         if (!loading && (!user || !isAdmin)) {
             router.push('/login');
         }
     }, [user, isAdmin, loading, router]);
+
+    // Limpa empresa selecionada ao entrar no painel admin
+    useEffect(() => {
+        setActiveCompany(null);
+    }, []);
 
     if (loading) {
         return (
