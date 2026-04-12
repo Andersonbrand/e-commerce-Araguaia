@@ -48,7 +48,7 @@ export default function AboutSection() {
             <div className="space-y-5">
               <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-blue-lg">
                 <AppImage
-                  src="/assets/images/hero-4" alt="aços-planos" className="w-full h-full object-cover" fill />
+                  src="/assets/images/hero-4.jpg" alt="aços-planos" className="w-full h-full object-cover" fill />
               </div>
               <div className="rounded-4xl p-8 text-white" style={{ background: 'linear-gradient(135deg, #af1518, #8a0f12)' }}>
                 <p className="text-4xl font-display font-bold italic">Desde</p>

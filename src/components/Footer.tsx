@@ -80,16 +80,16 @@ export default function Footer() {
                         <div>
                             <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-foreground mb-3">Contato</p>
                             <div className="space-y-2 text-xs text-muted">
-                                <a href="https://wa.me/5577981046133" target="_blank" rel="noopener noreferrer"
+                                <a href="https://wa.me/557734512175" target="_blank" rel="noopener noreferrer"
                                     className="flex items-center gap-1.5 hover:text-[#af1518] transition-colors">
-                                    <span className="font-bold text-[#af1518]">WhatsApp:</span>(77) 9 8104-6133
+                                    <span className="font-bold text-[#af1518]">WhatsApp:</span>(77) 3451-2175
                                 </a>
                                 <a href="mailto:comercialaraguaia2018@outlook.com"
                                     className="flex items-center gap-1.5 hover:text-[#af1518] transition-colors break-all">
                                     <span className="font-bold text-[#af1518]">E-mail:</span>comercialaraguaia2018@outlook.com
                                 </a>
                                 <p><span className="font-bold text-[#af1518]">Endereço:</span> Guanambi / Bahia</p>
-                                <p>Seg–Sex, 8h–18h · Sáb, 8h–12h</p>
+                                <p>Seg–Sex, 7h–17h · Sáb, 8h–12h</p>
                             </div>
                         </div>
                     </div>

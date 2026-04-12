@@ -149,7 +149,7 @@ export default function SobrePage() {
               <div className="grid grid-cols-3 gap-4 pt-2">
                 {[
                   { v: '35+', l: 'anos de mercado', c: '#af1518' },
-                  { v: '3',   l: 'empresas do grupo', c: '#1a3a6b' },
+                  { v: '3', l: 'empresas do grupo', c: '#1a3a6b' },
                   { v: '800+', l: 'produtos no portfólio', c: '#b04d00' },
                 ].map(s => (
                   <div key={s.l} className="text-center p-4 rounded-2xl border border-[#dde3ed]">
@@ -163,8 +163,8 @@ export default function SobrePage() {
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-5">
                 <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-lg">
-                  <AppImage src="https://images.unsplash.com/photo-1628839835275-2b24c0596853"
-                    alt="Obra de construção" className="w-full h-full object-cover" fill />
+                  <AppImage src="/assets/images/zarcao-2.jpg"
+                    alt="zarcao" className="w-full h-full object-cover" fill />
                 </div>
                 <div className="rounded-4xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #af1518, #8a0f12)' }}>
                   <p className="text-3xl font-display font-bold">1990</p>
@@ -243,7 +243,7 @@ export default function SobrePage() {
               <div className="grid grid-cols-3 gap-4 pt-2">
                 {[
                   { v: '1990', l: 'Início da jornada', c: '#af1518' },
-                  { v: '3',   l: 'Empresas fundadas', c: '#1a3a6b' },
+                  { v: '3', l: 'Empresas fundadas', c: '#1a3a6b' },
                   { v: '+35', l: 'Anos no mercado', c: '#b04d00' },
                 ].map(s => (
                   <div key={s.l} className="text-center p-3 rounded-2xl border border-[#dde3ed] bg-white">
@@ -345,9 +345,9 @@ export default function SobrePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: 'TruckIcon',     title: 'Logística Própria',   desc: 'Frota dedicada para entregas pontuais em obras de qualquer porte em Guanambi e região.', cor: '#af1518' },
+              { icon: 'TruckIcon', title: 'Logística Própria', desc: 'Frota dedicada para entregas pontuais em obras de qualquer porte em Guanambi e região.', cor: '#af1518' },
               { icon: 'ShieldCheckIcon', title: 'Qualidade Garantida', desc: 'Parceiros das maiores marcas do setor. Produtos verificados e com garantia de procedência.', cor: '#1a3a6b' },
-              { icon: 'UserGroupIcon', title: 'Atendimento Humano',  desc: 'Equipe técnica presente para auxiliar na escolha certa — do projeto à entrega.', cor: '#b04d00' },
+              { icon: 'UserGroupIcon', title: 'Atendimento Humano', desc: 'Equipe técnica presente para auxiliar na escolha certa — do projeto à entrega.', cor: '#b04d00' },
             ].map(v => (
               <div key={v.title} className="p-7 rounded-4xl border border-[#dde3ed] bg-white hover:-translate-y-1 transition-transform duration-300">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"

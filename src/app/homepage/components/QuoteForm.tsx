@@ -14,9 +14,9 @@ interface FormData {
 const EMPTY: FormData = { name: '', company: '', email: '', phone: '', category: '', message: '' };
 
 export default function QuoteForm() {
-    const [form, setForm]           = useState<FormData>(EMPTY);
+    const [form, setForm] = useState<FormData>(EMPTY);
     const [submitted, setSubmitted] = useState(false);
-    const [loading, setLoading]     = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -55,7 +55,7 @@ export default function QuoteForm() {
                         <br />sem compromisso.
                     </h2>
                     <p className="text-lg text-muted max-w-xl mx-auto">
-                        Preencha o formulário e nossa equipe retornará em até 2 horas úteis com os melhores preços.
+                        Preencha o formulário e nossa equipe retornará em até 24 horas úteis com os melhores preços.
                     </p>
                 </div>
 
@@ -78,10 +78,10 @@ export default function QuoteForm() {
                         <form onSubmit={handleSubmit} className="space-y-10">
                             <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
                                 {[
-                                    { label: 'Nome Completo *',        name: 'name',    type: 'text',  required: true,  placeholder: 'João da Silva' },
-                                    { label: 'Empresa / Obra',         name: 'company', type: 'text',  required: false, placeholder: 'Construtora Exemplo Ltda' },
-                                    { label: 'E-mail *',               name: 'email',   type: 'email', required: true,  placeholder: 'joao@empresa.com.br' },
-                                    { label: 'Telefone / WhatsApp *',  name: 'phone',   type: 'tel',   required: true,  placeholder: '(77) 9 8104-6133' },
+                                    { label: 'Nome Completo *', name: 'name', type: 'text', required: true, placeholder: 'João da Silva' },
+                                    { label: 'Empresa / Obra', name: 'company', type: 'text', required: false, placeholder: 'Construtora Exemplo Ltda' },
+                                    { label: 'E-mail *', name: 'email', type: 'email', required: true, placeholder: 'joao@empresa.com.br' },
+                                    { label: 'Telefone / WhatsApp *', name: 'phone', type: 'tel', required: true, placeholder: '(77) 9 8104-6133' },
                                 ].map((field) => (
                                     <div key={field.name}>
                                         <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-3">{field.label}</label>
@@ -109,7 +109,7 @@ export default function QuoteForm() {
                                 <button type="submit" disabled={loading}
                                     className="w-full sm:w-auto px-12 py-4 rounded-xl bg-primary text-white font-bold text-sm uppercase tracking-widest hover:bg-primary-dark transition-all shadow-red-lg disabled:opacity-60 flex items-center justify-center gap-3">
                                     {loading
-                                        ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Enviando...</>
+                                        ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Enviando...</>
                                         : <><AppIcon name="PaperAirplaneIcon" size={16} />Solicitar Orçamento</>}
                                 </button>
                                 <p className="text-[11px] text-muted text-center sm:text-left">
@@ -123,9 +123,9 @@ export default function QuoteForm() {
                 {/* Contact cards */}
                 <div className="mt-12 grid sm:grid-cols-3 gap-6">
                     {[
-                        { icon: 'ChatBubbleLeftRightIcon', label: 'WhatsApp', value: '(77) 3451-2175',                   sub: 'Respostas em até 4 horas', href: 'https://wa.me/557734512175' },
-                        { icon: 'EnvelopeIcon',            label: 'E-mail',   value: 'comercialaraguaia2018@outlook.com',  sub: 'Resposta em 24h',    href: 'mailto:comercialaraguaia2018@outlook.com' },
-                        { icon: 'MapPinIcon',              label: 'Endereço', value: 'Guanambi / Bahia',                  sub: 'Seg–Sex 7h–17h · Sáb 8h–12h', href: '#' },
+                        { icon: 'ChatBubbleLeftRightIcon', label: 'WhatsApp', value: '(77) 3451-2175', sub: 'Respostas em até 4 horas', href: 'https://wa.me/557734512175' },
+                        { icon: 'EnvelopeIcon', label: 'E-mail', value: 'comercialaraguaia2018@outlook.com', sub: 'Resposta em 24h', href: 'mailto:comercialaraguaia2018@outlook.com' },
+                        { icon: 'MapPinIcon', label: 'Endereço', value: 'Guanambi / Bahia', sub: 'Seg–Sex 7h–17h · Sáb 8h–12h', href: '#' },
                     ].map((item) => (
                         <a key={item.label} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined}
                             rel="noopener noreferrer"
