@@ -5,9 +5,9 @@ import AppImage from '@/components/ui/AppImage';
 import AppIcon from '@/components/ui/AppIcon';
 
 const values = [
-  { icon: 'TruckIcon',      title: 'Logística Própria',    desc: 'Frota dedicada para entregas pontuais em obras de qualquer porte em Guanambi e região.' },
-  { icon: 'CubeIcon',       title: 'Estoque Garantido',    desc: 'Mais de 800 SKUs disponíveis para pronta entrega com qualidade verificada.' },
-  { icon: 'UserGroupIcon',  title: 'Atendimento Técnico',  desc: 'Equipe especializada para auxiliar na escolha dos materiais certos para cada projeto.' },
+  { icon: 'TruckIcon', title: 'Logística Própria', desc: 'Frota dedicada para entregas em Guanambi e região.' },
+  { icon: 'CubeIcon', title: 'Estoque Garantido', desc: 'Mais de 800 itens disponíveis para te atender com qualidade verificada.' },
+  { icon: 'UserGroupIcon', title: 'Atendimento Profissional', desc: 'Equipe especializada para auxiliar na escolha dos materiais certos para cada projeto.' },
 ];
 
 const empresas = [
@@ -48,8 +48,8 @@ export default function AboutSection() {
             <div className="space-y-5">
               <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-blue-lg">
                 <AppImage
-                  src="https://images.unsplash.com/photo-1628839835275-2b24c0596853"
-                  alt="Operário trabalhando com materiais de construção"
+                  src="../../../../public/assets/images/hero 4.png"
+                  alt="aços-planos"
                   className="w-full h-full object-cover" fill />
               </div>
               <div className="rounded-4xl p-8 text-white" style={{ background: 'linear-gradient(135deg, #af1518, #8a0f12)' }}>

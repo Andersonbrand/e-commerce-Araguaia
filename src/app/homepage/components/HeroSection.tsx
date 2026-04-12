@@ -46,7 +46,7 @@ export default function HeroSection() {
 
           <p className="text-lg text-muted max-w-lg leading-relaxed">
             Cimento, vergalhões, ferragens e materiais de serralheiro com qualidade garantida.
-            A <strong className="text-foreground">Comercial Araguaia</strong> é sua parceira em
+            A <strong className="text-foreground">Comercial Araguaia, Aços Confiance e Confiance Industria</strong> são parceiras em
             Guanambi para todas as etapas da construção.
           </p>
 
@@ -75,8 +75,8 @@ export default function HeroSection() {
 
           <div className="flex flex-wrap gap-6 pt-2">
             {[
-              { icon: 'CheckBadgeIcon',  label: 'Desde 1990 no mercado' },
-              { icon: 'TruckIcon',       label: 'Entrega em Guanambi e região' },
+              { icon: 'CheckBadgeIcon', label: 'Desde 1990 no mercado' },
+              { icon: 'TruckIcon', label: 'Entrega em Guanambi e região' },
               { icon: 'ShieldCheckIcon', label: 'Qualidade garantida' },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2 text-[12px] font-medium text-muted">
@@ -90,13 +90,13 @@ export default function HeroSection() {
         {/* Direita — collage sem card de estoque */}
         <div className="lg:col-span-6 relative h-[580px] hidden lg:block">
           <div className="absolute top-0 right-0 w-[58%] aspect-[4/5] rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-10 animate-float">
-            <AppImage src="https://images.unsplash.com/photo-1675352306826-389b0718edb6" alt="Obra de construção civil" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="../../../../public/assets/hero 1.jpg" alt="Metalons" className="product-img w-full h-full object-cover" fill />
           </div>
           <div className="absolute top-[22%] left-0 w-[48%] aspect-square rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-20 animate-float-delay">
-            <AppImage src="https://images.unsplash.com/photo-1628839835275-2b24c0596853" alt="Materiais de construção" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="../../../../public/assets/hero 2.jpg" alt="zarcao" className="product-img w-full h-full object-cover" fill />
           </div>
           <div className="absolute bottom-[-2%] left-[22%] w-[42%] aspect-[3/4] rounded-4xl overflow-hidden shadow-2xl border border-border/40 z-30 animate-float-slow">
-            <AppImage src="https://images.unsplash.com/photo-1561910733-0512c2b2e28a" alt="Sacos de cimento" className="product-img w-full h-full object-cover" fill />
+            <AppImage src="../../../../public/assets/hero 3.jpg" alt="cimento liz" className="product-img w-full h-full object-cover" fill />
           </div>
 
           {/* Único floating card — Desde 1990 */}
@@ -108,7 +108,7 @@ export default function HeroSection() {
 
         {/* Mobile hero */}
         <div className="lg:hidden w-full aspect-video rounded-4xl overflow-hidden shadow-2xl">
-          <AppImage src="https://images.unsplash.com/photo-1504307651254-35680f356dfd" alt="Comercial Araguaia" className="w-full h-full object-cover" fill priority />
+          <AppImage src="../../../../public/assets/hero-mobile.jpg" alt="Comercial Araguaia" className="w-full h-full object-cover" fill priority />
         </div>
       </div>
 
