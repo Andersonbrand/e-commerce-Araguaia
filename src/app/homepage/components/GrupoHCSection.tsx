@@ -172,8 +172,8 @@ export default function GrupoHCSection() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
                 {[
                   { year: '1990', company: 'Comercial Araguaia', event: 'Fundação da primeira empresa do grupo em Guanambi, BA. Início como distribuidora de materiais de construção civil.', color: '#af1518' },
-                  { year: '2017', company: 'Confiance Indústria', event: 'Criação da indústria própria para fabricação de telhas de zinco, bobinas e estruturas metálicas. Mais de 7 anos no mercado.', color: '#1a3a6b' },
-                  { year: '2021', company: 'Aços Confiance', event: 'Expansão com a distribuidora de aço no atacado, atendendo logistas, serralherias e construtoras com os melhores preços.', color: '#b04d00' },
+                  { year: '2020', company: 'Confiance Indústria', event: 'Criação da indústria própria para fabricação de telhas de zinco, bobinas e estruturas metálicas. Mais de 5 anos no mercado.', color: '#1a3a6b' },
+                  { year: '2022', company: 'Aços Confiance', event: 'Expansão com a distribuidora de aço no atacado, atendendo logistas, serralherias e construtoras com os melhores preços.', color: '#b04d00' },
                 ].map((item, i) => (
                   <div key={item.year} className="flex flex-col items-center text-center gap-4">
                     {/* Nó da timeline */}
