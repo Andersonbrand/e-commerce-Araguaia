@@ -65,8 +65,8 @@ export default function AboutSection() {
               </div>
               <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-xl">
                 <AppImage
-                  src="/assets/images/categories/estoque-geral.png"
-                  alt="Estoque de materiais Comercial Araguaia"
+                  src="/assets/images/hero-5.jpg"
+                  alt="vergalhoes gerdau"
                   className="w-full h-full object-cover" fill />
               </div>
             </div>

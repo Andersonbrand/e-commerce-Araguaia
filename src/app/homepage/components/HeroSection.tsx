@@ -108,7 +108,7 @@ export default function HeroSection() {
 
         {/* Mobile hero */}
         <div className="lg:hidden w-full aspect-video rounded-4xl overflow-hidden shadow-2xl">
-          <AppImage src="/assets/images/hero-4.jpg" alt="Comercial Araguaia" className="w-full h-full object-cover" fill priority />
+          <AppImage src="/assets/images/hero-mobile.jpg" alt="Comercial Araguaia" className="w-full h-full object-cover" fill priority />
         </div>
       </div>
 
