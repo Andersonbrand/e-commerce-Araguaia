@@ -56,7 +56,7 @@ export const COMPANIES: Record<CompanyId, Company> = {
     name: 'Confiance Indústria',
     shortName: 'Confiance',
     tagline: 'Inovação em ferro e aço direto da fábrica.',
-    description: 'A indústria do grupo, com mais de 7 anos fabricando telhas de zinco, bobinas, treliças, colunas e painéis com tecnologia própria e qualidade superior.',
+    description: 'A indústria do grupo, com mais de 5 anos fabricando telhas de zinco, bobinas, treliças, colunas e painéis com tecnologia própria e qualidade superior.',
     segment: 'Indústria de Aço',
     founded: '2020',
     primaryColor: '#1a3a6b',

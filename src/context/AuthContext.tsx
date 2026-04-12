@@ -28,23 +28,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   user?.user_metadata?.role === 'admin';
 
   useEffect(() => {
+    let mounted = true;
+
     // Carrega sessão inicial dos cookies
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Escuta mudanças de autenticação
+    // Escuta mudanças de autenticação (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {

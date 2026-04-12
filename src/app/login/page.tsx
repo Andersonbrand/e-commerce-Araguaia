@@ -26,8 +26,11 @@ function LoginForm() {
     const { error } = await signIn(form.email, form.password);
     if (error) { setLoading(false); toast.error('E-mail ou senha inválidos.'); return; }
     toast.success('Bem-vindo!');
-    router.push(redirectTo);
-    router.refresh();
+    // Aguarda o Supabase propagar a sessão nos cookies antes de navegar.
+    // router.refresh() logo após router.push() cancela a navegação em curso
+    // causando o tela de loading infinito — por isso usamos só window.location.
+    await new Promise(resolve => setTimeout(resolve, 300));
+    window.location.href = redirectTo;
   };
 
   return (

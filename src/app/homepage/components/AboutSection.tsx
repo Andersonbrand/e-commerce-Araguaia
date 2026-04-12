@@ -5,8 +5,8 @@ import AppImage from '@/components/ui/AppImage';
 import AppIcon from '@/components/ui/AppIcon';
 
 const values = [
-  { icon: 'TruckIcon',      title: 'Logística Própria',    desc: 'Frota dedicada para entregas pontuais em obras de qualquer porte em Guanambi e região.' },
-  { icon: 'CubeIcon',       title: 'Estoque Garantido',    desc: 'Mais de 800 SKUs disponíveis para pronta entrega com qualidade verificada.' },
+  { icon: 'TruckIcon',      title: 'Logística Própria',    desc: 'Frota dedicada para entregas em Guanambi e região.' },
+  { icon: 'CubeIcon',       title: 'Estoque Garantido',    desc: 'Mais de 800 itens disponíveis para te atender com qualidade verificada.' },
   { icon: 'UserGroupIcon',  title: 'Atendimento Técnico',  desc: 'Equipe especializada para auxiliar na escolha dos materiais certos para cada projeto.' },
 ];
 
