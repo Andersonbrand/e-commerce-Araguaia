@@ -13,25 +13,25 @@ import toast from 'react-hot-toast';
 // Imagens por categoria — fotos reais do estoque da Comercial Araguaia
 const CATEGORY_IMAGES: Record<string, string> = {
   // Araguaia
-  'Cimento': '../../../../public/assets/images/categories/cimento.png',
-  'Vergalhões': '../../../../public/assets/images/categories/vergalhoes.png',
-  'Tubos': '../../../../public/assets/images/categories/tubos.png',
-  'Chapas': '../../../../public/assets/images/categories/chapas.png',
-  'Arames': '../../../../public/assets/images/categories/arames.png',
-  'Argamassas': '../../../../public/assets/images/categories/argamassas.png',
-  'Barras e Perfis': '../../../../public/assets/images/categories/barras-perfis.png',
+  'Cimento': '/assets/images/categories/cimento.png',
+  'Vergalhões': '/assets/images/categories/vergalhoes.png',
+  'Tubos': '/assets/images/categories/tubos.png',
+  'Chapas': '/assets/images/categories/chapas.png',
+  'Arames': '/assets/images/categories/arames.png',
+  'Argamassas': '/assets/images/categories/argamassas.png',
+  'Barras e Perfis': '/assets/images/categories/barras-perfis.png',
 
   // Confiance Indústria
-  'Telhas de Zinco': '../../../../public/assets/images/categories/telhas-de-zinco.webp',
-  'Bobinas de Zinco': '../../../../public/assets/images/categories/bobinas-de-zinco.jpg',
-  'Colunas': '../../../../public/assets/images/categories/coluna-aco.webp',
-  'Treliças': '../../../../public/assets/images/categories/trelicas.jpg',
+  'Telhas de Zinco': '/assets/images/categories/telhas-de-zinco.webp',
+  'Bobinas de Zinco': '/assets/images/categories/bobinas-de-zinco.jpg',
+  'Colunas': '/assets/images/categories/coluna-aco.webp',
+  'Treliças': '/assets/images/categories/trelicas.jpg',
 
   // Aços Confiance / compartilhadas
-  'Telhas de Fibrocimento': '../../../../public/assets/images/categories/telhas.png',
-  'Aços Planos': '../../../../public/assets/images/categories/acos-planos.png',
+  'Telhas de Fibrocimento': '/assets/images/categories/telhas.png',
+  'Aços Planos': '/assets/images/categories/acos-planos.png',
 };
-const FALLBACK_IMAGE = '../../../../public/assets/images/categories/estoque-geral.png';
+const FALLBACK_IMAGE = '/assets/images/categories/estoque-geral.png';
 
 export default function ProductsPreview() {
   const [products, setProducts] = useState<Product[]>([]);
