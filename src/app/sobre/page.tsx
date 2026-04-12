@@ -221,12 +221,12 @@ export default function SobrePage() {
                   por trás do grupo.
                 </h2>
               </div>
-              <p className="text-lg text-muted leading-relaxed">
+              <p className="text-lg text-muted leading-relaxed text-justify">
                 Natural de Guanambi, Bahia, <strong className="text-foreground">Hugo Costa</strong> fundou a
                 Comercial Araguaia em 1990 com um único propósito: levar materiais de construção de qualidade
                 ao interior da Bahia com preços justos e atendimento que faz diferença.
               </p>
-              <p className="text-base text-muted leading-relaxed">
+              <p className="text-base text-muted leading-relaxed text-justify">
                 Com uma trajetória marcada pela persistência e pelo olhar no cliente, Hugo transformou uma
                 pequena distribuidora em um grupo empresarial sólido. Em 2020, liderou a criação da{' '}
                 <strong className="text-[#1a3a6b]">Confiance Indústria</strong>, tornando o grupo
