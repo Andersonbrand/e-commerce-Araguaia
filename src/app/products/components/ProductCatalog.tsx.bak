@@ -16,25 +16,25 @@ const PAGE_SIZE = 16;
 function CompanyGateway() {
   const { setActiveCompany } = useCompany();
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] py-16 px-4 sm:px-6">
-      <div className="text-center mb-10 max-w-xl">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] py-20 px-6">
+      <div className="text-center mb-12 max-w-xl">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border mb-6">
           <span className="w-2 h-2 rounded-full bg-[#af1518] animate-pulse" />
           <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted">Grupo HC</span>
         </div>
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">
+        <h2 className="text-4xl font-bold text-foreground mb-4">
           De qual empresa você deseja ver os produtos?
         </h2>
         <p className="text-muted text-base leading-relaxed">
           Cada empresa do Grupo HC possui seu próprio portfólio especializado. Selecione uma para explorar o catálogo.
         </p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 w-full max-w-4xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
         {COMPANY_ORDER.map((id) => {
           const co = COMPANIES[id];
           return (
             <button key={id} onClick={() => setActiveCompany(id)}
-              className="text-left p-5 sm:p-8 rounded-4xl border-2 hover:-translate-y-1 transition-all duration-300 group bg-white"
+              className="text-left p-8 rounded-4xl border-2 hover:-translate-y-1 transition-all duration-300 group bg-white"
               style={{ borderColor: `${co.primaryColor}30` }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = co.primaryColor; e.currentTarget.style.boxShadow = `0 20px 60px ${co.primaryColor}20`; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${co.primaryColor}30`; e.currentTarget.style.boxShadow = ''; }}>
@@ -147,9 +147,9 @@ export default function ProductCatalog() {
     return (
       <>
         <div className="pt-28 pb-6 bg-gradient-to-b from-surface to-white relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="max-w-7xl mx-auto px-6 relative z-10">
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-primary">Catálogo</span>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground mt-3">
+            <h1 className="text-5xl font-bold tracking-tight text-foreground mt-3">
               Nossos <span className="font-display italic text-gradient-red">Produtos</span>
             </h1>
           </div>
@@ -162,43 +162,36 @@ export default function ProductCatalog() {
   return (
     <>
       {/* Cabeçalho com identidade da empresa */}
-      <div className="pt-28 pb-8 relative overflow-hidden"
+      <div className="pt-32 pb-10 relative overflow-hidden"
         style={{ background: `linear-gradient(135deg, ${accentColor}08, white)` }}>
         <div className="absolute top-0 left-0 right-0 h-1"
           style={{ background: company?.gradient }} />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="flex flex-wrap items-center gap-3 mb-3">
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="flex items-center gap-4 mb-4">
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold" style={{ color: accentColor }}>
               {company?.name}
             </span>
-            {/* Trocar empresa — desktop (texto) */}
             <button onClick={() => setActiveCompany(null)}
-              className="hidden sm:flex items-center gap-1 text-[10px] font-bold text-muted hover:text-foreground transition-colors border border-border rounded-lg px-2.5 py-1">
+              className="flex items-center gap-1 text-[10px] font-bold text-muted hover:text-foreground transition-colors border border-border rounded-lg px-2.5 py-1">
               <AppIcon name="ArrowLeftIcon" size={11} />
               Trocar empresa
             </button>
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-foreground mb-4">
+          <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-foreground mt-3 mb-4">
             Nossos{' '}
-            <span className="font-display italic" style={{ color: accentColor }}>Produtos</span>
+            <span
+              className="font-display italic"
+              style={{ color: accentColor }}
+            >Produtos</span>
           </h1>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-base text-muted">
-              Qualidade certificada · Entrega em Guanambi e região ·{' '}
-              <span className="font-semibold text-foreground">{companyFilteredProducts.length} produtos</span>
-            </p>
-            {/* Trocar empresa — mobile (botão grande visível) */}
-            <button onClick={() => setActiveCompany(null)}
-              className="sm:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-bold text-sm transition-all"
-              style={{ borderColor: accentColor, color: accentColor, backgroundColor: `${accentColor}08` }}>
-              <AppIcon name="ArrowsRightLeftIcon" size={15} />
-              Trocar empresa
-            </button>
-          </div>
+          <p className="text-lg text-muted max-w-2xl">
+            Qualidade certificada · Entrega em Guanambi e região ·{' '}
+            <span className="font-semibold text-foreground">{companyFilteredProducts.length} produtos</span>
+          </p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+      <div className="max-w-7xl mx-auto px-6 pb-20">
         <div className="flex gap-8">
           {/* Sidebar */}
           <aside className="hidden md:flex flex-col gap-2 w-56 shrink-0 pt-6">
@@ -242,13 +235,12 @@ export default function ProductCatalog() {
                 <AppIcon name="MagnifyingGlassIcon" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input type="text" placeholder="Buscar produto..." value={search}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-3 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:border-primary transition-colors" />
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-surface text-sm focus:outline-none focus:border-primary transition-colors" />
               </div>
-              {/* Company switcher sticky strip on mobile */}
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex gap-2 overflow-x-auto pb-2">
                 {categories.map((cat) => (
                   <button key={cat} onClick={() => handleCategoryChange(cat)}
-                    className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest border transition-all ${
+                    className={`shrink-0 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-widest border transition-all ${
                       activeCategory === cat ? 'text-white border-transparent' : 'border-border text-muted bg-white'
                     }`}
                     style={activeCategory === cat ? { background: company?.gradient } : {}}>

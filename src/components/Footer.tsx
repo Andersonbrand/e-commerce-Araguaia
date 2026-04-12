@@ -11,7 +11,7 @@ export default function Footer() {
             {/* Faixa tricolor do grupo */}
             <div className="h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#b04d00]" />
 
-            <div className="max-w-7xl mx-auto px-6 py-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
                 {/* Grupo HC header */}
                 <div className="flex items-center gap-4 mb-10 pb-10 border-b border-border">
                     <AppLogo size={44} forceCompany={null} />

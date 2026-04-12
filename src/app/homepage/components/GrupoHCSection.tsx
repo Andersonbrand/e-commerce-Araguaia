@@ -29,7 +29,7 @@ export default function GrupoHCSection() {
   }, []);
 
   return (
-    <section ref={sectionRef} id="grupo-hc" className="py-32 relative overflow-hidden bg-white">
+    <section ref={sectionRef} id="grupo-hc" className="py-16 sm:py-24 lg:py-32 relative overflow-hidden bg-white">
       {/* Decoração de fundo sutil */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#b04d00]" />
@@ -39,7 +39,7 @@ export default function GrupoHCSection() {
           style={{ background: 'radial-gradient(circle, #af1518, transparent)' }} />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
         {/* Cabeçalho do grupo */}
         <div className="reveal opacity-0 translate-y-8 transition-all duration-1000 text-center mb-20">
@@ -51,7 +51,7 @@ export default function GrupoHCSection() {
           <p className="text-[10px] uppercase tracking-[0.5em] font-bold mb-4" style={{ color: '#5a6272' }}>
             Confiança & Responsabilidade
           </p>
-          <h2 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-[#0d1117] mb-6">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] text-[#0d1117] mb-6">
             Três empresas,{' '}
             <span className="font-display italic" style={{
               background: 'linear-gradient(135deg, #af1518 0%, #1a3a6b 50%, #b04d00 100%)',

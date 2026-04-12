@@ -92,7 +92,7 @@ export default function SobrePage() {
             <div className="flex-1" style={{ backgroundColor: '#b04d00' }} />
           </div>
         </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-6 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/20">
@@ -100,7 +100,7 @@ export default function SobrePage() {
                 <span className="text-[10px] uppercase tracking-[0.35em] font-bold text-white/80">Grupo Hugo Costa</span>
               </div>
             </div>
-            <h1 className="text-6xl md:text-7xl font-bold text-white leading-[1.02] tracking-tight mb-6">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.02] tracking-tight mb-6">
               Três empresas,{' '}
               <span className="font-display italic" style={{ color: '#f87171' }}>uma história.</span>
             </h1>
@@ -124,7 +124,7 @@ export default function SobrePage() {
 
       {/* ── SOBRE O GRUPO HC ── */}
       <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div ref={r1} className="grid lg:grid-cols-2 gap-16 items-center opacity-0 translate-y-10 transition-all duration-1000">
             <div className="space-y-7">
               <div>
@@ -177,7 +177,7 @@ export default function SobrePage() {
                   <p className="text-[10px] uppercase tracking-widest text-muted mt-1">Bahia · nossa origem</p>
                 </div>
                 <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-xl">
-                  <AppImage src="/assets/images/hero-8.jpg"
+                  <AppImage src="/assets/images/about/vergalhoes.jpg"
                     alt="Materiais de aço" className="w-full h-full object-cover" fill />
                 </div>
               </div>
@@ -190,7 +190,7 @@ export default function SobrePage() {
       <section className="py-24 bg-[#f5f7fa] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full blur-[120px] opacity-5"
           style={{ background: 'radial-gradient(circle, #af1518, transparent)' }} />
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Foto */}
             <div className="relative">
@@ -259,7 +259,7 @@ export default function SobrePage() {
 
       {/* ── 3 EMPRESAS ── */}
       <section className="py-24 bg-[#f5f7fa]">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div ref={r2} className="text-center mb-16 opacity-0 translate-y-10 transition-all duration-1000">
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-muted">Nossas Empresas</span>
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mt-3">
@@ -336,7 +336,7 @@ export default function SobrePage() {
 
       {/* ── VALORES ── */}
       <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-muted">Nossa Filosofia</span>
             <h2 className="text-4xl font-bold text-foreground mt-3">
@@ -371,7 +371,7 @@ export default function SobrePage() {
           <div className="flex-1" style={{ backgroundColor: '#1a3a6b' }} />
           <div className="flex-1" style={{ backgroundColor: '#b04d00' }} />
         </div>
-        <div className="max-w-4xl mx-auto px-6 text-center">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-white/40 mb-4">Grupo HC</p>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
             Pronto para começar<br />

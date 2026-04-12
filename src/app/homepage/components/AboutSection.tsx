@@ -37,11 +37,11 @@ export default function AboutSection() {
   }, []);
 
   return (
-    <section id="sobre" ref={sectionRef} className="py-32 relative overflow-hidden">
+    <section id="sobre" ref={sectionRef} className="py-16 sm:py-24 lg:py-32 relative overflow-hidden">
       <div className="absolute inset-0 bg-surface/40 -z-10" />
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-[150px] -z-10" />
 
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid lg:grid-cols-2 gap-20 items-center mb-24">
           {/* Left: image collage */}
           <div className="grid grid-cols-2 gap-5 animate-on-scroll opacity-0 translate-y-8 transition-all duration-1000">
@@ -78,7 +78,7 @@ export default function AboutSection() {
               <span className="text-[10px] uppercase tracking-[0.4em] font-bold" style={{ color: '#b04d00' }}>
                 Nossa Filosofia
               </span>
-              <h2 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-foreground">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] text-foreground">
                 Construindo{' '}
                 <span className="font-display italic text-gradient-blue">relações</span>{' '}
                 sólidas.

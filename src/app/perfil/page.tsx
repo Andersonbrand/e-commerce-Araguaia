@@ -133,7 +133,7 @@ export default function PerfilPage() {
     <main className="min-h-screen bg-surface">
       <Header />
 
-      <div className="pt-28 pb-20 max-w-5xl mx-auto px-6">
+      <div className="pt-28 pb-20 max-w-5xl mx-auto px-4 sm:px-6">
         {/* Header do perfil */}
         <div className="bg-white rounded-3xl p-8 border border-border shadow-sm mb-6">
           <div className="flex items-center gap-6">

@@ -213,68 +213,41 @@ export default function Header() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="lg:hidden mt-4 pt-4 border-t border-border/40 pb-3">
-            {/* Empresa selecionada */}
-            {!isLockedPage && (
-              <div className="mb-4">
-                <p className="text-[9px] uppercase tracking-[0.3em] font-bold text-muted mb-2">Empresa</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {COMPANY_ORDER.map((id) => {
-                    const co = COMPANIES[id];
-                    const isActive = activeCompany === id;
-                    return (
-                      <button key={id}
-                        onClick={() => { setActiveCompany(isActive ? null : id); setMenuOpen(false); }}
-                        className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border-2 transition-all text-center"
-                        style={{
-                          borderColor: isActive ? co.primaryColor : `${co.primaryColor}30`,
-                          backgroundColor: isActive ? `${co.primaryColor}10` : 'transparent',
-                        }}>
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: co.primaryColor }} />
-                        <span className="text-[10px] font-bold leading-tight" style={{ color: co.primaryColor }}>{co.shortName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+          <div className="lg:hidden mt-4 pt-4 border-t border-border/40 space-y-2 pb-2">
+            <div className="mb-4">
+              <p className="text-[9px] uppercase tracking-[0.3em] font-bold text-muted mb-2">Selecionar empresa</p>
+              <div className="flex flex-wrap gap-2">
+                {COMPANY_ORDER.map((id) => (
+                  <CompanyPill key={id} company={COMPANIES[id]} isActive={activeCompany === id}
+                    locked={isLockedPage}
+                    onClick={() => {
+                      if (isLockedPage) return;
+                      setActiveCompany(activeCompany === id ? null : id);
+                      setMenuOpen(false);
+                    }} />
+                ))}
               </div>
-            )}
-            <div className="h-px bg-border/40 mb-3" />
-            {/* Nav links */}
-            <div className="space-y-0.5">
-              {NAV_LINKS.map((link) => (
-                <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-[13px] font-bold text-muted hover:text-foreground hover:bg-surface transition-all">
-                  {link.label}
-                </Link>
-              ))}
-              {isAdmin && (
-                <Link href="/admin-dashboard" onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-3 px-3 py-3 rounded-xl text-[13px] font-bold transition-all hover:bg-surface"
-                  style={{ color: headerAccent }}>
-                  Painel Admin
-                </Link>
-              )}
             </div>
-            <div className="h-px bg-border/40 my-3" />
-            {/* User */}
+            <div className="h-px bg-border/40" />
+            {NAV_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}
+                className="block text-[12px] uppercase tracking-[0.18em] font-bold text-muted hover:text-foreground py-2">
+                {link.label}
+              </Link>
+            ))}
+            {isAdmin && (
+              <Link href="/admin-dashboard" onClick={() => setMenuOpen(false)}
+                className="block text-[12px] uppercase tracking-[0.18em] font-bold py-2" style={{ color: headerAccent }}>
+                Painel Admin
+              </Link>
+            )}
             {user ? (
-              <div className="flex items-center justify-between px-3 py-2">
-                <Link href="/perfil" onClick={() => setMenuOpen(false)} className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: `${headerAccent}15` }}>
-                    <AppIcon name="UserIcon" size={14} style={{ color: headerAccent }} />
-                  </div>
-                  <span className="text-[13px] font-bold text-foreground">{displayName}</span>
-                </Link>
-                <button onClick={() => { handleSignOut(); setMenuOpen(false); }}
-                  className="flex items-center gap-1.5 text-[12px] font-bold text-muted hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-surface">
-                  <AppIcon name="ArrowLeftEndOnRectangleIcon" size={14} />Sair
-                </button>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-[12px] font-bold text-foreground">{displayName}</span>
+                <button onClick={() => { handleSignOut(); setMenuOpen(false); }} className="text-[12px] font-bold text-muted">Sair</button>
               </div>
             ) : (
-              <Link href="/login" onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2 mx-3 px-4 py-3 rounded-xl border border-border text-[13px] font-bold text-muted hover:bg-surface transition-all">
-                <AppIcon name="UserIcon" size={15} />Entrar
-              </Link>
+              <Link href="/login" onClick={() => setMenuOpen(false)} className="block text-[12px] uppercase tracking-[0.18em] font-bold text-muted py-2">Entrar</Link>
             )}
           </div>
         )}

@@ -116,8 +116,8 @@ export default function ProductsPreview() {
   });
 
   return (
-    <section className="py-32 bg-white">
-      <div className="max-w-7xl mx-auto px-6">
+    <section className="py-16 sm:py-24 lg:py-32 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
           <div className="space-y-3">
             {company && (
@@ -129,7 +129,7 @@ export default function ProductsPreview() {
               </div>
             )}
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-primary block">Nosso Catálogo</span>
-            <h2 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-foreground">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-foreground">
               Produtos{' '}
               <span className="font-display italic text-gradient-red">principais.</span>
             </h2>

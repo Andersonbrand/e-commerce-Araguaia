@@ -79,7 +79,7 @@ export default function StatsSection() {
 
   return (
     <section className="py-20 bg-white border-y border-border/40">
-      <div ref={ref} className="max-w-7xl mx-auto px-6">
+      <div ref={ref} className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 border border-border/40 rounded-3xl overflow-hidden bg-white shadow-sm">
           {stats.map((stat) => <StatCard key={stat.label} stat={stat} animate={animate} />)}
         </div>

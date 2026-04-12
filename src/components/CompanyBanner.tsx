@@ -22,12 +22,12 @@ export default function CompanyBanner() {
 
   return (
     <div
-      className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ${
+      className={`fixed bottom-4 sm:bottom-6 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 transition-all duration-500 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
       <div
-        className="flex items-center gap-4 px-5 py-3 rounded-2xl shadow-2xl border border-white/20 backdrop-blur-xl"
+        className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 rounded-2xl shadow-2xl border border-white/20 backdrop-blur-xl overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${company.primaryColor}f0, ${company.primaryDark}f0)`,
           boxShadow: `0 20px 60px ${company.primaryColor}50`,

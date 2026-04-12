@@ -36,7 +36,7 @@ export default function HeroSection() {
             <span className="text-[10px] uppercase tracking-[0.3em] font-bold">Guanambi e Região · Bahia</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight text-foreground">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight text-foreground">
             Tudo que sua{' '}
             <span className="font-display italic text-gradient-red">obra precisa,</span>
             <br />
@@ -50,20 +50,20 @@ export default function HeroSection() {
             Guanambi para todas as etapas da construção.
           </p>
 
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+          <div className="flex flex-wrap gap-4">
             <a href="https://wa.me/5577981046133" target="_blank" rel="noopener noreferrer"
-              className="px-6 sm:px-8 py-4 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-all shadow-red-lg hover:shadow-red-xl hover:-translate-y-0.5 flex items-center justify-center gap-2">
+              className="px-8 py-4 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-all shadow-red-lg hover:shadow-red-xl hover:-translate-y-0.5 flex items-center gap-2">
               <AppIcon name="ChatBubbleLeftRightIcon" size={18} />
               Falar no WhatsApp
             </a>
             <Link href="/products"
-              className="px-6 sm:px-8 py-4 rounded-xl border border-border bg-white text-foreground font-bold text-sm hover:bg-surface transition-all hover:border-primary/30 text-center">
+              className="px-8 py-4 rounded-xl border border-border bg-white text-foreground font-bold text-sm hover:bg-surface transition-all hover:border-primary/30">
               Ver Catálogo
             </Link>
             <button
               disabled
               title="Catálogo online do Grupo HC — em breve"
-              className="relative px-6 sm:px-8 py-4 rounded-xl border border-border bg-surface text-muted font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-75"
+              className="relative px-8 py-4 rounded-xl border border-border bg-surface text-muted font-bold text-sm flex items-center gap-2 cursor-not-allowed opacity-75"
             >
               <AppIcon name="BookOpenIcon" size={18} />
               Catálogo Grupo HC

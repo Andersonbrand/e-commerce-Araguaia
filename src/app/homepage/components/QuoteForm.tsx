@@ -46,10 +46,10 @@ export default function QuoteForm() {
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-white to-accent/3 -z-10" />
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10" />
 
-            <div className="max-w-6xl mx-auto px-6">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6">
                 <div className="text-center mb-16 space-y-4">
                     <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-primary">Orçamento Grátis</span>
-                    <h2 className="text-5xl md:text-6xl font-bold tracking-tight text-foreground">
+                    <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
                         Solicite seu{' '}
                         <span className="font-display italic text-gradient-red">orçamento</span>
                         <br />sem compromisso.

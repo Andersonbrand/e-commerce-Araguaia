@@ -76,7 +76,7 @@ export default function ProductDetailPage() {
     return (
       <main className="min-h-screen bg-white">
         <Header />
-        <div className="pt-32 max-w-7xl mx-auto px-6 pb-20">
+        <div className="pt-32 max-w-7xl mx-auto px-4 sm:px-6 pb-20">
           <div className="grid lg:grid-cols-2 gap-12">
             <div className="aspect-square bg-surface rounded-4xl animate-pulse" />
             <div className="space-y-4 pt-4">
@@ -111,7 +111,7 @@ export default function ProductDetailPage() {
     <main className="min-h-screen bg-white">
       <Header />
       <div className="pt-28 pb-20">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-3 mb-8 text-sm text-muted">
@@ -151,7 +151,7 @@ export default function ProductDetailPage() {
             <div className="space-y-6 lg:pt-4">
               <div>
                 <span className="text-[10px] uppercase tracking-[0.3em] font-bold" style={{ color: '#151826' }}>{product.category}</span>
-                <h1 className="text-4xl font-bold text-foreground mt-2 leading-tight">{product.name}</h1>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mt-2 leading-tight">{product.name}</h1>
                 <p className="text-muted text-sm mt-1">Unidade: <strong>{product.unit}</strong></p>
               </div>
 

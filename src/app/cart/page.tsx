@@ -110,12 +110,12 @@ export default function CartPage() {
       <section className="relative pt-28 pb-20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/4 via-white to-white -z-10" />
 
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           {/* Header */}
           <div className="flex items-start justify-between mb-10 flex-wrap gap-4">
             <div>
               <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-primary">Meu Orçamento</span>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground mt-2">Produtos selecionados</h1>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground mt-2">Produtos selecionados</h1>
               <p className="text-muted mt-2 text-base">
                 {totalItems > 0
                   ? `${totalItems} produto${totalItems > 1 ? 's' : ''} — envie para receber os preços`
