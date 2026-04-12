@@ -78,7 +78,7 @@ export default function GrupoHCSection() {
               <button
                 key={id}
                 onClick={() => setActiveCompany(isActive ? null : id)}
-                className="reveal opacity-0 translate-y-8 transition-all duration-700 text-left group relative overflow-hidden rounded-4xl border-2 focus:outline-none"
+                className="reveal opacity-0 translate-y-8 transition-all duration-700 text-left group relative overflow-hidden rounded-4xl border-2 focus:outline-none flex flex-col"
                 style={{
                   transitionDelay: `${i * 120}ms`,
                   borderColor: isActive ? co.primaryColor : '#dde3ed',
@@ -91,7 +91,7 @@ export default function GrupoHCSection() {
                 <div className="absolute top-0 left-0 right-0 h-1.5 transition-all duration-300"
                   style={{ background: isActive ? co.gradient : `linear-gradient(90deg, ${co.primaryColor}40, transparent)` }} />
 
-                <div className="p-8">
+                <div className="p-8 flex-1">
                   {/* Badge fundação */}
                   <div className="flex items-center justify-between mb-6">
                     <span className="text-[10px] uppercase tracking-[0.3em] font-bold px-3 py-1.5 rounded-full"
@@ -115,7 +115,7 @@ export default function GrupoHCSection() {
                   </p>
 
                   {/* Descrição curta */}
-                  <p className="text-sm leading-relaxed mb-6" style={{ color: '#5a6272' }}>
+                  <p className="text-sm leading-relaxed mb-6 text-justify" style={{ color: '#5a6272' }}>
                     {co.description}
                   </p>
 
@@ -172,8 +172,8 @@ export default function GrupoHCSection() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
                 {[
                   { year: '1990', company: 'Comercial Araguaia', event: 'Fundação da primeira empresa do grupo em Guanambi, BA. Início como distribuidora de materiais de construção civil.', color: '#af1518' },
-                  { year: '2020', company: 'Confiance Indústria', event: 'Criação da indústria própria para fabricação de telhas de zinco, bobinas e estruturas metálicas. Mais de 5 anos no mercado.', color: '#1a3a6b' },
-                  { year: '2022', company: 'Aços Confiance', event: 'Expansão com a distribuidora de aço no atacado, atendendo logistas, serralherias e construtoras com os melhores preços.', color: '#b04d00' },
+                  { year: '2017', company: 'Confiance Indústria', event: 'Criação da indústria própria para fabricação de telhas de zinco, bobinas e estruturas metálicas. Mais de 7 anos no mercado.', color: '#1a3a6b' },
+                  { year: '2022', company: 'Aços Confiance', event: 'Expansão com a distribuidora de aço no atacado, atendendo serralherias e construtoras com os melhores preços.', color: '#b04d00' },
                 ].map((item, i) => (
                   <div key={item.year} className="flex flex-col items-center text-center gap-4">
                     {/* Nó da timeline */}

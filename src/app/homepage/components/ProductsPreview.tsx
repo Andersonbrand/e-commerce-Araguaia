@@ -13,30 +13,33 @@ import toast from 'react-hot-toast';
 // Imagens por categoria — fotos reais do estoque da Comercial Araguaia
 const CATEGORY_IMAGES: Record<string, string> = {
   // Araguaia
-  'Cimento': '/assets/images/categories/cimento.png',
-  'Vergalhões': '/assets/images/categories/vergalhoes.png',
-  'Tubos': '/assets/images/categories/tubos.png',
-  'Chapas': '/assets/images/categories/chapas.png',
-  'Arames': '/assets/images/categories/arames.png',
-  'Argamassas': '/assets/images/categories/argamassas.png',
-  'Barras e Perfis': '/assets/images/categories/barras-perfis.png',
-
+  'Cimento':                '/assets/images/categories/cimento.png',        // bags Montes Claros (limpa)
+  'Vergalhões':             '/assets/images/categories/vergalhoes.png',      // vergalhão CA50 Gerdau
+  'Barras e Perfis':        '/assets/images/categories/estoque-tubos.png',   // galpão limpo c/ múltiplos perfis
+  'Aços Planos':            '/assets/images/categories/chapas.png',          // chapas planas em rack — literalmente "aços planos"
+  'Chapas':                 '/assets/images/categories/chapas.png',          // chapas planas em rack
+  'Arames':                 '/assets/images/categories/arames.png',          // bobinas de arame farpado
+  'Tubos':                  '/assets/images/categories/tubos.png',           // galpão de tubos/tubulações
+  'Ferragens':              '/assets/images/categories/ferragens.png',       // expositor de discos abrasivos
+  'Serralheria':            '/assets/images/categories/serralheria.png',    // discos Denver Soldas
+  'Parafusos':              '/assets/images/categories/ferragens.png',       // hardware/ferragens
+  'Argamassas':             '/assets/images/categories/argamassas.png',     // sacos Quartzolit cimentcola
   // Confiance Indústria
-  'Telhas de Zinco': '/assets/images/categories/telhas-de-zinco.webp',
-  'Bobinas de Zinco': '/assets/images/categories/bobinas-de-zinco.jpg',
-  'Colunas': '/assets/images/categories/coluna-aco.webp',
-  'Treliças': '/assets/images/categories/trelicas.jpg',
-
+  'Telhas de Zinco':        '/assets/images/categories/telhas.png',         // telhas corrugadas
+  'Telhas':                 '/assets/images/categories/telhas.png',
+  'Bobinas de Zinco':       '/assets/images/categories/acos-planos.png',    // bobinas de aço laminado
+  'Colunas e Treliças':     '/assets/images/categories/estoque-tubos.png',  // perfis estruturais
+  'Colunas':                '/assets/images/categories/estoque-tubos.png',
+  'Treliças':               '/assets/images/categories/vergalhoes.png',     // treliças são feitas de vergalhão
   // Aços Confiance / compartilhadas
   'Telhas de Fibrocimento': '/assets/images/categories/telhas.png',
-  'Aços Planos': '/assets/images/categories/acos-planos.png',
 };
 const FALLBACK_IMAGE = '/assets/images/categories/estoque-geral.png';
 
 export default function ProductsPreview() {
   const [products, setProducts] = useState<Product[]>([]);
-  const { showPrices } = usePrices();
-  const { addToCart } = useCart();
+  const { showPrices }          = usePrices();
+  const { addToCart }           = useCart();
   const { activeCompany, company, setActiveCompany, isGrupoView } = useCompany();
 
   useEffect(() => {
@@ -72,8 +75,8 @@ export default function ProductsPreview() {
       const cFeatured = (current as any).is_featured;
       // Substitui se: p é featured e atual não; ou ambos featured mas p tem imagem; ou atual sem imagem e p tem
       if ((pFeatured && !cFeatured) ||
-        (pFeatured && cFeatured && !current.image_url && p.image_url) ||
-        (!cFeatured && !current.image_url && p.image_url)) {
+          (pFeatured && cFeatured && !current.image_url && p.image_url) ||
+          (!cFeatured && !current.image_url && p.image_url)) {
         categoryMap.set(p.category, p);
       }
     }
@@ -96,14 +99,14 @@ export default function ProductsPreview() {
 
   // Produtos em destaque: prefere is_featured=true, senão usa os primeiros disponíveis
   const featuredFirst = filteredProducts.filter(p => (p as any).is_featured);
-  const nonFeatured = filteredProducts.filter(p => !(p as any).is_featured);
+  const nonFeatured   = filteredProducts.filter(p => !(p as any).is_featured);
   const featured = [...featuredFirst, ...nonFeatured].slice(0, 4);
 
   // Cimento Montes Claros só é priorizado no bento QUANDO empresa tem Cimento
   const cimentoMontesClaros = hasCimento
     ? filteredProducts.find(p =>
-      p.name.toLowerCase().includes('montes claros') || p.name.toLowerCase().includes('cpii')
-    )
+        p.name.toLowerCase().includes('montes claros') || p.name.toLowerCase().includes('cpii')
+      )
     : undefined;
   const categoriesSorted = [...categories].sort((a, b) => {
     if (hasCimento) {
@@ -195,7 +198,7 @@ export default function ProductsPreview() {
                   className="product-card group relative rounded-4xl overflow-hidden shadow-sm hover-lift cursor-pointer bg-surface block">
                   <div className="relative h-full min-h-[190px] overflow-hidden">
                     <AppImage src={getBentoCatImage(cat, prod)} alt={cat}
-                      className="product-img w-full h-full object-contain p-2 transition-transform duration-700 group-hover:scale-105" fill />
+                      className="product-img w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" fill />
                     <div className="absolute inset-0 bg-gradient-to-t from-foreground/70 to-transparent" />
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 p-5">
@@ -211,7 +214,7 @@ export default function ProductsPreview() {
                 className="lg:col-span-4 product-card group relative rounded-4xl overflow-hidden shadow-red-lg hover-lift cursor-pointer bg-surface block">
                 <div className="relative h-[400px] overflow-hidden">
                   <AppImage src={getBentoCatImage(categoriesSorted[3][0], categoriesSorted[3][1])} alt={categoriesSorted[3][0]}
-                    className="product-img w-full h-full object-contain p-2 transition-transform duration-700 group-hover:scale-105" fill />
+                    className="product-img w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" fill />
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/20 to-transparent" />
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-8">

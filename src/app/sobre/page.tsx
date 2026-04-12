@@ -46,13 +46,13 @@ const EMPRESAS = [
   {
     id: 'confiance-industria',
     nome: 'Confiance Indústria',
-    fundacao: '2020',
-    anos: '5+',
+    fundacao: '2017',
+    anos: '7+',
     cor: '#1a3a6b',
     gradiente: 'linear-gradient(135deg, #1a3a6b, #0f2247)',
     bgLight: '#f0f4ff',
     segmento: 'Indústria de Aço',
-    descricao: 'Criada em 2020 para fabricar com tecnologia e qualidade própria, a Confiance Indústria representa a expansão do grupo para o setor produtivo. Fabricamos telhas de zinco, bobinas, treliças, colunas e painéis, atendendo construtoras e agronegócio com preços direto da fábrica.',
+    descricao: 'Criada em 2017 para fabricar com tecnologia e qualidade própria, a Confiance Indústria representa a expansão do grupo para o setor produtivo. Fabricamos telhas de zinco, bobinas, treliças, colunas e painéis, atendendo construtoras e agronegócio com preços direto da fábrica.',
     categorias: ['Telhas de Zinco', 'Bobinas de Zinco', 'Treliças', 'Colunas', 'Painéis'],
     diferenciais: ['Fabricação própria sem intermediários', 'Telhas para agronegócio e construção', 'Capacidade produtiva industrial'],
   },
@@ -60,12 +60,12 @@ const EMPRESAS = [
     id: 'acos-confiance',
     nome: 'Aços Confiance',
     fundacao: '2022',
-    anos: '3+',
+    anos: '2+',
     cor: '#b04d00',
     gradiente: 'linear-gradient(135deg, #b04d00, #803800)',
     bgLight: '#fff7f0',
     segmento: 'Distribuição de Aço',
-    descricao: 'A mais jovem do grupo, fundada em 2021, a Aços Confiance nasce para atender serralherias e construtoras com preços de atacado. Distribuidora especializada em vergalhões, barras e perfis, chapas e arames — sempre com a qualidade que o Grupo HC garante.',
+    descricao: 'A mais jovem do grupo, fundada em 2022, a Aços Confiance nasce para atender serralherias e construtoras com preços de atacado. Distribuidora especializada em vergalhões, barras e perfis, chapas e arames — sempre com a qualidade que o Grupo HC garante.',
     categorias: ['Vergalhões', 'Barras e Perfis', 'Chapas', 'Arames', 'Aços Planos'],
     diferenciais: ['Preços de atacado direto', 'Foco em serralherias e construtoras', 'Portfólio especializado em aço'],
   },
@@ -142,14 +142,14 @@ export default function SobrePage() {
               </p>
               <p className="text-base text-muted leading-relaxed">
                 Com o crescimento e a consolidação da Araguaia no mercado regional, expandimos o grupo com a criação
-                da <strong className="text-[#1a3a6b]">Confiance Indústria</strong> em 2020, passando a fabricar
+                da <strong className="text-[#1a3a6b]">Confiance Indústria</strong> em 2017, passando a fabricar
                 nossos próprios produtos metálicos. Em 2022, fundamos a{' '}
                 <strong className="text-[#b04d00]">Aços Confiance</strong>, distribuidora especializada no atacado.
               </p>
               <div className="grid grid-cols-3 gap-4 pt-2">
                 {[
                   { v: '35+', l: 'anos de mercado', c: '#af1518' },
-                  { v: '3', l: 'empresas do grupo', c: '#1a3a6b' },
+                  { v: '3',   l: 'empresas do grupo', c: '#1a3a6b' },
                   { v: '800+', l: 'produtos no portfólio', c: '#b04d00' },
                 ].map(s => (
                   <div key={s.l} className="text-center p-4 rounded-2xl border border-[#dde3ed]">
@@ -163,8 +163,8 @@ export default function SobrePage() {
             <div className="grid grid-cols-2 gap-5">
               <div className="space-y-5">
                 <div className="aspect-[3/4] rounded-4xl overflow-hidden shadow-lg">
-                  <AppImage src="/assets/images/zarcao-2.jpg"
-                    alt="zarcao" className="w-full h-full object-cover" fill />
+                  <AppImage src="https://images.unsplash.com/photo-1628839835275-2b24c0596853"
+                    alt="Obra de construção" className="w-full h-full object-cover" fill />
                 </div>
                 <div className="rounded-4xl p-6 text-white" style={{ background: 'linear-gradient(135deg, #af1518, #8a0f12)' }}>
                   <p className="text-3xl font-display font-bold">1990</p>
@@ -221,14 +221,14 @@ export default function SobrePage() {
                   por trás do grupo.
                 </h2>
               </div>
-              <p className="text-lg text-muted leading-relaxed text-justify">
+              <p className="text-lg text-muted leading-relaxed">
                 Natural de Guanambi, Bahia, <strong className="text-foreground">Hugo Costa</strong> fundou a
                 Comercial Araguaia em 1990 com um único propósito: levar materiais de construção de qualidade
                 ao interior da Bahia com preços justos e atendimento que faz diferença.
               </p>
-              <p className="text-base text-muted leading-relaxed text-justify">
+              <p className="text-base text-muted leading-relaxed">
                 Com uma trajetória marcada pela persistência e pelo olhar no cliente, Hugo transformou uma
-                pequena distribuidora em um grupo empresarial sólido. Em 2020, liderou a criação da{' '}
+                pequena distribuidora em um grupo empresarial sólido. Em 2017, liderou a criação da{' '}
                 <strong className="text-[#1a3a6b]">Confiance Indústria</strong>, tornando o grupo
                 autossuficiente na fabricação de telhas e estruturas metálicas. Em 2022, fundou a{' '}
                 <strong className="text-[#b04d00]">Aços Confiance</strong>, fechando o ciclo do grupo no
@@ -243,7 +243,7 @@ export default function SobrePage() {
               <div className="grid grid-cols-3 gap-4 pt-2">
                 {[
                   { v: '1990', l: 'Início da jornada', c: '#af1518' },
-                  { v: '3', l: 'Empresas fundadas', c: '#1a3a6b' },
+                  { v: '3',   l: 'Empresas fundadas', c: '#1a3a6b' },
                   { v: '+35', l: 'Anos no mercado', c: '#b04d00' },
                 ].map(s => (
                   <div key={s.l} className="text-center p-3 rounded-2xl border border-[#dde3ed] bg-white">
@@ -290,7 +290,7 @@ export default function SobrePage() {
                       <p className="text-[11px] uppercase tracking-[0.25em] font-bold" style={{ color: emp.cor }}>
                         {emp.segmento}
                       </p>
-                      <p className="text-base text-muted leading-relaxed">{emp.descricao}</p>
+                      <p className="text-base text-muted leading-relaxed text-justify">{emp.descricao}</p>
 
                       {/* Diferenciais */}
                       <div className="space-y-2">
@@ -345,9 +345,9 @@ export default function SobrePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: 'TruckIcon', title: 'Logística Própria', desc: 'Frota dedicada para entregas pontuais em obras de qualquer porte em Guanambi e região.', cor: '#af1518' },
+              { icon: 'TruckIcon',     title: 'Logística Própria',   desc: 'Frota dedicada para entregas pontuais em obras de qualquer porte em Guanambi e região.', cor: '#af1518' },
               { icon: 'ShieldCheckIcon', title: 'Qualidade Garantida', desc: 'Parceiros das maiores marcas do setor. Produtos verificados e com garantia de procedência.', cor: '#1a3a6b' },
-              { icon: 'UserGroupIcon', title: 'Atendimento Humano', desc: 'Equipe técnica presente para auxiliar na escolha certa — do projeto à entrega.', cor: '#b04d00' },
+              { icon: 'UserGroupIcon', title: 'Atendimento Humano',  desc: 'Equipe técnica presente para auxiliar na escolha certa — do projeto à entrega.', cor: '#b04d00' },
             ].map(v => (
               <div key={v.title} className="p-7 rounded-4xl border border-[#dde3ed] bg-white hover:-translate-y-1 transition-transform duration-300">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5"
@@ -355,7 +355,7 @@ export default function SobrePage() {
                   <AppIcon name={v.icon as any} size={22} style={{ color: v.cor }} />
                 </div>
                 <h4 className="text-base font-bold text-foreground mb-2">{v.title}</h4>
-                <p className="text-sm text-muted leading-relaxed">{v.desc}</p>
+                <p className="text-sm text-muted leading-relaxed text-justify">{v.desc}</p>
               </div>
             ))}
           </div>
@@ -379,7 +379,7 @@ export default function SobrePage() {
             Fale com nossa equipe e receba um orçamento personalizado para seu projeto.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="https://wa.me/557734512175" target="_blank" rel="noopener noreferrer"
+            <a href="https://wa.me/5577981046133" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-8 py-4 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 shadow-lg"
               style={{ backgroundColor: '#af1518' }}>
               <AppIcon name="ChatBubbleLeftRightIcon" size={18} />

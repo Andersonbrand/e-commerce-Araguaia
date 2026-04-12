@@ -49,16 +49,16 @@ export const COMPANIES: Record<CompanyId, Company> = {
     gradient: 'linear-gradient(135deg, #af1518 0%, #c41a1d 50%, #8a0f12 100%)',
     gradientText: 'linear-gradient(135deg, #af1518 0%, #e03235 60%, #8a0f12 100%)',
     categories: COMPANY_CATEGORIES['araguaia'],
-    whatsapp: '557734512175',
+    whatsapp: '5577981046133',
   },
   'confiance-industria': {
     id: 'confiance-industria',
     name: 'Confiance Indústria',
     shortName: 'Confiance',
     tagline: 'Inovação em ferro e aço direto da fábrica.',
-    description: 'A indústria do grupo, com mais de 5 anos fabricando telhas de zinco, bobinas, treliças, colunas e painéis com tecnologia própria e qualidade superior.',
+    description: 'A indústria do grupo, com mais de 7 anos fabricando telhas de zinco, bobinas, treliças, colunas e painéis com tecnologia própria e qualidade superior.',
     segment: 'Indústria de Aço',
-    founded: '2020',
+    founded: '2017',
     primaryColor: '#1a3a6b',
     primaryDark: '#0f2247',
     accentColor: '#4a7fd4',
@@ -66,7 +66,7 @@ export const COMPANIES: Record<CompanyId, Company> = {
     gradient: 'linear-gradient(135deg, #1a3a6b 0%, #2552a0 50%, #0f2247 100%)',
     gradientText: 'linear-gradient(135deg, #1a3a6b 0%, #3366cc 60%, #0f2247 100%)',
     categories: COMPANY_CATEGORIES['confiance-industria'],
-    whatsapp: '557734512175',
+    whatsapp: '5577981046133',
   },
   'acos-confiance': {
     id: 'acos-confiance',
@@ -83,7 +83,7 @@ export const COMPANIES: Record<CompanyId, Company> = {
     gradient: 'linear-gradient(135deg, #b04d00 0%, #d45f00 50%, #803800 100%)',
     gradientText: 'linear-gradient(135deg, #b04d00 0%, #e06500 60%, #803800 100%)',
     categories: COMPANY_CATEGORIES['acos-confiance'],
-    whatsapp: '557734512175',
+    whatsapp: '5577981046133',
   },
 };
 
