@@ -204,10 +204,24 @@ export default function CartPage() {
 
                             <h3 className="font-bold text-foreground text-base leading-tight">{product.name}</h3>
 
-                            {/* Espessura selecionada */}
-                            {selectedVariant && (
-                              <p className="text-[11px] text-primary font-semibold mt-0.5">
-                                Espessura: {selectedVariant.label}
+                            {/* Todas as variantes selecionadas, uma por linha */}
+                            {item.selectedVariants && Object.keys(item.selectedVariants).length > 0
+                              ? Object.entries(item.selectedVariants).map(([group, v]) => (
+                                  <p key={group} className="text-[11px] text-primary font-semibold mt-0.5">
+                                    {group}: {v.label}
+                                  </p>
+                                ))
+                              : selectedVariant && (
+                                  <p className="text-[11px] text-primary font-semibold mt-0.5">
+                                    {selectedVariant.label}
+                                  </p>
+                                )
+                            }
+
+                            {/* Marca, se houver */}
+                            {item.selectedBrandName && (
+                              <p className="text-[11px] text-muted font-semibold mt-0.5">
+                                🏷️ {item.selectedBrandName}
                               </p>
                             )}
 
@@ -230,7 +244,12 @@ export default function CartPage() {
                             size="sm"
                           />
                           <span className="text-sm font-bold text-muted">
-                            {quantity} {pluralUnit(product.unit, quantity)}
+                            {(() => {
+                              // Se há variante de "Peso", usa o label dela como unidade (ex: "50kg")
+                              const pesoVariant = item.selectedVariants?.['Peso'] ?? item.selectedVariants?.['peso'];
+                              const displayUnit = pesoVariant ? pesoVariant.label : pluralUnit(product.unit, quantity);
+                              return `${quantity} ${displayUnit}`;
+                            })()}
                             {showPrices && effectivePrice > 0 && (
                               <span className="ml-2 text-foreground">
                                 · R$ {(effectivePrice * quantity).toFixed(2).replace('.', ',')}

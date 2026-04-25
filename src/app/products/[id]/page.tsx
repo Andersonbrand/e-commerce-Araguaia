@@ -114,7 +114,13 @@ export default function ProductDetailPage() {
       toast.error('Selecione uma marca antes de adicionar.');
       return;
     }
-    for (let i = 0; i < qty; i++) addToCart(product, activeCompany, selectedVariant);
+    for (let i = 0; i < qty; i++) addToCart(
+      product,
+      activeCompany,
+      selectedVariant,
+      selectedVariants,
+      selectedBrand?.name ?? null,
+    );
     const variantSuffix = Object.values(selectedVariants).map((v) => v.label).join(', ');
     const brandSuffix   = selectedBrand ? ` — ${selectedBrand.name}` : '';
     const suffix = [variantSuffix ? ` (${variantSuffix})` : '', brandSuffix].join('');

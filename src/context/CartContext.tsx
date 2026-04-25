@@ -13,7 +13,9 @@ export interface CartItem {
   product: Product;
   quantity: number;
   addedFromCompany?: string | null;
-  selectedVariant?: SelectedVariant | null;
+  selectedVariant?: SelectedVariant | null;       // legado (primeiro grupo)
+  selectedVariants?: Record<string, SelectedVariant>; // todos os grupos: { "Espessura": {...}, "Peso": {...} }
+  selectedBrandName?: string | null;              // nome da marca selecionada
   cartKey: string; // `${product.id}:${variantId || 'base'}`
 }
 
@@ -22,7 +24,7 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD'; product: Product; company?: string | null; variant?: SelectedVariant | null }
+  | { type: 'ADD'; product: Product; company?: string | null; variant?: SelectedVariant | null; allVariants?: Record<string, SelectedVariant>; brandName?: string | null }
   | { type: 'REMOVE'; cartKey: string }
   | { type: 'UPDATE_QTY'; cartKey: string; quantity: number }
   | { type: 'CLEAR' }
@@ -50,6 +52,8 @@ function cartReducer(state: CartState, action: CartAction): CartState {
           quantity: 1,
           addedFromCompany: action.company ?? null,
           selectedVariant: action.variant ?? null,
+          selectedVariants: action.allVariants ?? undefined,
+          selectedBrandName: action.brandName ?? null,
           cartKey: key,
         }],
       };
@@ -83,7 +87,7 @@ interface CartContextType {
   items: CartItem[];
   totalItems: number;
   subtotal: number;
-  addToCart: (product: Product, company?: string | null, variant?: SelectedVariant | null) => void;
+  addToCart: (product: Product, company?: string | null, variant?: SelectedVariant | null, allVariants?: Record<string, SelectedVariant>, brandName?: string | null) => void;
   removeFromCart: (cartKey: string) => void;
   updateQuantity: (cartKey: string, quantity: number) => void;
   clearCart: () => void;
@@ -123,8 +127,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         items: state.items,
         totalItems,
         subtotal,
-        addToCart: (product, company, variant) =>
-          dispatch({ type: 'ADD', product, company, variant }),
+        addToCart: (product, company, variant, allVariants, brandName) =>
+          dispatch({ type: 'ADD', product, company, variant, allVariants, brandName }),
         removeFromCart: (cartKey) => dispatch({ type: 'REMOVE', cartKey }),
         updateQuantity: (cartKey, quantity) =>
           dispatch({ type: 'UPDATE_QTY', cartKey, quantity }),
