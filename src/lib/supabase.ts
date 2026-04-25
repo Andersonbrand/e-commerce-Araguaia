@@ -8,8 +8,20 @@ export const supabase = createClient();
 export interface ProductVariant {
   id: string;
   product_id: string;
-  label: string;       // ex: "1,5mm", "2,0mm", "3,0mm"
-  price_delta: number; // acréscimo (+) ou desconto (-) em R$ sobre o preço base
+  variant_group: string; // ex: "Espessura", "Bitola", "Comprimento", "Peso", "Tipo", "Medida"
+  label: string;         // ex: "1,5mm", "10", "500m", "1kg", "E6013"
+  price_delta: number;   // preço específico desta opção (0 = usa preço base)
+  stock: number;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ProductBrand {
+  id: string;
+  product_id: string;
+  name: string;        // ex: "Gerdau", "Votorantim", "ArcelorMittal"
+  price: number;       // preço específico desta marca (0 = sob consulta)
   stock: number;
   is_active: boolean;
   sort_order: number;

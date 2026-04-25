@@ -21,11 +21,32 @@ const DEFAULT_CATEGORIES = ['Cimento', 'Vergalhões', 'Ferragens', 'Serralheria'
 type FormData = Omit<Product, 'id' | 'created_at' | 'updated_at'>;
 type ImageMode = 'upload' | 'url';
 
+// Sugestões de grupos pré-definidos para agilizar o cadastro
+const VARIANT_GROUP_SUGGESTIONS = [
+    'Espessura', 'Bitola', 'Comprimento', 'Peso', 'Tipo', 'Medida',
+    'Cabeça', 'Ponta', 'Diâmetro', 'Largura', 'Altura',
+];
+
 interface LocalVariant {
     tempId: string;
     id?: string;
-    label: string;
+    variant_group: string; // ex: "Bitola", "Comprimento", "Peso", "Tipo"
+    label: string;         // ex: "10", "500m", "1kg", "E6013"
     priceDelta: number;
+    stock: number;
+}
+
+// Grupo lógico que agrupa variantes de mesmo variant_group
+interface LocalVariantGroup {
+    groupName: string;
+    items: LocalVariant[];
+}
+
+interface LocalBrand {
+    tempId: string;
+    id?: string;
+    name: string;
+    price: number;
     stock: number;
 }
 
@@ -46,10 +67,27 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
     const [newCat, setNewCat]         = useState('');
     const fileRef                     = useRef<HTMLInputElement>(null);
 
-    // Variantes
+    // Variantes (agrupadas por variant_group)
     const [hasVariants, setHasVariants]         = useState(false);
     const [variants, setVariants]               = useState<LocalVariant[]>([]);
     const [deletedVariantIds, setDeletedVariantIds] = useState<string[]>([]);
+    const [newGroupName, setNewGroupName]       = useState('');
+    const [showGroupInput, setShowGroupInput]   = useState(false);
+
+    // Derivado: agrupa variants por variant_group
+    const variantGroups: LocalVariantGroup[] = React.useMemo(() => {
+        const map = new Map<string, LocalVariant[]>();
+        variants.forEach((v) => {
+            if (!map.has(v.variant_group)) map.set(v.variant_group, []);
+            map.get(v.variant_group)!.push(v);
+        });
+        return Array.from(map.entries()).map(([groupName, items]) => ({ groupName, items }));
+    }, [variants]);
+
+    // Marcas
+    const [hasBrands, setHasBrands]             = useState(false);
+    const [brands, setBrands]                   = useState<LocalBrand[]>([]);
+    const [deletedBrandIds, setDeletedBrandIds] = useState<string[]>([]);
 
     useEffect(() => {
         if (product) {
@@ -75,9 +113,29 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                         setVariants(data.map((v: any) => ({
                             tempId: v.id,
                             id: v.id,
+                            variant_group: v.variant_group ?? 'Espessura',
                             label: v.label,
                             priceDelta: v.price_delta,
                             stock: v.stock,
+                        })));
+                    }
+                });
+
+            supabase
+                .from('product_brands')
+                .select('*')
+                .eq('product_id', product.id)
+                .eq('is_active', true)
+                .order('sort_order')
+                .then(({ data }) => {
+                    if (data && data.length > 0) {
+                        setHasBrands(true);
+                        setBrands(data.map((b: any) => ({
+                            tempId: b.id,
+                            id: b.id,
+                            name: b.name,
+                            price: b.price,
+                            stock: b.stock,
                         })));
                     }
                 });
@@ -151,12 +209,33 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         setUrlInput('');
     };
 
-    // --- Variantes ---
-    const addVariant = () => {
+    // --- Variantes (por grupo) ---
+    const addVariantToGroup = (groupName: string) => {
         setVariants((prev) => [
             ...prev,
-            { tempId: `new-${Date.now()}`, label: '', priceDelta: 0, stock: 0 },
+            { tempId: `new-${Date.now()}`, variant_group: groupName, label: '', priceDelta: 0, stock: 0 },
         ]);
+    };
+
+    const addNewGroup = () => {
+        const name = newGroupName.trim();
+        if (!name) return;
+        if (variantGroups.some((g) => g.groupName.toLowerCase() === name.toLowerCase())) {
+            toast.error('Já existe um grupo com esse nome.');
+            return;
+        }
+        setVariants((prev) => [
+            ...prev,
+            { tempId: `new-${Date.now()}`, variant_group: name, label: '', priceDelta: 0, stock: 0 },
+        ]);
+        setNewGroupName('');
+        setShowGroupInput(false);
+    };
+
+    const removeGroup = (groupName: string) => {
+        const toDelete = variants.filter((v) => v.variant_group === groupName && v.id);
+        setDeletedVariantIds((prev) => [...prev, ...toDelete.map((v) => v.id!)]);
+        setVariants((prev) => prev.filter((v) => v.variant_group !== groupName));
     };
 
     const updateVariant = (tempId: string, field: keyof Omit<LocalVariant, 'tempId' | 'id'>, value: string | number) => {
@@ -184,6 +263,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
             .map((v, idx) => ({
                 ...(v.id ? { id: v.id } : {}),
                 product_id: productId,
+                variant_group: v.variant_group,
                 label: v.label.trim(),
                 price_delta: v.priceDelta,
                 stock: v.stock,
@@ -196,12 +276,60 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         }
     };
 
+    // --- Marcas ---
+    const addBrand = () => {
+        setBrands((prev) => [
+            ...prev,
+            { tempId: `new-${Date.now()}`, name: '', price: 0, stock: 0 },
+        ]);
+    };
+
+    const updateBrand = (tempId: string, field: keyof Omit<LocalBrand, 'tempId' | 'id'>, value: string | number) => {
+        setBrands((prev) => prev.map((b) => b.tempId === tempId ? { ...b, [field]: value } : b));
+    };
+
+    const removeBrand = (tempId: string) => {
+        const b = brands.find((x) => x.tempId === tempId);
+        if (b?.id) setDeletedBrandIds((prev) => [...prev, b.id!]);
+        setBrands((prev) => prev.filter((x) => x.tempId !== tempId));
+    };
+
+    const saveBrands = async (productId: string) => {
+        if (deletedBrandIds.length > 0) {
+            await supabase.from('product_brands').delete().in('id', deletedBrandIds);
+        }
+        if (!hasBrands || brands.length === 0) {
+            if (product?.id) {
+                await supabase.from('product_brands').update({ is_active: false }).eq('product_id', productId);
+            }
+            return;
+        }
+        const rows = brands
+            .filter((b) => b.name.trim())
+            .map((b, idx) => ({
+                ...(b.id ? { id: b.id } : {}),
+                product_id: productId,
+                name: b.name.trim(),
+                price: b.price,
+                stock: b.stock,
+                sort_order: idx,
+                is_active: true,
+            }));
+        if (rows.length > 0) {
+            const { error } = await supabase.from('product_brands').upsert(rows, { onConflict: 'id' });
+            if (error) throw error;
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.name.trim()) { toast.error('Nome é obrigatório.'); return; }
         if (!form.category.trim()) { toast.error('Categoria é obrigatória.'); return; }
         if (hasVariants && variants.some((v) => !v.label.trim())) {
             toast.error('Preencha o nome de todas as espessuras.'); return;
+        }
+        if (hasBrands && brands.some((b) => !b.name.trim())) {
+            toast.error('Preencha o nome de todas as marcas.'); return;
         }
         setSaving(true);
         try {
@@ -226,6 +354,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
             }
 
             await saveVariants(savedProductId!);
+            await saveBrands(savedProductId!);
 
             toast.success(product ? 'Produto atualizado!' : 'Produto cadastrado!');
             onSave();
@@ -401,7 +530,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                             className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors resize-none" />
                     </div>
 
-                    {/* ===== VARIAÇÕES DE ESPESSURA / CHAPA ===== */}
+                    {/* ===== VARIAÇÕES / GRUPOS DE OPÇÕES ===== */}
                     <div className="rounded-2xl border border-border overflow-hidden">
                         <div
                             className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${hasVariants ? 'bg-blue-50 border-b border-blue-100' : 'bg-surface'}`}
@@ -409,16 +538,16 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                 const next = !hasVariants;
                                 setHasVariants(next);
                                 if (next && variants.length === 0) {
-                                    setVariants([{ tempId: `new-${Date.now()}`, label: '', priceDelta: 0, stock: 0 }]);
+                                    setVariants([{ tempId: `new-${Date.now()}`, variant_group: 'Espessura', label: '', priceDelta: 0, stock: 0 }]);
                                 }
                             }}
                         >
                             <div>
-                                <p className="text-sm font-bold text-foreground">📐 Variações de espessura / chapa</p>
+                                <p className="text-sm font-bold text-foreground">📐 Variações / Opções</p>
                                 <p className="text-[11px] text-muted">
                                     {hasVariants
-                                        ? `${variants.length} espessura${variants.length !== 1 ? 's' : ''} cadastrada${variants.length !== 1 ? 's' : ''}`
-                                        : 'Ative se este produto tem diferentes chapas ou espessuras'}
+                                        ? `${variantGroups.length} grupo${variantGroups.length !== 1 ? 's' : ''} · ${variants.length} opç${variants.length !== 1 ? 'ões' : 'ão'}`
+                                        : 'Espessuras, bitolas, comprimentos, pesos, tipos e mais'}
                                 </p>
                             </div>
                             <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${hasVariants ? 'bg-blue-500' : 'bg-border'}`}>
@@ -427,42 +556,209 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                         </div>
 
                         {hasVariants && (
+                            <div className="p-4 space-y-4">
+
+                                {/* Renderiza cada grupo separadamente */}
+                                {variantGroups.map((group) => (
+                                    <div key={group.groupName} className="rounded-xl border border-blue-100 bg-blue-50/40 overflow-hidden">
+                                        {/* Cabeçalho do grupo */}
+                                        <div className="flex items-center justify-between px-3 py-2 bg-blue-100/60 border-b border-blue-100">
+                                            <span className="text-[11px] font-bold text-blue-700 uppercase tracking-widest">
+                                                📌 {group.groupName}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeGroup(group.groupName)}
+                                                className="text-[10px] text-blue-400 hover:text-red-500 font-bold transition-colors px-2 py-0.5 rounded"
+                                                title={`Remover grupo ${group.groupName}`}
+                                            >
+                                                Remover grupo
+                                            </button>
+                                        </div>
+
+                                        {/* Linhas de opções */}
+                                        <div className="p-3 space-y-2">
+                                            <div className="grid grid-cols-12 gap-2 px-1 mb-1">
+                                                <span className="col-span-5 text-[9px] uppercase tracking-widest font-bold text-muted">Opção / Label</span>
+                                                <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Preço (R$)</span>
+                                                <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Estoque</span>
+                                                <span className="col-span-1" />
+                                            </div>
+
+                                            {group.items.map((v) => (
+                                                <div key={v.tempId} className="grid grid-cols-12 gap-2 items-center">
+                                                    <input
+                                                        type="text"
+                                                        value={v.label}
+                                                        onChange={(e) => updateVariant(v.tempId, 'label', e.target.value)}
+                                                        placeholder={
+                                                            group.groupName === 'Espessura' ? 'ex: 2,0mm' :
+                                                            group.groupName === 'Bitola' ? 'ex: 12' :
+                                                            group.groupName === 'Comprimento' ? 'ex: 500m' :
+                                                            group.groupName === 'Peso' ? 'ex: 35kg' :
+                                                            group.groupName === 'Tipo' ? 'ex: E6013' :
+                                                            group.groupName === 'Medida' ? 'ex: 17x27' :
+                                                            'valor...'
+                                                        }
+                                                        className="col-span-5 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        value={v.priceDelta || ''}
+                                                        onChange={(e) => updateVariant(v.tempId, 'priceDelta', parseFloat(e.target.value) || 0)}
+                                                        placeholder="0,00"
+                                                        step="0.01"
+                                                        className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        value={v.stock || ''}
+                                                        onChange={(e) => updateVariant(v.tempId, 'stock', parseInt(e.target.value) || 0)}
+                                                        placeholder="0"
+                                                        min="0"
+                                                        className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeVariant(v.tempId)}
+                                                        className="col-span-1 flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all"
+                                                    >
+                                                        <AppIcon name="XMarkIcon" size={15} />
+                                                    </button>
+                                                </div>
+                                            ))}
+
+                                            <button
+                                                type="button"
+                                                onClick={() => addVariantToGroup(group.groupName)}
+                                                className="w-full py-2 rounded-xl border border-dashed border-blue-200 text-blue-500 text-[11px] font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-1.5"
+                                            >
+                                                <AppIcon name="PlusIcon" size={13} />
+                                                + opção em {group.groupName}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Adicionar novo grupo */}
+                                {showGroupInput ? (
+                                    <div className="space-y-2 p-3 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/30">
+                                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Nome do novo grupo</p>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {VARIANT_GROUP_SUGGESTIONS.filter(
+                                                (s) => !variantGroups.some((g) => g.groupName.toLowerCase() === s.toLowerCase())
+                                            ).map((s) => (
+                                                <button
+                                                    key={s}
+                                                    type="button"
+                                                    onClick={() => { setNewGroupName(s); }}
+                                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${newGroupName === s ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'}`}
+                                                >
+                                                    {s}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={newGroupName}
+                                                onChange={(e) => setNewGroupName(e.target.value)}
+                                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addNewGroup())}
+                                                placeholder="ou digite um nome personalizado..."
+                                                autoFocus
+                                                className="flex-1 px-3 py-2 rounded-xl border-2 border-blue-300 bg-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                                            />
+                                            <button type="button" onClick={addNewGroup}
+                                                className="px-4 py-2 rounded-xl bg-blue-500 text-white text-sm font-bold hover:bg-blue-600 transition-all">
+                                                <AppIcon name="CheckIcon" size={16} />
+                                            </button>
+                                            <button type="button" onClick={() => { setShowGroupInput(false); setNewGroupName(''); }}
+                                                className="px-3 py-2 rounded-xl bg-surface border border-border text-muted text-sm hover:bg-border transition-all">
+                                                <AppIcon name="XMarkIcon" size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowGroupInput(true)}
+                                        className="w-full py-2.5 rounded-xl border-2 border-dashed border-blue-200 text-blue-600 text-[12px] font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <AppIcon name="PlusIcon" size={15} />
+                                        Adicionar grupo de opções
+                                    </button>
+                                )}
+
+                                <p className="text-[10px] text-muted">
+                                    Preço: informe o preço individual de cada opção. Deixe 0 para usar o preço base do produto.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                                        {/* ===== MARCAS DISPONÍVEIS ===== */}
+                    <div className="rounded-2xl border border-border overflow-hidden">
+                        <div
+                            className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${hasBrands ? 'bg-green-50 border-b border-green-100' : 'bg-surface'}`}
+                            onClick={() => {
+                                const next = !hasBrands;
+                                setHasBrands(next);
+                                if (next && brands.length === 0) {
+                                    setBrands([{ tempId: `new-${Date.now()}`, name: '', price: 0, stock: 0 }]);
+                                }
+                            }}
+                        >
+                            <div>
+                                <p className="text-sm font-bold text-foreground">🏷️ Marcas disponíveis</p>
+                                <p className="text-[11px] text-muted">
+                                    {hasBrands
+                                        ? `${brands.length} marca${brands.length !== 1 ? 's' : ''} cadastrada${brands.length !== 1 ? 's' : ''}`
+                                        : 'Ative para oferecer o mesmo produto de diferentes marcas'}
+                                </p>
+                            </div>
+                            <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${hasBrands ? 'bg-green-500' : 'bg-border'}`}>
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${hasBrands ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </div>
+                        </div>
+
+                        {hasBrands && (
                             <div className="p-4 space-y-3">
                                 <div className="grid grid-cols-12 gap-2 px-1">
-                                    <span className="col-span-5 text-[9px] uppercase tracking-widest font-bold text-muted">Espessura / label</span>
+                                    <span className="col-span-5 text-[9px] uppercase tracking-widest font-bold text-muted">Marca / Fabricante</span>
                                     <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Preço (R$)</span>
                                     <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Estoque</span>
                                     <span className="col-span-1" />
                                 </div>
 
-                                {variants.map((v) => (
-                                    <div key={v.tempId} className="grid grid-cols-12 gap-2 items-center">
+                                {brands.map((b) => (
+                                    <div key={b.tempId} className="grid grid-cols-12 gap-2 items-center">
                                         <input
                                             type="text"
-                                            value={v.label}
-                                            onChange={(e) => updateVariant(v.tempId, 'label', e.target.value)}
-                                            placeholder="ex: 1,5mm"
+                                            value={b.name}
+                                            onChange={(e) => updateBrand(b.tempId, 'name', e.target.value)}
+                                            placeholder="ex: Gerdau"
                                             className="col-span-5 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                         />
                                         <input
                                             type="number"
-                                            value={v.priceDelta || ''}
-                                            onChange={(e) => updateVariant(v.tempId, 'priceDelta', parseFloat(e.target.value) || 0)}
+                                            value={b.price || ''}
+                                            onChange={(e) => updateBrand(b.tempId, 'price', parseFloat(e.target.value) || 0)}
                                             placeholder="0,00"
                                             step="0.01"
+                                            min="0"
                                             className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                         />
                                         <input
                                             type="number"
-                                            value={v.stock || ''}
-                                            onChange={(e) => updateVariant(v.tempId, 'stock', parseInt(e.target.value) || 0)}
+                                            value={b.stock || ''}
+                                            onChange={(e) => updateBrand(b.tempId, 'stock', parseInt(e.target.value) || 0)}
                                             placeholder="0"
                                             min="0"
                                             className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                         />
                                         <button
                                             type="button"
-                                            onClick={() => removeVariant(v.tempId)}
+                                            onClick={() => removeBrand(b.tempId)}
                                             className="col-span-1 flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all"
                                         >
                                             <AppIcon name="XMarkIcon" size={15} />
@@ -472,15 +768,15 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
                                 <button
                                     type="button"
-                                    onClick={addVariant}
-                                    className="w-full py-2.5 rounded-xl border-2 border-dashed border-blue-200 text-blue-600 text-[12px] font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
+                                    onClick={addBrand}
+                                    className="w-full py-2.5 rounded-xl border-2 border-dashed border-green-200 text-green-600 text-[12px] font-bold hover:bg-green-50 transition-all flex items-center justify-center gap-2"
                                 >
                                     <AppIcon name="PlusIcon" size={15} />
-                                    Adicionar espessura
+                                    Adicionar marca
                                 </button>
 
                                 <p className="text-[10px] text-muted">
-                                    Preço: informe o preço individual de cada espessura. Deixe 0 se for o mesmo preço base do produto.
+                                    Preço: informe o preço individual de cada marca. Deixe 0 se for sob consulta.
                                 </p>
                             </div>
                         )}

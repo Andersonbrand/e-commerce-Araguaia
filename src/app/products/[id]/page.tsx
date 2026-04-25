@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import AppIcon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
-import { Product, ProductVariant } from '@/lib/supabase';
+import { Product, ProductVariant, ProductBrand } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
 import { useCompany } from '@/context/CompanyContext';
 import { useCart, SelectedVariant } from '@/context/CartContext';
@@ -21,7 +21,23 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
-  const [selectedVariant, setSelectedVariant] = useState<SelectedVariant | null>(null);
+  const [brands, setBrands] = useState<ProductBrand[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<ProductBrand | null>(null);
+  // selectedVariant: map de groupName -> opção selecionada
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, SelectedVariant>>({});
+
+  // Derivado: grupos únicos de variantes
+  const variantGroups = React.useMemo(() => {
+    const map = new Map<string, ProductVariant[]>();
+    variants.forEach((v) => {
+      if (!map.has(v.variant_group)) map.set(v.variant_group, []);
+      map.get(v.variant_group)!.push(v);
+    });
+    return Array.from(map.entries()).map(([group, items]) => ({ group, items }));
+  }, [variants]);
+
+  // Para compatibilidade com CartContext (usa o primeiro grupo selecionado)
+  const selectedVariant: SelectedVariant | null = Object.values(selectedVariants)[0] ?? null;
   const [loading, setLoading] = useState(true);
   const [qty, setQty]         = useState(1);
   const { showPrices }        = usePrices();
@@ -42,14 +58,21 @@ export default function ProductDetailPage() {
               .eq('is_active', true)
               .order('sort_order'),
             supabase
+              .from('product_brands')
+              .select('*')
+              .eq('product_id', id)
+              .eq('is_active', true)
+              .order('sort_order'),
+            supabase
               .from('products')
               .select('*')
               .eq('category', data.category)
               .neq('id', id)
               .eq('is_active', true)
               .limit(4),
-          ]).then(([{ data: vars }, { data: rel }]) => {
+          ]).then(([{ data: vars }, { data: brnds }, { data: rel }]) => {
             setVariants(vars ?? []);
+            setBrands(brnds ?? []);
             setRelated(rel ?? []);
           });
         }
@@ -59,17 +82,28 @@ export default function ProductDetailPage() {
 
   const handleAdd = () => {
     if (!product) return;
-    if (variants.length > 0 && !selectedVariant) {
-      toast.error('Selecione uma espessura antes de adicionar.');
+    // Verificar se todos os grupos têm uma opção selecionada
+    const missingGroup = variantGroups.find((g) => !selectedVariants[g.group]);
+    if (missingGroup) {
+      toast.error(`Selecione uma opção em "${missingGroup.group}".`);
+      return;
+    }
+    if (brands.length > 0 && !selectedBrand) {
+      toast.error('Selecione uma marca antes de adicionar.');
       return;
     }
     for (let i = 0; i < qty; i++) addToCart(product, activeCompany, selectedVariant);
-    const variantSuffix = selectedVariant ? ` (${selectedVariant.label})` : '';
-    toast.success(`${qty}x ${product.name}${variantSuffix} adicionado ao orçamento!`);
+    const variantSuffix = Object.values(selectedVariants).map((v) => v.label).join(', ');
+    const brandSuffix   = selectedBrand ? ` — ${selectedBrand.name}` : '';
+    const suffix = [variantSuffix ? ` (${variantSuffix})` : '', brandSuffix].join('');
+    toast.success(`${qty}x ${product.name}${suffix} adicionado ao orçamento!`);
   };
 
-  // Preço efetivo: se a variante tem preço próprio, usa ele; senão usa o preço base do produto
-  const unitPrice  = selectedVariant?.priceDelta || (product?.price ?? 0);
+  // Preço efetivo: marca > variante com maior preço > preço base
+  const variantPrice = Object.values(selectedVariants).find((v) => v.priceDelta > 0)?.priceDelta ?? 0;
+  const unitPrice  = (selectedBrand?.price && selectedBrand.price > 0)
+    ? selectedBrand.price
+    : variantPrice || (product?.price ?? 0);
   const totalPrice = unitPrice * qty;
 
   if (loading) {
@@ -161,43 +195,89 @@ export default function ProductDetailPage() {
                 </p>
               )}
 
-              {/* Seletor de espessura / variante */}
-              {variants.length > 0 && (
+              {/* Seletores por grupo de variantes */}
+              {variantGroups.map(({ group, items }) => {
+                const selected = selectedVariants[group] ?? null;
+                return (
+                  <div key={group} className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">{group}</span>
+                      </div>
+                      <div className="flex-1 h-px bg-border" />
+                      {!selected && (
+                        <span className="text-[10px] text-primary font-bold animate-pulse">Selecione uma opção</span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {items.map((v) => {
+                        const isSelected = selected?.id === v.id;
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() =>
+                              setSelectedVariants((prev) => ({
+                                ...prev,
+                                [group]: isSelected
+                                  ? (({ [group]: _, ...rest }) => rest)(prev) as any
+                                  : { id: v.id, label: v.label, priceDelta: v.price_delta },
+                              }))
+                            }
+                            className="px-4 py-2 rounded-xl border-2 transition-all flex items-baseline gap-1.5"
+                            style={{
+                              borderColor: isSelected ? '#af1518' : '#dde3ed',
+                              backgroundColor: isSelected ? '#af151810' : 'white',
+                              color: isSelected ? '#af1518' : '#6b7280',
+                            }}
+                          >
+                            <span className="text-sm font-bold">{v.label}</span>
+                            {showPrices && v.price_delta > 0 && (
+                              <span className="text-[10px] font-normal opacity-70">
+                                R$ {v.price_delta.toFixed(2).replace('.', ',')}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+                            {/* Seletor de marca */}
+              {brands.length > 0 && (
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <div>
-                      <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">Espessura</span>
-                      <span className="text-[10px] text-muted ml-1.5">· milímetros</span>
+                      <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">Marca</span>
+                      <span className="text-[10px] text-muted ml-1.5">· fabricante</span>
                     </div>
                     <div className="flex-1 h-px bg-border" />
-                    {!selectedVariant && (
+                    {!selectedBrand && (
                       <span className="text-[10px] text-primary font-bold animate-pulse">Selecione uma opção</span>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {variants.map((v) => {
-                      const isSelected = selectedVariant?.id === v.id;
+                    {brands.map((b) => {
+                      const isSelected = selectedBrand?.id === b.id;
                       return (
                         <button
-                          key={v.id}
+                          key={b.id}
                           type="button"
-                          onClick={() =>
-                            setSelectedVariant(
-                              isSelected ? null : { id: v.id, label: v.label, priceDelta: v.price_delta }
-                            )
-                          }
-                          className="px-4 py-2 rounded-xl border-2 transition-all flex items-baseline gap-1.5"
+                          onClick={() => setSelectedBrand(isSelected ? null : b)}
+                          className="px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2"
                           style={{
                             borderColor: isSelected ? '#af1518' : '#dde3ed',
                             backgroundColor: isSelected ? '#af151810' : 'white',
                             color: isSelected ? '#af1518' : '#6b7280',
                           }}
                         >
-                          <span className="text-sm font-bold">{v.label}</span>
-                          <span className="text-[10px] font-normal opacity-70">milímetros</span>
-                          {showPrices && v.price_delta > 0 && (
-                            <span className="text-[10px] font-normal">
-                              (R$ {v.price_delta.toFixed(2).replace('.', ',')})
+                          <span className="text-[11px]">🏷️</span>
+                          <span className="text-sm font-bold">{b.name}</span>
+                          {showPrices && b.price > 0 && (
+                            <span className="text-[10px] font-normal opacity-70">
+                              R$ {b.price.toFixed(2).replace('.', ',')}
                             </span>
                           )}
                         </button>
@@ -212,8 +292,13 @@ export default function ProductDetailPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] uppercase tracking-widest text-muted font-bold">
                     Preço unitário / {product.unit}
-                    {selectedVariant && (
-                      <span className="ml-2 normal-case text-primary font-bold">— {selectedVariant.label}</span>
+                    {Object.values(selectedVariants).length > 0 && (
+                      <span className="ml-2 normal-case text-primary font-bold">
+                        — {Object.values(selectedVariants).map((v) => v.label).join(' · ')}
+                      </span>
+                    )}
+                    {selectedBrand && (
+                      <span className="ml-2 normal-case text-primary font-bold">🏷️ {selectedBrand.name}</span>
                     )}
                   </p>
                   {qty > 1 && showPrices && unitPrice > 0 && (
@@ -243,19 +328,24 @@ export default function ProductDetailPage() {
 
                 <button
                   onClick={handleAdd}
-                  disabled={variants.length > 0 && !selectedVariant}
-                  title={variants.length > 0 && !selectedVariant ? 'Selecione uma espessura' : undefined}
+                  disabled={
+                    variantGroups.some((g) => !selectedVariants[g.group]) ||
+                    (brands.length > 0 && !selectedBrand)
+                  }
                   className="flex-1 py-3.5 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                   style={{ backgroundColor: '#151826', boxShadow: '0 4px 20px #15182640' }}
                 >
                   <AppIcon name="ShoppingCartIcon" size={18} />
-                  {variants.length > 0 && !selectedVariant ? 'Selecione uma espessura' : 'Adicionar ao Orçamento'}
+                  {variantGroups.find((g) => !selectedVariants[g.group])
+                    ? `Selecione ${variantGroups.find((g) => !selectedVariants[g.group])!.group}`
+                    : brands.length > 0 && !selectedBrand ? 'Selecione uma marca'
+                    : 'Adicionar ao Orçamento'}
                 </button>
               </div>
 
               {/* WhatsApp */}
               <a
-                href={`https://wa.me/5577981046133?text=Olá! Tenho interesse no produto: ${encodeURIComponent(product.name)}${selectedVariant ? `, espessura: ${selectedVariant.label}` : ''}${qty > 1 ? `, quantidade: ${qty}` : ''}`}
+                href={`https://wa.me/5577981046133?text=Olá! Tenho interesse no produto: ${encodeURIComponent(product.name)}${Object.entries(selectedVariants).map(([g, v]) => `, ${g}: ${v.label}`).join('')}${selectedBrand ? `, marca: ${selectedBrand.name}` : ''}${qty > 1 ? `, quantidade: ${qty}` : ''}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-bold text-muted hover:text-primary"
               >
