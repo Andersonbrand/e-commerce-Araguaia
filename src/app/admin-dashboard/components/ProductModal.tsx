@@ -50,6 +50,15 @@ interface LocalBrand {
     stock: number;
 }
 
+// Regra de dependência entre grupos
+interface VariantRule {
+    tempId: string;
+    whenGroup: string;
+    whenLabel: string;
+    allowsGroup: string;
+    allowsLabels: string[];
+}
+
 export default function ProductModal({ product, categories, onSave, onClose }: Props) {
     const supabase      = createClient();
     const allCategories = Array.from(new Set([...DEFAULT_CATEGORIES, ...categories]));
@@ -89,6 +98,10 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
     const [brands, setBrands]                   = useState<LocalBrand[]>([]);
     const [deletedBrandIds, setDeletedBrandIds] = useState<string[]>([]);
 
+    // Regras de dependência entre grupos
+    const [variantRules, setVariantRules] = useState<VariantRule[]>([]);
+    const [showRules, setShowRules]       = useState(false);
+
     useEffect(() => {
         if (product) {
             const { id: _id, created_at: _c, updated_at: _u, ...rest } = product;
@@ -100,6 +113,19 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
             setForm(formData);
             setPreview(rest.image_url);
             if (rest.image_url) setUrlInput(rest.image_url);
+
+            // Carregar variant_rules
+            if ((rest as any).variant_rules && Array.isArray((rest as any).variant_rules)) {
+                const rules: VariantRule[] = ((rest as any).variant_rules as any[]).map((r: any, i: number) => ({
+                    tempId: `rule-${i}`,
+                    whenGroup: r.when?.group ?? '',
+                    whenLabel: r.when?.label ?? '',
+                    allowsGroup: r.allows?.group ?? '',
+                    allowsLabels: r.allows?.labels ?? [],
+                }));
+                setVariantRules(rules);
+                if (rules.length > 0) setShowRules(true);
+            }
 
             supabase
                 .from('product_variants')
@@ -276,6 +302,59 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         }
     };
 
+    // --- Regras de dependência ---
+    const addVariantRule = () => {
+        const groups = variantGroups.map((g) => g.groupName);
+        if (groups.length < 2) {
+            toast.error('Crie pelo menos 2 grupos de variantes para definir regras.');
+            return;
+        }
+        setVariantRules((prev) => [...prev, {
+            tempId: `rule-${Date.now()}`,
+            whenGroup: groups[0],
+            whenLabel: variantGroups[0]?.items[0]?.label ?? '',
+            allowsGroup: groups[1],
+            allowsLabels: [],
+        }]);
+    };
+
+    const updateVariantRule = (tempId: string, field: keyof Omit<VariantRule, 'tempId'>, value: any) => {
+        setVariantRules((prev) => prev.map((r) => {
+            if (r.tempId !== tempId) return r;
+            if (field === 'whenGroup') {
+                // Reset label when group changes
+                const items = variantGroups.find((g) => g.groupName === value)?.items ?? [];
+                return { ...r, whenGroup: value, whenLabel: items[0]?.label ?? '' };
+            }
+            if (field === 'allowsGroup') {
+                return { ...r, allowsGroup: value, allowsLabels: [] };
+            }
+            return { ...r, [field]: value };
+        }));
+    };
+
+    const toggleAllowedLabel = (tempId: string, label: string) => {
+        setVariantRules((prev) => prev.map((r) => {
+            if (r.tempId !== tempId) return r;
+            const has = r.allowsLabels.includes(label);
+            return { ...r, allowsLabels: has ? r.allowsLabels.filter((l) => l !== label) : [...r.allowsLabels, label] };
+        }));
+    };
+
+    const removeVariantRule = (tempId: string) => {
+        setVariantRules((prev) => prev.filter((r) => r.tempId !== tempId));
+    };
+
+    const buildVariantRulesPayload = () => {
+        if (!showRules || variantRules.length === 0) return null;
+        return variantRules
+            .filter((r) => r.whenGroup && r.whenLabel && r.allowsGroup && r.allowsLabels.length > 0)
+            .map((r) => ({
+                when: { group: r.whenGroup, label: r.whenLabel },
+                allows: { group: r.allowsGroup, labels: r.allowsLabels },
+            }));
+    };
+
     // --- Marcas ---
     const addBrand = () => {
         setBrands((prev) => [
@@ -338,6 +417,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                 price: Number(form.price),
                 stock: Number(form.stock),
                 companies: (form as any).companies ?? ['araguaia'],
+                variant_rules: buildVariantRulesPayload(),
             };
 
             let savedProductId = product?.id;
@@ -696,7 +776,137 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                         )}
                     </div>
 
-                                        {/* ===== MARCAS DISPONÍVEIS ===== */}
+                    {/* ===== REGRAS DE DEPENDÊNCIA ENTRE VARIANTES ===== */}
+                    {hasVariants && variantGroups.length >= 2 && (
+                        <div className="rounded-2xl border border-border overflow-hidden">
+                            <div
+                                className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${showRules ? 'bg-purple-50 border-b border-purple-100' : 'bg-surface'}`}
+                                onClick={() => setShowRules((v) => !v)}
+                            >
+                                <div>
+                                    <p className="text-sm font-bold text-foreground">🔗 Regras de combinação</p>
+                                    <p className="text-[11px] text-muted">
+                                        {showRules && variantRules.length > 0
+                                            ? `${variantRules.length} regra${variantRules.length !== 1 ? 's' : ''} definida${variantRules.length !== 1 ? 's' : ''}`
+                                            : 'Restrinja quais opções ficam disponíveis quando outra é selecionada'}
+                                    </p>
+                                </div>
+                                <div className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${showRules ? 'bg-purple-500' : 'bg-border'}`}>
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${showRules ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </div>
+                            </div>
+
+                            {showRules && (
+                                <div className="p-4 space-y-3">
+                                    <p className="text-[11px] text-muted bg-purple-50 border border-purple-100 rounded-xl px-3 py-2">
+                                        💡 Exemplo: quando o cliente seleciona <strong>Espessura = 10 - 3,4mm</strong>, permita apenas <strong>Peso: 1kg e 50kg</strong>. Para as demais espessuras, apenas <strong>1kg</strong>.
+                                    </p>
+
+                                    {variantRules.map((rule) => {
+                                        const whenItems = variantGroups.find((g) => g.groupName === rule.whenGroup)?.items ?? [];
+                                        const allowsItems = variantGroups.find((g) => g.groupName === rule.allowsGroup)?.items ?? [];
+                                        const otherGroups = variantGroups.map((g) => g.groupName).filter((g) => g !== rule.whenGroup);
+
+                                        return (
+                                            <div key={rule.tempId} className="rounded-xl border border-purple-200 bg-purple-50/40 p-3 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Regra</span>
+                                                    <button type="button" onClick={() => removeVariantRule(rule.tempId)}
+                                                        className="text-[10px] text-purple-400 hover:text-red-500 font-bold transition-colors px-2 py-0.5 rounded">
+                                                        Remover
+                                                    </button>
+                                                </div>
+
+                                                {/* QUANDO */}
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label className="text-[9px] uppercase tracking-widest font-bold text-muted block mb-1">Quando grupo</label>
+                                                        <select
+                                                            value={rule.whenGroup}
+                                                            onChange={(e) => updateVariantRule(rule.tempId, 'whenGroup', e.target.value)}
+                                                            className="w-full px-2 py-1.5 rounded-lg border border-border bg-white text-xs focus:outline-none focus:border-purple-400"
+                                                        >
+                                                            {variantGroups.map((g) => (
+                                                                <option key={g.groupName} value={g.groupName}>{g.groupName}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[9px] uppercase tracking-widest font-bold text-muted block mb-1">For igual a</label>
+                                                        <select
+                                                            value={rule.whenLabel}
+                                                            onChange={(e) => updateVariantRule(rule.tempId, 'whenLabel', e.target.value)}
+                                                            className="w-full px-2 py-1.5 rounded-lg border border-border bg-white text-xs focus:outline-none focus:border-purple-400"
+                                                        >
+                                                            {whenItems.map((v) => (
+                                                                <option key={v.tempId} value={v.label}>{v.label || '(sem label)'}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                {/* PERMITE */}
+                                                <div>
+                                                    <label className="text-[9px] uppercase tracking-widest font-bold text-muted block mb-1">Permitir no grupo</label>
+                                                    <select
+                                                        value={rule.allowsGroup}
+                                                        onChange={(e) => updateVariantRule(rule.tempId, 'allowsGroup', e.target.value)}
+                                                        className="w-full px-2 py-1.5 rounded-lg border border-border bg-white text-xs focus:outline-none focus:border-purple-400 mb-2"
+                                                    >
+                                                        {otherGroups.map((g) => (
+                                                            <option key={g} value={g}>{g}</option>
+                                                        ))}
+                                                    </select>
+
+                                                    <label className="text-[9px] uppercase tracking-widest font-bold text-muted block mb-1">
+                                                        Opções permitidas — <span className="text-purple-500 normal-case">marque as que ficarão disponíveis</span>
+                                                    </label>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {allowsItems.map((v) => {
+                                                            const isAllowed = rule.allowsLabels.includes(v.label);
+                                                            return (
+                                                                <button
+                                                                    key={v.tempId}
+                                                                    type="button"
+                                                                    onClick={() => toggleAllowedLabel(rule.tempId, v.label)}
+                                                                    className="px-2.5 py-1 rounded-lg border-2 text-[11px] font-bold transition-all"
+                                                                    style={{
+                                                                        borderColor: isAllowed ? '#7c3aed' : '#dde3ed',
+                                                                        backgroundColor: isAllowed ? '#7c3aed15' : 'white',
+                                                                        color: isAllowed ? '#7c3aed' : '#9ca3af',
+                                                                    }}
+                                                                >
+                                                                    {isAllowed ? '✓ ' : ''}{v.label || '(sem label)'}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                        {allowsItems.length === 0 && (
+                                                            <span className="text-[11px] text-muted italic">Adicione opções ao grupo "{rule.allowsGroup}" primeiro</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    <button
+                                        type="button"
+                                        onClick={addVariantRule}
+                                        className="w-full py-2.5 rounded-xl border-2 border-dashed border-purple-200 text-purple-600 text-[12px] font-bold hover:bg-purple-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <AppIcon name="PlusIcon" size={15} />
+                                        Adicionar regra
+                                    </button>
+
+                                    <p className="text-[10px] text-muted">
+                                        Cada regra define: "quando <em>GrupoA</em> = <em>X</em>, apenas mostrar estas opções em <em>GrupoB</em>". Opções sem regra definida ficam sempre visíveis.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ===== MARCAS DISPONÍVEIS ===== */}
                     <div className="rounded-2xl border border-border overflow-hidden">
                         <div
                             className={`flex items-center justify-between p-4 cursor-pointer transition-colors ${hasBrands ? 'bg-green-50 border-b border-green-100' : 'bg-surface'}`}

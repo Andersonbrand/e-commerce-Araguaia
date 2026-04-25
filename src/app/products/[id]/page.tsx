@@ -36,6 +36,28 @@ export default function ProductDetailPage() {
     return Array.from(map.entries()).map(([group, items]) => ({ group, items }));
   }, [variants]);
 
+  // Regras de dependência vindas do produto
+  const variantRules: Array<{ when: { group: string; label: string }; allows: { group: string; labels: string[] } }> =
+    React.useMemo(() => (product as any)?.variant_rules ?? [], [product]);
+
+  // Para um grupo+item, verifica se está permitido pelas regras com base nas seleções atuais
+  const isVariantAllowed = React.useCallback((group: string, label: string): boolean => {
+    // Filtrar regras que afetam este grupo
+    const rulesForGroup = variantRules.filter((r) => r.allows.group === group);
+    if (rulesForGroup.length === 0) return true; // sem regra → sempre permitido
+
+    // Verificar se alguma seleção atual dispara uma regra para este grupo
+    for (const rule of rulesForGroup) {
+      const selectedInWhenGroup = selectedVariants[rule.when.group];
+      if (selectedInWhenGroup && selectedInWhenGroup.label === rule.when.label) {
+        // Regra ativa: só permite os labels listados
+        return rule.allows.labels.includes(label);
+      }
+    }
+    // Nenhuma regra ativa → permitido
+    return true;
+  }, [variantRules, selectedVariants]);
+
   // Para compatibilidade com CartContext (usa o primeiro grupo selecionado)
   const selectedVariant: SelectedVariant | null = Object.values(selectedVariants)[0] ?? null;
   const [loading, setLoading] = useState(true);
@@ -212,23 +234,35 @@ export default function ProductDetailPage() {
                     <div className="flex flex-wrap gap-2">
                       {items.map((v) => {
                         const isSelected = selected?.id === v.id;
+                        const allowed = isVariantAllowed(group, v.label);
+                        // Auto-deselect if currently selected but no longer allowed
+                        if (isSelected && !allowed) {
+                          setSelectedVariants((prev) => {
+                            const { [group]: _, ...rest } = prev;
+                            return rest as any;
+                          });
+                        }
                         return (
                           <button
                             key={v.id}
                             type="button"
-                            onClick={() =>
+                            disabled={!allowed}
+                            onClick={() => {
+                              if (!allowed) return;
                               setSelectedVariants((prev) => ({
                                 ...prev,
                                 [group]: isSelected
                                   ? (({ [group]: _, ...rest }) => rest)(prev) as any
                                   : { id: v.id, label: v.label, priceDelta: v.price_delta },
-                              }))
-                            }
+                              }));
+                            }}
                             className="px-4 py-2 rounded-xl border-2 transition-all flex items-baseline gap-1.5"
                             style={{
-                              borderColor: isSelected ? '#af1518' : '#dde3ed',
-                              backgroundColor: isSelected ? '#af151810' : 'white',
-                              color: isSelected ? '#af1518' : '#6b7280',
+                              borderColor: !allowed ? '#f0f0f0' : isSelected ? '#af1518' : '#dde3ed',
+                              backgroundColor: !allowed ? '#fafafa' : isSelected ? '#af151810' : 'white',
+                              color: !allowed ? '#d1d5db' : isSelected ? '#af1518' : '#6b7280',
+                              cursor: allowed ? 'pointer' : 'not-allowed',
+                              opacity: allowed ? 1 : 0.45,
                             }}
                           >
                             <span className="text-sm font-bold">{v.label}</span>
