@@ -2,12 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useCompany } from '@/context/CompanyContext';
 import AppIcon from '@/components/ui/AppIcon';
+
+// Rotas onde o banner nunca deve aparecer
+const HIDDEN_ON_ROUTES = ['/login', '/register'];
 
 export default function CompanyBanner() {
   const { company, setActiveCompany, isGrupoView } = useCompany();
   const [visible, setVisible] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isGrupoView) {
@@ -17,6 +22,9 @@ export default function CompanyBanner() {
       setVisible(false);
     }
   }, [isGrupoView]);
+
+  // Não renderiza em páginas de autenticação
+  if (HIDDEN_ON_ROUTES.some((route) => pathname?.startsWith(route))) return null;
 
   if (isGrupoView || !company) return null;
 

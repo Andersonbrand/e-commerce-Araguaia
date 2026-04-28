@@ -142,6 +142,12 @@ export default function ProductCatalog() {
 
   const accentColor = company?.primaryColor ?? '#af1518';
 
+  // Muda de página e rola para o topo do catálogo
+  const goToPage = (n: number) => {
+    setPage(n);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Exibe gateway se nenhuma empresa selecionada
   if (isGrupoView) {
     return (
@@ -334,7 +340,7 @@ export default function ProductCatalog() {
                 {/* Paginação */}
                 {totalPages > 1 && (
                   <div className="flex justify-center gap-2 mt-12">
-                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}
+                    <button onClick={() => goToPage(Math.max(1, page - 1))} disabled={page === 1}
                       className="px-4 py-2.5 rounded-xl border border-border text-sm font-bold text-muted hover:border-primary hover:text-primary transition-all disabled:opacity-40">
                       ← Anterior
                     </button>
@@ -343,14 +349,14 @@ export default function ProductCatalog() {
                       .map((n, idx, arr) => (
                         <React.Fragment key={n}>
                           {idx > 0 && arr[idx - 1] !== n - 1 && <span className="px-2 py-2.5 text-muted">…</span>}
-                          <button onClick={() => setPage(n)}
+                          <button onClick={() => goToPage(n)}
                             className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${page === n ? 'text-white shadow-lg' : 'border border-border text-muted hover:border-primary hover:text-primary'}`}
                             style={page === n ? { background: company?.gradient } : {}}>
                             {n}
                           </button>
                         </React.Fragment>
                       ))}
-                    <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                    <button onClick={() => goToPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}
                       className="px-4 py-2.5 rounded-xl border border-border text-sm font-bold text-muted hover:border-primary hover:text-primary transition-all disabled:opacity-40">
                       Próxima →
                     </button>
