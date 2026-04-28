@@ -142,11 +142,29 @@ export default function ProductCatalog() {
 
   const accentColor = company?.primaryColor ?? '#af1518';
 
-  // Muda de página e rola para o topo do catálogo
+  // Muda de página — o useEffect abaixo cuida do scroll após o re-render
   const goToPage = (n: number) => {
     setPage(n);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Rola para o topo após cada mudança de página, com animação manual
+  // mais fluida que o behavior:'smooth' nativo (que varia entre browsers)
+  useEffect(() => {
+    if (page === 1 && typeof window !== 'undefined' && window.scrollY === 0) return;
+    const startY   = window.scrollY;
+    if (startY === 0) return;
+    const duration = Math.min(600, startY * 0.4); // proporcional à distância, máx 600ms
+    const startTime = performance.now();
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    const step = (now: number) => {
+      const elapsed  = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      window.scrollTo(0, startY * (1 - easeOutCubic(progress)));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [page]);
 
   // Exibe gateway se nenhuma empresa selecionada
   if (isGrupoView) {
