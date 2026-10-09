@@ -6,6 +6,16 @@ module.exports = {
         './src/app/**/*.{js,ts,jsx,tsx,mdx}',
     ],
     theme: {
+        screens: {
+            sm: '640px',
+            md: '768px',
+            lg: '1024px',
+            // 'desk' = layout de desktop completo (>= 1101px). Entre 1025px e 1100px
+            // usamos o layout compacto para nada quebrar.
+            desk: '1101px',
+            xl: '1280px',
+            '2xl': '1536px',
+        },
         extend: {
             colors: {
                 primary: {

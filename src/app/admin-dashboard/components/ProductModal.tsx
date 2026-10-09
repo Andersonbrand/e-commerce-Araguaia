@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { COMPANIES, COMPANY_ORDER, CompanyId } from '@/context/CompanyContext';
 import { Product } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { friendlyError, toNum } from '@/lib/friendly-error';
 
 interface Props {
     product: Product | null;
@@ -179,7 +180,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
             ...prev,
             [name]: type === 'checkbox'
                 ? (e.target as HTMLInputElement).checked
-                : (name === 'price' || name === 'stock') ? parseFloat(value) || 0 : value,
+                : (name === 'price' || name === 'stock') ? toNum(value) : value,
         }));
     };
 
@@ -216,7 +217,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
             setPreview(data.publicUrl);
             toast.success('Imagem enviada!');
         } catch (err: any) {
-            toast.error(err?.message ?? 'Erro ao enviar imagem.');
+            toast.error(friendlyError(err, 'enviar a imagem'));
         } finally {
             setUploading(false);
         }
@@ -276,28 +277,43 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
     const saveVariants = async (productId: string) => {
         if (deletedVariantIds.length > 0) {
-            await supabase.from('product_variants').delete().in('id', deletedVariantIds);
+            const { error } = await supabase.from('product_variants').delete().in('id', deletedVariantIds);
+            if (error) throw error;
         }
         if (!hasVariants || variants.length === 0) {
             if (product?.id) {
-                await supabase.from('product_variants').update({ is_active: false }).eq('product_id', productId);
+                const { error } = await supabase.from('product_variants').update({ is_active: false }).eq('product_id', productId);
+                if (error) throw error;
             }
             return;
         }
         const rows = variants
-            .filter((v) => v.label.trim())
-            .map((v, idx) => ({
-                ...(v.id ? { id: v.id } : {}),
-                product_id: productId,
-                variant_group: v.variant_group,
-                label: v.label.trim(),
-                price_delta: v.priceDelta,
-                stock: v.stock,
-                sort_order: idx,
-                is_active: true,
+            .map((v, idx) => ({ v, idx }))
+            .filter(({ v }) => v.label.trim())
+            .map(({ v, idx }) => ({
+                id: v.id,
+                row: {
+                    product_id: productId,
+                    variant_group: v.variant_group,
+                    label: v.label.trim(),
+                    price_delta: Number.isFinite(Number(v.priceDelta)) ? Number(v.priceDelta) : 0,
+                    stock: toNum(v.stock, true),
+                    sort_order: idx,
+                    is_active: true,
+                },
             }));
-        if (rows.length > 0) {
-            const { error } = await supabase.from('product_variants').upsert(rows, { onConflict: 'id' });
+
+        // IMPORTANTE: linhas novas (sem id) e existentes (com id) NÃO podem ir no mesmo upsert,
+        // senão o Supabase envia id = null nas novas e o banco recusa (not-null em "id").
+        const toInsert = rows.filter((r) => !r.id).map((r) => r.row);
+        const toUpdate = rows.filter((r) => r.id).map((r) => ({ id: r.id!, ...r.row }));
+
+        if (toUpdate.length > 0) {
+            const { error } = await supabase.from('product_variants').upsert(toUpdate, { onConflict: 'id' });
+            if (error) throw error;
+        }
+        if (toInsert.length > 0) {
+            const { error } = await supabase.from('product_variants').insert(toInsert);
             if (error) throw error;
         }
     };
@@ -375,52 +391,70 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
     const saveBrands = async (productId: string) => {
         if (deletedBrandIds.length > 0) {
-            await supabase.from('product_brands').delete().in('id', deletedBrandIds);
+            const { error } = await supabase.from('product_brands').delete().in('id', deletedBrandIds);
+            if (error) throw error;
         }
         if (!hasBrands || brands.length === 0) {
             if (product?.id) {
-                await supabase.from('product_brands').update({ is_active: false }).eq('product_id', productId);
+                const { error } = await supabase.from('product_brands').update({ is_active: false }).eq('product_id', productId);
+                if (error) throw error;
             }
             return;
         }
         const rows = brands
-            .filter((b) => b.name.trim())
-            .map((b, idx) => ({
-                ...(b.id ? { id: b.id } : {}),
-                product_id: productId,
-                name: b.name.trim(),
-                price: b.price,
-                stock: b.stock,
-                sort_order: idx,
-                is_active: true,
+            .map((b, idx) => ({ b, idx }))
+            .filter(({ b }) => b.name.trim())
+            .map(({ b, idx }) => ({
+                id: b.id,
+                row: {
+                    product_id: productId,
+                    name: b.name.trim(),
+                    price: toNum(b.price),
+                    stock: toNum(b.stock, true),
+                    sort_order: idx,
+                    is_active: true,
+                },
             }));
-        if (rows.length > 0) {
-            const { error } = await supabase.from('product_brands').upsert(rows, { onConflict: 'id' });
+
+        const toInsert = rows.filter((r) => !r.id).map((r) => r.row);
+        const toUpdate = rows.filter((r) => r.id).map((r) => ({ id: r.id!, ...r.row }));
+
+        if (toUpdate.length > 0) {
+            const { error } = await supabase.from('product_brands').upsert(toUpdate, { onConflict: 'id' });
+            if (error) throw error;
+        }
+        if (toInsert.length > 0) {
+            const { error } = await supabase.from('product_brands').insert(toInsert);
             if (error) throw error;
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!form.name.trim()) { toast.error('Nome é obrigatório.'); return; }
-        if (!form.category.trim()) { toast.error('Categoria é obrigatória.'); return; }
+        if (!form.name.trim()) { toast.error('Informe o nome do produto.'); return; }
+        if (!form.category.trim()) { toast.error('Escolha ou crie uma categoria para o produto.'); return; }
         if (hasVariants && variants.some((v) => !v.label.trim())) {
-            toast.error('Preencha o nome de todas as espessuras.'); return;
+            toast.error('Existem opções de variação sem nome. Preencha todas ou remova as vazias.'); return;
         }
         if (hasBrands && brands.some((b) => !b.name.trim())) {
-            toast.error('Preencha o nome de todas as marcas.'); return;
+            toast.error('Existem marcas sem nome. Preencha todas ou remova as vazias.'); return;
+        }
+        if (!((form as any).companies?.length > 0)) {
+            toast.error('Selecione pelo menos uma empresa que vende este produto.'); return;
         }
         setSaving(true);
+
+        // Etapa 1: dados do produto (preço e estoque são apenas valores do produto;
+        // não bloqueiam nem alteram o cadastro de marcas/variações).
+        let savedProductId = product?.id;
         try {
             const payload = {
                 ...form,
-                price: Number(form.price),
-                stock: Number(form.stock),
+                price: toNum(form.price),
+                stock: toNum(form.stock, true),
                 companies: (form as any).companies ?? ['araguaia'],
                 variant_rules: buildVariantRulesPayload(),
             };
-
-            let savedProductId = product?.id;
 
             if (product) {
                 const { error } = await supabase.from('products')
@@ -432,17 +466,29 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                 if (error) throw error;
                 savedProductId = data.id;
             }
-
-            await saveVariants(savedProductId!);
-            await saveBrands(savedProductId!);
-
-            toast.success(product ? 'Produto atualizado!' : 'Produto cadastrado!');
-            onSave();
         } catch (err: any) {
-            toast.error(err?.message ?? 'Erro ao salvar produto.');
-        } finally {
+            console.error('[ProductModal] erro ao salvar produto:', err);
+            toast.error(friendlyError(err, 'salvar o produto'));
             setSaving(false);
+            return;
         }
+
+        // Etapa 2: variações e marcas, cada uma independente da outra.
+        const failures: string[] = [];
+        try { await saveVariants(savedProductId!); }
+        catch (err: any) { console.error('[ProductModal] variações:', err); failures.push(friendlyError(err, 'salvar as variações')); }
+        try { await saveBrands(savedProductId!); }
+        catch (err: any) { console.error('[ProductModal] marcas:', err); failures.push(friendlyError(err, 'salvar as marcas')); }
+
+        setSaving(false);
+
+        if (failures.length > 0) {
+            toast.error(`O produto foi salvo, mas: ${failures.join(' ')}`, { duration: 7000 });
+            onSave(); // produto já existe; atualiza a lista
+            return;
+        }
+        toast.success(product ? 'Produto atualizado com sucesso!' : 'Produto cadastrado com sucesso!');
+        onSave();
     };
 
     return (
@@ -596,7 +642,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                             <p className="text-[10px] text-muted mt-1">Deixe 0 se o preço for sob consulta</p>
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-2">Estoque *</label>
+                            <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-2">Estoque</label>
                             <input type="number" name="stock" value={form.stock || ''} onChange={handleChange} min="0" placeholder="0"
                                 className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors" />
                         </div>

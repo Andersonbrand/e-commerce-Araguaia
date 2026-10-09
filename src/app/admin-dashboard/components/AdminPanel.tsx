@@ -6,6 +6,8 @@ import AppLogo, { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
 import ProductModal from './ProductModal';
 import QuoteResponseModal from './QuoteResponseModal';
+import RequestEditModal from './RequestEditModal';
+import { friendlyError } from '@/lib/friendly-error';
 import { supabase, Product, Order, Quote } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
 import { COMPANIES, COMPANY_ORDER, CompanyId } from '@/context/CompanyContext';
@@ -57,6 +59,18 @@ export default function AdminPanel() {
   const [togglingPrices, setTogglingPrices] = useState(false);
   const [showCatManager, setShowCatManager] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
+  // Sidebar / gaveta de categorias
+  const [sidebarOpen, setSidebarOpen]       = useState(false);   // gaveta do menu em telas compactas
+  const [catDrawerOpen, setCatDrawerOpen]   = useState(false);   // painel lateral de filtro por categoria
+  const [catSearch, setCatSearch]           = useState('');
+  // Edição de categoria
+  const [renamingCategory, setRenamingCategory] = useState<string | null>(null);
+  const [renameValue, setRenameValue]       = useState('');
+  const [savingCategory, setSavingCategory] = useState(false);
+  // Edição / exclusão de solicitações
+  const [editingRequest, setEditingRequest] = useState<UnifiedRequest | null>(null);
+  const [deleteRequestTarget, setDeleteRequestTarget] = useState<UnifiedRequest | null>(null);
+  const [deletingRequest, setDeletingRequest] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -112,25 +126,99 @@ export default function AdminPanel() {
 
   const handleUpdateStatus = async (req: UnifiedRequest, status: string) => {
     const table = req.source === 'cart' ? 'orders' : 'quotes';
-    await supabase.from(table).update({ status }).eq('id', req.id);
+    const { data, error } = await supabase.from(table).update({ status }).eq('id', req.id).select('id');
+    if (error || !data || data.length === 0) {
+      if (error) console.error('[AdminPanel] status:', error);
+      toast.error(error ? friendlyError(error, 'atualizar o status') : 'O status não foi alterado. A solicitação pode ter sido removida ou você não tem permissão.');
+      return;
+    }
     setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status } : r));
     toast.success('Status atualizado!');
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('products').delete().eq('id', id);
+    const { data, error } = await supabase.from('products').delete().eq('id', id).select('id');
+    if (error || !data || data.length === 0) {
+      if (error) console.error('[AdminPanel] excluir produto:', error);
+      toast.error(error ? friendlyError(error, 'excluir o produto') : 'O produto não foi excluído. Ele pode já ter sido removido ou você não tem permissão.');
+      setDeleteConfirm(null);
+      return;
+    }
     toast.success('Produto removido.');
     setDeleteConfirm(null);
     fetchAll();
   };
 
   const handleDeleteCategory = async (cat: string) => {
-    // Move todos os produtos dessa categoria para 'Outros' e deleta a categoria
-    await supabase.from('products').update({ category: 'Outros' }).eq('category', cat);
+    // Move todos os produtos dessa categoria para 'Outros' e remove a categoria
+    const { error } = await supabase.from('products').update({ category: 'Outros' }).eq('category', cat);
+    if (error) {
+      console.error('[AdminPanel] excluir categoria:', error);
+      toast.error(friendlyError(error, 'excluir a categoria'));
+      return;
+    }
     toast.success(`Categoria "${cat}" removida. Produtos movidos para "Outros".`);
     setDeletingCategory(null);
-    setShowCatManager(false);
+    if (activeCategory === cat) setActiveCategory('Todos');
     fetchAll();
+  };
+
+  // Renomear categoria: atualiza a categoria de todos os produtos que a usam
+  const startRenameCategory = (cat: string) => {
+    setDeletingCategory(null);
+    setRenamingCategory(cat);
+    setRenameValue(cat);
+  };
+
+  const handleRenameCategory = async (oldName: string) => {
+    const newName = renameValue.trim().replace(/\s+/g, ' ');
+    if (!newName) { toast.error('Informe o novo nome da categoria.'); return; }
+    if (newName.length > 50) { toast.error('O nome da categoria pode ter no máximo 50 caracteres.'); return; }
+    if (newName.toLowerCase() === 'todos') { toast.error('"Todos" é um nome reservado para o filtro. Escolha outro nome.'); return; }
+    if (newName === oldName) { setRenamingCategory(null); return; }
+    const existing = categories.find((c) => c !== 'Todos' && c !== oldName && c.toLowerCase() === newName.toLowerCase());
+    if (existing) {
+      toast.error(`Já existe a categoria "${existing}". Para juntar as duas, exclua uma delas: os produtos vão para "Outros" e podem ser reclassificados.`);
+      return;
+    }
+    setSavingCategory(true);
+    const { error } = await supabase.from('products').update({ category: newName }).eq('category', oldName);
+    setSavingCategory(false);
+    if (error) {
+      console.error('[AdminPanel] renomear categoria:', error);
+      toast.error(friendlyError(error, 'renomear a categoria'));
+      return;
+    }
+    toast.success(`Categoria renomeada para "${newName}".`);
+    if (activeCategory === oldName) setActiveCategory(newName);
+    setRenamingCategory(null);
+    fetchAll();
+  };
+
+  // Excluir solicitação (e as respostas já enviadas para ela)
+  const handleDeleteRequest = async () => {
+    if (!deleteRequestTarget) return;
+    const req = deleteRequestTarget;
+    setDeletingRequest(true);
+    try {
+      const table = req.source === 'cart' ? 'orders' : 'quotes';
+      const { data, error } = await supabase.from(table).delete().eq('id', req.id).select('id');
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error('A solicitação não foi excluída. Ela pode já ter sido removida, ou falta liberar a exclusão no banco (execute src/lib/admin-request-delete.sql no Supabase).', { duration: 8000 });
+        return;
+      }
+      // Remove respostas vinculadas (não bloqueia caso a policy ainda não exista)
+      await supabase.from('quote_responses').delete().eq('request_id', req.id);
+      setRequests((prev) => prev.filter((r) => r.id !== req.id));
+      toast.success('Solicitação excluída.');
+      setDeleteRequestTarget(null);
+    } catch (err: any) {
+      console.error('[AdminPanel] excluir solicitação:', err);
+      toast.error(friendlyError(err, 'excluir a solicitação'));
+    } finally {
+      setDeletingRequest(false);
+    }
   };
 
   const handleToggleActive = async (product: Product) => {
@@ -144,18 +232,22 @@ export default function AdminPanel() {
 
   ];
 
-  return (
-    <div className="min-h-screen bg-surface">
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-border z-40 hidden lg:flex flex-col">
-        <div className="p-5 border-b border-border">
+  const openNewProduct = () => { setEditingProduct(null); setModalOpen(true); };
+
+  // Conteúdo do sidebar (usado no desktop e na gaveta das telas compactas)
+  const renderSidebar = (afterAction?: () => void) => {
+    const done = () => afterAction?.();
+    const realCategories = categories.filter((c) => c !== 'Todos');
+    return (
+      <>
+        <div className="p-5 border-b border-border flex-shrink-0">
           <GrupoHCLogoFull width={160} />
           <p className="text-[9px] uppercase tracking-[0.25em] text-muted font-bold mt-2">Painel Administrativo</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {navItems.map((item) => (
-            <button key={item.id} onClick={() => setTab(item.id)}
+            <button key={item.id} onClick={() => { setTab(item.id); done(); }}
               className={`w-full px-3 py-2.5 rounded-xl flex items-center gap-3 transition-colors text-left ${
                 tab === item.id ? 'bg-primary/8 border border-primary/15 text-primary' : 'text-muted hover:bg-surface hover:text-foreground'
               }`}>
@@ -165,7 +257,39 @@ export default function AdminPanel() {
             </button>
           ))}
 
-          {/* ITEM 3 — Botão voltar ao site */}
+          {/* Ferramentas de produtos: novo produto, categorias e filtro */}
+          {tab === 'products' && (
+            <div className="pt-4 mt-4 border-t border-border/40 space-y-2">
+              <p className="px-1 text-[9px] uppercase tracking-[0.25em] font-bold text-muted">Catálogo</p>
+
+              <button onClick={() => { openNewProduct(); done(); }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg">
+                <AppIcon name="PlusIcon" size={16} />
+                Novo Produto
+              </button>
+
+              <button onClick={() => { setShowCatManager(true); done(); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-border text-[13px] font-bold text-muted hover:bg-surface hover:text-foreground transition-all">
+                <AppIcon name="TagIcon" size={16} className="shrink-0" />
+                <span className="whitespace-nowrap">Gerenciar categorias</span>
+                <span className="ml-auto text-[10px] bg-surface-2 text-muted rounded-full px-2 py-0.5 font-bold">{realCategories.length}</span>
+              </button>
+
+              {/* Abre o painel lateral de categorias */}
+              <button onClick={() => { setCatSearch(''); setCatDrawerOpen(true); }} aria-expanded={catDrawerOpen}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-colors ${
+                  activeCategory !== 'Todos' ? 'border-primary/30 bg-primary/5' : catDrawerOpen ? 'border-primary/30 bg-surface' : 'border-border hover:bg-surface'
+                }`}>
+                <AppIcon name="FunnelIcon" size={16} className={activeCategory !== 'Todos' ? 'text-primary' : 'text-muted'} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-bold text-foreground leading-tight whitespace-nowrap">Filtrar por categoria</p>
+                  <p className="text-[10px] text-muted truncate">{activeCategory === 'Todos' ? 'Todas as categorias' : activeCategory}</p>
+                </div>
+                <AppIcon name="ChevronRightIcon" size={14} className="text-muted shrink-0" />
+              </button>
+            </div>
+          )}
+
           <div className="pt-4 mt-4 border-t border-border/40">
             <Link href="/homepage"
               className="w-full px-3 py-2.5 rounded-xl flex items-center gap-3 text-muted hover:bg-surface hover:text-foreground transition-colors">
@@ -176,7 +300,7 @@ export default function AdminPanel() {
         </nav>
 
         {/* Toggle preços + sair */}
-        <div className="p-4 border-t border-border space-y-2">
+        <div className="p-4 border-t border-border space-y-2 flex-shrink-0">
           <div className="flex items-center justify-between p-3 rounded-xl bg-surface border border-border">
             <div>
               <p className="text-[11px] font-bold text-foreground">Exibir preços</p>
@@ -193,10 +317,29 @@ export default function AdminPanel() {
             <span className="text-sm font-medium">Sair</span>
           </button>
         </div>
+      </>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-surface">
+      {/* Sidebar (desktop) */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-border z-40 hidden desk:flex flex-col">
+        {renderSidebar()}
       </aside>
 
+      {/* Sidebar (telas compactas) — abre como gaveta lateral */}
+      {sidebarOpen && (
+        <div className="desk:hidden fixed inset-0 z-50 flex">
+          <div className="w-72 max-w-[85vw] h-full bg-white border-r border-border flex flex-col shadow-2xl">
+            {renderSidebar(() => setSidebarOpen(false))}
+          </div>
+          <div className="flex-1 bg-black/40" onClick={() => setSidebarOpen(false)} />
+        </div>
+      )}
+
       {/* Main */}
-      <div className="lg:ml-64 min-h-screen">
+      <div className="desk:ml-64 min-h-screen">
         <header className="bg-white border-b border-border px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30">
           <div>
             <h1 className="text-lg sm:text-xl font-bold text-foreground">{navItems.find((n) => n.id === tab)?.label}</h1>
@@ -204,7 +347,12 @@ export default function AdminPanel() {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Mobile: back to site + tab switcher */}
-            <div className="lg:hidden flex items-center gap-2">
+            <div className="desk:hidden flex items-center gap-2">
+              <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menu"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-[11px] font-bold text-muted hover:bg-surface transition-all">
+                <AppIcon name="Bars3Icon" size={16} />
+                <span className="hidden sm:inline">Menu</span>
+              </button>
               <Link href="/homepage"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border text-[11px] font-bold text-muted hover:bg-surface transition-all">
                 <AppIcon name="HomeIcon" size={14} />
@@ -219,26 +367,12 @@ export default function AdminPanel() {
               ))}
             </div>
 
-            {tab === 'products' && (
-              <div className="flex gap-2">
-                <button onClick={() => setShowCatManager(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-bold text-muted hover:bg-surface transition-all">
-                  <AppIcon name="TagIcon" size={15} />
-                  Categorias
-                </button>
-                <button onClick={() => { setEditingProduct(null); setModalOpen(true); }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg">
-                  <AppIcon name="PlusIcon" size={16} />
-                  Novo Produto
-                </button>
-              </div>
-            )}
           </div>
         </header>
 
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 desk:grid-cols-3 gap-4">
             {[
               { label: 'Total Produtos',       value: products.length,                       icon: 'CubeIcon',        color: 'text-primary',   bg: 'bg-primary/8' },
               { label: 'Produtos Ativos',      value: products.filter(p => p.is_active).length, icon: 'CheckCircleIcon', color: 'text-green-600', bg: 'bg-green-50'  },
@@ -284,16 +418,26 @@ export default function AdminPanel() {
                 })}
               </div>
 
-              <div className="bg-white border border-border rounded-2xl p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-wrap gap-2">
-                  {categories.map((cat) => (
-                    <button key={cat} onClick={() => setActiveCategory(cat)}
-                      className={`cat-pill px-4 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-widest border transition-all ${activeCategory === cat ? 'active border-primary' : 'border-border text-muted hover:border-primary/40 bg-white'}`}>
-                      {cat}
+              <div className="bg-white border border-border rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-muted">Categoria:</span>
+                  {activeCategory === 'Todos' ? (
+                    <button onClick={() => { setCatSearch(''); setCatDrawerOpen(true); }}
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-bold border border-border text-muted hover:border-primary/40 transition-all">
+                      Todas · escolher categoria
                     </button>
-                  ))}
+                  ) : (
+                    <span className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1 rounded-xl bg-primary text-white text-[11px] font-bold uppercase tracking-widest">
+                      {activeCategory}
+                      <button onClick={() => setActiveCategory('Todos')} aria-label="Limpar filtro de categoria"
+                        className="w-5 h-5 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center">
+                        <AppIcon name="XMarkIcon" size={12} />
+                      </button>
+                    </span>
+                  )}
+                  <span className="text-[11px] text-muted">{filteredProducts.length} produto{filteredProducts.length !== 1 ? 's' : ''}</span>
                 </div>
-                <div className="relative w-full sm:w-60">
+                <div className="relative w-full sm:w-60 shrink-0">
                   <AppIcon name="MagnifyingGlassIcon" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                   <input type="text" placeholder="Buscar produto..." value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -306,10 +450,10 @@ export default function AdminPanel() {
                 <div className="grid grid-cols-12 gap-4 px-4 sm:px-6 py-3 bg-surface border-b border-border text-[10px] uppercase tracking-[0.2em] font-bold text-muted min-w-[520px]">
                   <div className="col-span-4">Produto</div>
                   <div className="col-span-2 hidden md:block">Categoria</div>
-                  <div className="col-span-2 hidden lg:block">Preço</div>
-                  <div className="col-span-1 hidden lg:block">Estoque</div>
+                  <div className="col-span-2 hidden desk:block">Preço</div>
+                  <div className="col-span-1 hidden desk:block">Estoque</div>
                   <div className="col-span-2 hidden md:block">Status</div>
-                  <div className="col-span-4 md:col-span-2 lg:col-span-1 text-right">Ações</div>
+                  <div className="col-span-4 md:col-span-2 desk:col-span-1 text-right">Ações</div>
                 </div>
                 {loading ? <div className="p-8 text-center text-muted">Carregando...</div>
                   : filteredProducts.length === 0 ? (
@@ -353,10 +497,10 @@ export default function AdminPanel() {
                       <div className="col-span-2 hidden md:block">
                         <span className={`badge border text-[10px] ${CATEGORY_COLORS[product.category] ?? 'bg-surface text-muted border-border'}`}>{product.category}</span>
                       </div>
-                      <div className="col-span-2 hidden lg:block">
+                      <div className="col-span-2 hidden desk:block">
                         <p className="text-sm font-bold text-foreground">{product.price > 0 ? `R$ ${product.price.toFixed(2).replace('.', ',')}` : 'Sob consulta'}</p>
                       </div>
-                      <div className="col-span-1 hidden lg:block">
+                      <div className="col-span-1 hidden desk:block">
                         <p className={`text-sm font-bold ${product.stock < 50 ? 'text-primary' : 'text-foreground'}`}>{product.stock}</p>
                       </div>
                       <div className="col-span-2 hidden md:flex items-center gap-2">
@@ -366,7 +510,7 @@ export default function AdminPanel() {
                         </button>
                         <span className="text-[11px] text-muted">{product.is_active ? 'Ativo' : 'Inativo'}</span>
                       </div>
-                      <div className="col-span-4 md:col-span-2 lg:col-span-1 flex items-center justify-end gap-2">
+                      <div className="col-span-4 md:col-span-2 desk:col-span-1 flex items-center justify-end gap-2">
                         <button onClick={() => { setEditingProduct(product); setModalOpen(true); }}
                           className="w-8 h-8 rounded-xl bg-primary/8 text-primary hover:bg-primary hover:text-white transition-all flex items-center justify-center">
                           <AppIcon name="PencilSquareIcon" size={14} />
@@ -440,14 +584,24 @@ export default function AdminPanel() {
                             : <><option value="new">Novo</option><option value="read">Lido</option><option value="replied">Respondido</option></>}
                         </select>
                       </div>
-                      {/* Botão Responder */}
-                      <button
-                        onClick={() => setRespondingTo(req)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/8 text-primary text-[11px] font-bold hover:bg-primary hover:text-white transition-all border border-primary/20 shrink-0"
-                      >
-                        <AppIcon name="PaperAirplaneIcon" size={13} />
-                        Responder
-                      </button>
+                      {/* Ações: responder, editar, excluir */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => setRespondingTo(req)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/8 text-primary text-[11px] font-bold hover:bg-primary hover:text-white transition-all border border-primary/20"
+                        >
+                          <AppIcon name="PaperAirplaneIcon" size={13} />
+                          Responder
+                        </button>
+                        <button onClick={() => setEditingRequest(req)} title="Editar solicitação" aria-label="Editar solicitação"
+                          className="w-8 h-8 rounded-xl bg-primary/8 text-primary hover:bg-primary hover:text-white transition-all flex items-center justify-center">
+                          <AppIcon name="PencilSquareIcon" size={14} />
+                        </button>
+                        <button onClick={() => setDeleteRequestTarget(req)} title="Excluir solicitação" aria-label="Excluir solicitação"
+                          className="w-8 h-8 rounded-xl bg-red-50 text-primary hover:bg-primary hover:text-white transition-all flex items-center justify-center">
+                          <AppIcon name="TrashIcon" size={14} />
+                        </button>
+                      </div>
                     </div>
                     {req.source === 'cart' && req.items && (
                       <div className="space-y-2">
@@ -501,6 +655,105 @@ export default function AdminPanel() {
         />
       )}
 
+      {/* Painel lateral de categorias (abre ao lado do sidebar; em telas compactas cobre o menu) */}
+      {catDrawerOpen && tab === 'products' && (
+        <>
+          <div className="fixed inset-0 z-[55] bg-black/10 desk:bg-black/5" onClick={() => setCatDrawerOpen(false)} />
+          <aside role="dialog" aria-label="Filtrar por categoria"
+            className="cat-panel fixed top-0 bottom-0 left-0 desk:left-64 z-[60] w-72 max-w-[85vw] bg-white border-r border-border shadow-2xl flex flex-col">
+            <div className="flex items-center justify-between gap-3 p-4 border-b border-border flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary/10">
+                  <AppIcon name="FunnelIcon" size={16} className="text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-foreground leading-tight">Categorias</h2>
+                  <p className="text-[10px] text-muted">{categories.length - 1} cadastradas</p>
+                </div>
+              </div>
+              <button onClick={() => setCatDrawerOpen(false)} aria-label="Fechar painel de categorias"
+                className="p-1.5 rounded-lg hover:bg-surface">
+                <AppIcon name="XMarkIcon" size={18} className="text-muted" />
+              </button>
+            </div>
+
+            <div className="p-3 border-b border-border flex-shrink-0">
+              <div className="relative">
+                <AppIcon name="MagnifyingGlassIcon" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                <input autoFocus type="text" value={catSearch} onChange={(e) => setCatSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Escape' && setCatDrawerOpen(false)}
+                  placeholder="Buscar categoria..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-surface text-sm placeholder:text-muted focus:outline-none focus:border-primary transition-colors" />
+              </div>
+            </div>
+
+            {/* Única área com rolagem do painel */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+              {(() => {
+                const q = catSearch.trim().toLowerCase();
+                const visible = categories.filter((c) => c === 'Todos' || !q || c.toLowerCase().includes(q));
+                if (visible.length === 1 && q) {
+                  return <p className="px-3 py-6 text-center text-xs text-muted">Nenhuma categoria encontrada para "{catSearch}".</p>;
+                }
+                return visible.map((cat) => {
+                  const count = cat === 'Todos' ? products.length : products.filter((p) => p.category === cat).length;
+                  const active = activeCategory === cat;
+                  return (
+                    <button key={cat}
+                      onClick={() => { setActiveCategory(cat); setCatDrawerOpen(false); setSidebarOpen(false); }}
+                      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left text-[13px] font-bold transition-colors ${
+                        active ? 'bg-primary text-white' : 'text-foreground hover:bg-surface'
+                      }`}>
+                      <span className="truncate">{cat === 'Todos' ? 'Todas as categorias' : cat}</span>
+                      <span className={`text-[11px] shrink-0 ${active ? 'text-white/80' : 'text-muted'}`}>{count}</span>
+                    </button>
+                  );
+                });
+              })()}
+            </div>
+
+            <div className="p-3 border-t border-border flex-shrink-0">
+              <button onClick={() => { setCatDrawerOpen(false); setSidebarOpen(false); setShowCatManager(true); }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-[12px] font-bold text-muted hover:bg-surface hover:text-foreground transition-colors">
+                <AppIcon name="PencilSquareIcon" size={14} />
+                Editar categorias
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {editingRequest && (
+        <RequestEditModal
+          request={editingRequest}
+          onClose={() => setEditingRequest(null)}
+          onSaved={() => { setEditingRequest(null); fetchAll(); }}
+        />
+      )}
+
+      {deleteRequestTarget && (
+        <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-red-xl border border-border">
+            <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-5">
+              <AppIcon name="TrashIcon" size={28} className="text-primary" />
+            </div>
+            <h3 className="text-xl font-bold text-center text-foreground mb-2">Excluir solicitação?</h3>
+            <p className="text-sm text-muted text-center mb-1">
+              Solicitação de <span className="font-bold text-foreground">{deleteRequestTarget.customer_name}</span>.
+            </p>
+            <p className="text-sm text-muted text-center mb-8">As respostas já enviadas para ela também serão removidas. Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteRequestTarget(null)} disabled={deletingRequest}
+                className="flex-1 py-3 rounded-xl border border-border text-sm font-bold text-foreground hover:bg-surface transition-colors">Cancelar</button>
+              <button onClick={handleDeleteRequest} disabled={deletingRequest}
+                className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors disabled:opacity-60">
+                {deletingRequest ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de Gerenciamento de Categorias */}
       {showCatManager && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingTop: '68px' }}
@@ -516,44 +769,70 @@ export default function AdminPanel() {
                   <p className="text-[11px] text-muted">{categories.filter(c => c !== 'Todos').length} categorias cadastradas</p>
                 </div>
               </div>
-              <button onClick={() => setShowCatManager(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+              <button onClick={() => { setShowCatManager(false); setRenamingCategory(null); setDeletingCategory(null); }} className="p-1.5 rounded-lg hover:bg-gray-100">
                 <AppIcon name="XMarkIcon" size={18} className="text-muted" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-2">
               <p className="text-xs text-muted mb-3">
-                Ao excluir uma categoria, todos os produtos dela serão movidos para "Outros".
+                Renomear uma categoria atualiza todos os produtos dela. Ao excluir, os produtos são movidos para "Outros".
               </p>
               {categories.filter(cat => cat !== 'Todos').map((cat) => {
                 const count = products.filter(p => p.category === cat).length;
                 const isDeleting = deletingCategory === cat;
+                const isRenaming = renamingCategory === cat;
+                const isDefault  = cat === 'Outros';
                 return (
-                  <div key={cat} className="flex items-center justify-between p-3 rounded-xl border border-border bg-white hover:bg-surface transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                      <span className="text-sm font-bold text-foreground">{cat}</span>
-                      <span className="text-[11px] text-muted">{count} produto{count !== 1 ? 's' : ''}</span>
-                    </div>
-                    {!isDeleting ? (
-                      <button
-                        onClick={() => setDeletingCategory(cat)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50 transition-colors"
-                        disabled={cat === 'Outros'}
-                        title={cat === 'Outros' ? 'Categoria padrão não pode ser excluída' : ''}>
-                        <AppIcon name="TrashIcon" size={12} />
-                        {cat === 'Outros' ? 'Padrão' : 'Excluir'}
-                      </button>
-                    ) : (
+                  <div key={cat} className="p-3 rounded-xl border border-border bg-white hover:bg-surface transition-colors">
+                    {isRenaming ? (
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-red-600 font-bold">Confirmar?</span>
-                        <button onClick={() => handleDeleteCategory(cat)}
-                          className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-colors">
-                          Sim
+                        <input autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)} maxLength={50}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleRenameCategory(cat); if (e.key === 'Escape') setRenamingCategory(null); }}
+                          className="flex-1 min-w-0 px-3 py-1.5 rounded-lg border border-primary bg-white text-sm focus:outline-none" />
+                        <button onClick={() => handleRenameCategory(cat)} disabled={savingCategory}
+                          className="px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark transition-colors disabled:opacity-60">
+                          {savingCategory ? 'Salvando...' : 'Salvar'}
                         </button>
-                        <button onClick={() => setDeletingCategory(null)}
-                          className="px-2.5 py-1 rounded-lg border border-border text-muted text-[11px] font-bold hover:bg-surface transition-colors">
-                          Não
+                        <button onClick={() => setRenamingCategory(null)}
+                          className="px-3 py-1.5 rounded-lg border border-border text-muted text-[11px] font-bold hover:bg-surface transition-colors">
+                          Cancelar
                         </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                          <span className="text-sm font-bold text-foreground truncate">{cat}</span>
+                          <span className="text-[11px] text-muted shrink-0">{count} produto{count !== 1 ? 's' : ''}</span>
+                        </div>
+                        {!isDeleting ? (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={() => startRenameCategory(cat)} disabled={isDefault}
+                              title={isDefault ? 'Categoria padrão não pode ser renomeada' : 'Renomear categoria'}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-muted text-[11px] font-bold hover:bg-white hover:text-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                              <AppIcon name="PencilSquareIcon" size={12} />
+                              Editar
+                            </button>
+                            <button onClick={() => { setRenamingCategory(null); setDeletingCategory(cat); }} disabled={isDefault}
+                              title={isDefault ? 'Categoria padrão não pode ser excluída' : 'Excluir categoria'}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                              <AppIcon name="TrashIcon" size={12} />
+                              {isDefault ? 'Padrão' : 'Excluir'}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[11px] text-red-600 font-bold">Confirmar?</span>
+                            <button onClick={() => handleDeleteCategory(cat)}
+                              className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-colors">
+                              Sim
+                            </button>
+                            <button onClick={() => setDeletingCategory(null)}
+                              className="px-2.5 py-1 rounded-lg border border-border text-muted text-[11px] font-bold hover:bg-surface transition-colors">
+                              Não
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

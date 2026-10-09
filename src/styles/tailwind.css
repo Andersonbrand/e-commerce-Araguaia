@@ -152,3 +152,7 @@ body {
 .animate-on-scroll {
     transition: opacity 0.8s ease, transform 0.8s ease;
 }
+
+/* Painel lateral de categorias do admin */
+@keyframes cat-panel-in { from { transform: translateX(-12px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.cat-panel { animation: cat-panel-in 0.18s ease-out; }

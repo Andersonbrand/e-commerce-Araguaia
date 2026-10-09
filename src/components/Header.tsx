@@ -86,7 +86,7 @@ export default function Header() {
         }}
       />
 
-      <div className={`mx-4 md:mx-8 lg:mx-12 transition-all duration-500 ${
+      <div className={`mx-4 md:mx-8 desk:mx-12 transition-all duration-500 ${
         scrolled
           ? 'bg-white/95 backdrop-blur-xl border border-border/60 shadow-lg rounded-2xl mt-3 px-6 py-3'
           : 'bg-white/85 backdrop-blur-md border border-white/40 rounded-2xl mt-4 px-6 py-4'
@@ -122,7 +122,7 @@ export default function Header() {
           </Link>
 
           {/* Seletor de empresa — desktop */}
-          <div className="hidden lg:flex items-center gap-1.5 bg-[#f5f7fa] rounded-2xl px-3 py-2 border border-[#dde3ed]">
+          <div className="hidden desk:flex items-center gap-1.5 bg-[#f5f7fa] rounded-2xl px-3 py-2 border border-[#dde3ed]">
             <span className="text-[9px] uppercase tracking-[0.25em] font-bold text-muted/60 mr-0.5">Grupo HC</span>
             <div className="w-px h-3.5 bg-[#dde3ed] mx-0.5" />
             {COMPANY_ORDER.map((id) => (
@@ -149,7 +149,7 @@ export default function Header() {
           </div>
 
           {/* Nav desktop */}
-          <nav className="hidden lg:flex items-center gap-3">
+          <nav className="hidden desk:flex items-center gap-3">
             {NAV_LINKS.map((link) => (
               <Link key={link.href} href={link.href}
                 className="text-[11px] uppercase tracking-[0.08em] font-bold text-muted hover:text-foreground transition-colors duration-300 whitespace-nowrap">
@@ -159,7 +159,7 @@ export default function Header() {
           </nav>
 
           {/* Direita */}
-          <div className="hidden lg:flex items-center gap-3 flex-shrink-0">
+          <div className="hidden desk:flex items-center gap-3 flex-shrink-0">
             {isAdmin && (
               <Link href="/admin-dashboard" className="text-[11px] uppercase tracking-widest font-bold transition-colors"
                 style={{ color: headerAccent }}>Admin</Link>
@@ -195,7 +195,7 @@ export default function Header() {
           </div>
 
           {/* Mobile */}
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="desk:hidden flex items-center gap-2">
             <Link href="/cart" className="relative p-2 rounded-xl border border-border">
               <AppIcon name="ShoppingCartIcon" size={18} className="text-foreground" />
               {totalItems > 0 && (
@@ -213,7 +213,7 @@ export default function Header() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="lg:hidden mt-4 pt-4 border-t border-border/40 pb-3">
+          <div className="desk:hidden mt-4 pt-4 border-t border-border/40 pb-3">
             {/* Empresa selecionada */}
             {!isLockedPage && (
               <div className="mb-4">
