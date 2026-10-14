@@ -7,17 +7,20 @@ import StatsSection from './components/StatsSection';
 import ProductsPreview from './components/ProductsPreview';
 import AboutSection from './components/AboutSection';
 import QuoteForm from './components/QuoteForm';
+import HowItWorks from './components/HowItWorks';
+import Reveal from '@/components/ui/Reveal';
 
 export default function HomePage() {
     return (
         <main className="min-h-screen bg-white">
             <Header />
             <HeroSection />
-            <GrupoHCSection />
+            <Reveal><GrupoHCSection /></Reveal>
             <StatsSection />
-            <ProductsPreview />
-            <AboutSection />
-            <QuoteForm />
+            <Reveal><ProductsPreview /></Reveal>
+            <HowItWorks />
+            <Reveal><AboutSection /></Reveal>
+            <Reveal><QuoteForm /></Reveal>
             <Footer />
         </main>
     );

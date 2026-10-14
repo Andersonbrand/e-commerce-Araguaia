@@ -4,6 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import AppLogo, { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
+import ProductImage from '@/components/ui/ProductImage';
+import { Input } from '@/components/ui/FormControls';
 import ProductModal from './ProductModal';
 import QuoteResponseModal from './QuoteResponseModal';
 import RequestEditModal from './RequestEditModal';
@@ -67,6 +69,10 @@ export default function AdminPanel() {
   const [renamingCategory, setRenamingCategory] = useState<string | null>(null);
   const [renameValue, setRenameValue]       = useState('');
   const [savingCategory, setSavingCategory] = useState(false);
+  // Criação de categoria (tabela product_categories: permite categorias ainda sem produtos)
+  const [storedCategories, setStoredCategories] = useState<string[]>([]);
+  const [newCategoryName, setNewCategoryName]   = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
   // Edição / exclusão de solicitações
   const [editingRequest, setEditingRequest] = useState<UnifiedRequest | null>(null);
   const [deleteRequestTarget, setDeleteRequestTarget] = useState<UnifiedRequest | null>(null);
@@ -80,6 +86,9 @@ export default function AdminPanel() {
       supabase.from('quotes').select('*').order('created_at', { ascending: false }),
     ]);
     setProducts(p ?? []);
+    // Categorias cadastradas direto no painel (falha silenciosa se a migration ainda não rodou)
+    const { data: cats, error: catsError } = await supabase.from('product_categories').select('name').order('name');
+    if (!catsError) setStoredCategories((cats ?? []).map((c: { name: string }) => c.name));
     const fromCart: UnifiedRequest[] = (orders ?? []).map((o: Order) => ({
       id: o.id, source: 'cart' as const,
       customer_name: o.customer_name, customer_email: o.customer_email, customer_phone: o.customer_phone,
@@ -99,7 +108,15 @@ export default function AdminPanel() {
 
   useEffect(() => { fetchAll(); }, []);
 
-  const categories = useMemo(() => ['Todos', ...Array.from(new Set(products.map((p) => p.category)))], [products]);
+  // Categorias = as dos produtos + as cadastradas em "Gerenciar Categorias" (mesmo sem produtos)
+  const categories = useMemo(() => {
+    const fromProducts = products.map((p) => p.category);
+    const merged = [...fromProducts];
+    storedCategories.forEach((c) => {
+      if (!merged.some((m) => m.toLowerCase() === c.toLowerCase())) merged.push(c);
+    });
+    return ['Todos', ...Array.from(new Set(merged))];
+  }, [products, storedCategories]);
   const filteredProducts = useMemo(() =>
     products.filter((p) => {
       const matchCat     = activeCategory === 'Todos' || p.category === activeCategory;
@@ -149,6 +166,29 @@ export default function AdminPanel() {
     fetchAll();
   };
 
+  const handleCreateCategory = async () => {
+    const name = newCategoryName.trim().replace(/\s+/g, ' ');
+    if (!name) { toast.error('Informe o nome da nova categoria.'); return; }
+    if (name.length > 50) { toast.error('O nome da categoria pode ter no máximo 50 caracteres.'); return; }
+    if (name.toLowerCase() === 'todos') { toast.error('"Todos" é um nome reservado para o filtro. Escolha outro nome.'); return; }
+    const existing = categories.find((c) => c !== 'Todos' && c.toLowerCase() === name.toLowerCase());
+    if (existing) { toast.error(`Já existe a categoria "${existing}".`); return; }
+    setCreatingCategory(true);
+    const { error } = await supabase.from('product_categories').insert({ name });
+    setCreatingCategory(false);
+    if (error) {
+      console.error('[AdminPanel] criar categoria:', error);
+      const missingTable = error.code === '42P01' || /product_categories/i.test(error.message ?? '');
+      toast.error(missingTable
+        ? 'A tabela de categorias ainda não existe. Execute o arquivo src/lib/add_product_categories.sql no Supabase (SQL Editor).'
+        : friendlyError(error, 'criar a categoria'), { duration: missingTable ? 8000 : 4000 });
+      return;
+    }
+    toast.success(`Categoria "${name}" criada.`);
+    setNewCategoryName('');
+    setStoredCategories((prev) => [...prev, name]);
+  };
+
   const handleDeleteCategory = async (cat: string) => {
     // Move todos os produtos dessa categoria para 'Outros' e remove a categoria
     const { error } = await supabase.from('products').update({ category: 'Outros' }).eq('category', cat);
@@ -157,6 +197,8 @@ export default function AdminPanel() {
       toast.error(friendlyError(error, 'excluir a categoria'));
       return;
     }
+    await supabase.from('product_categories').delete().eq('name', cat); // ignora erro: tabela pode não existir
+    setStoredCategories((prev) => prev.filter((c) => c !== cat));
     toast.success(`Categoria "${cat}" removida. Produtos movidos para "Outros".`);
     setDeletingCategory(null);
     if (activeCategory === cat) setActiveCategory('Todos');
@@ -189,6 +231,8 @@ export default function AdminPanel() {
       toast.error(friendlyError(error, 'renomear a categoria'));
       return;
     }
+    await supabase.from('product_categories').update({ name: newName }).eq('name', oldName); // ignora erro: tabela pode não existir
+    setStoredCategories((prev) => prev.map((c) => (c === oldName ? newName : c)));
     toast.success(`Categoria renomeada para "${newName}".`);
     if (activeCategory === oldName) setActiveCategory(newName);
     setRenamingCategory(null);
@@ -237,7 +281,6 @@ export default function AdminPanel() {
   // Conteúdo do sidebar (usado no desktop e na gaveta das telas compactas)
   const renderSidebar = (afterAction?: () => void) => {
     const done = () => afterAction?.();
-    const realCategories = categories.filter((c) => c !== 'Todos');
     return (
       <>
         <div className="p-5 border-b border-border flex-shrink-0">
@@ -257,7 +300,7 @@ export default function AdminPanel() {
             </button>
           ))}
 
-          {/* Ferramentas de produtos: novo produto, categorias e filtro */}
+          {/* Ferramentas de produtos: novo produto e categorias (filtro + gerenciamento no painel lateral) */}
           {tab === 'products' && (
             <div className="pt-4 mt-4 border-t border-border/40 space-y-2">
               <p className="px-1 text-[9px] uppercase tracking-[0.25em] font-bold text-muted">Catálogo</p>
@@ -266,13 +309,6 @@ export default function AdminPanel() {
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg">
                 <AppIcon name="PlusIcon" size={16} />
                 Novo Produto
-              </button>
-
-              <button onClick={() => { setShowCatManager(true); done(); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-border text-[13px] font-bold text-muted hover:bg-surface hover:text-foreground transition-all">
-                <AppIcon name="TagIcon" size={16} className="shrink-0" />
-                <span className="whitespace-nowrap">Gerenciar categorias</span>
-                <span className="ml-auto text-[10px] bg-surface-2 text-muted rounded-full px-2 py-0.5 font-bold">{realCategories.length}</span>
               </button>
 
               {/* Abre o painel lateral de categorias */}
@@ -463,8 +499,8 @@ export default function AdminPanel() {
                       <div className="col-span-8 md:col-span-4 flex items-center gap-3 min-w-0">
                         {/* Imagem clicável → página do produto */}
                         <a href={`/products/${product.id}`} target="_blank" rel="noopener noreferrer"
-                          className="w-10 h-10 rounded-xl overflow-hidden bg-surface shrink-0 hover:ring-2 hover:ring-primary transition-all">
-                          <img src={product.image_url ?? '/assets/images/no_image.png'} alt={product.name} className="w-full h-full object-contain p-1" />
+                          className="w-10 h-10 rounded-xl overflow-hidden border border-border shrink-0 hover:ring-2 hover:ring-primary transition-all">
+                          <ProductImage src={product.image_url} alt={product.name} variant="thumb" />
                         </a>
                         <div className="min-w-0">
                           <a href={`/products/${product.id}`} target="_blank" rel="noopener noreferrer"
@@ -715,8 +751,8 @@ export default function AdminPanel() {
             <div className="p-3 border-t border-border flex-shrink-0">
               <button onClick={() => { setCatDrawerOpen(false); setSidebarOpen(false); setShowCatManager(true); }}
                 className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-[12px] font-bold text-muted hover:bg-surface hover:text-foreground transition-colors">
-                <AppIcon name="PencilSquareIcon" size={14} />
-                Editar categorias
+                <AppIcon name="TagIcon" size={14} />
+                Gerenciar categorias
               </button>
             </div>
           </aside>
@@ -774,6 +810,20 @@ export default function AdminPanel() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-2">
+              {/* Nova categoria */}
+              <div className="p-3 rounded-2xl border-2 border-dashed border-primary/25 bg-primary/[0.03] mb-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] font-bold text-primary mb-2">Nova categoria</p>
+                <div className="flex gap-2">
+                  <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} maxLength={50}
+                    placeholder="Ex: Telhas Metálicas" className="flex-1"
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory(); } }} />
+                  <button type="button" onClick={handleCreateCategory} disabled={creatingCategory || !newCategoryName.trim()}
+                    className="shrink-0 flex items-center gap-1.5 px-4 rounded-[0.875rem] bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <AppIcon name="PlusIcon" size={15} />
+                    {creatingCategory ? 'Criando...' : 'Criar'}
+                  </button>
+                </div>
+              </div>
               <p className="text-xs text-muted mb-3">
                 Renomear uma categoria atualiza todos os produtos dela. Ao excluir, os produtos são movidos para "Outros".
               </p>
@@ -852,7 +902,7 @@ export default function AdminPanel() {
       {modalOpen && (
         <ProductModal
           product={editingProduct}
-          categories={Array.from(new Set(products.map((p) => p.category)))}
+          categories={categories.filter((c) => c !== 'Todos')}
           onSave={() => { setModalOpen(false); fetchAll(); }}
           onClose={() => { setModalOpen(false); setEditingProduct(null); }}
         />

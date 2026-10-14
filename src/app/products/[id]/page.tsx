@@ -4,8 +4,9 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import AppImage from '@/components/ui/AppImage';
+import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
+import Drawer from '@/components/ui/Drawer';
 import { createClient } from '@/lib/supabase/client';
 import { Product, ProductVariant, ProductBrand } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
@@ -60,6 +61,40 @@ export default function ProductDetailPage() {
 
   // Para compatibilidade com CartContext (usa o primeiro grupo selecionado)
   const selectedVariant: SelectedVariant | null = Object.values(selectedVariants)[0] ?? null;
+
+  // Gavetas: chave = nome do grupo de variantes, ou BRAND_KEY para as marcas
+  const BRAND_KEY = '__brand__';
+  const [openDrawers, setOpenDrawers] = useState<Record<string, boolean>>({});
+  const [optionSearch, setOptionSearch] = useState<Record<string, string>>({});
+  const drawerKeys = React.useMemo(
+    () => [...variantGroups.map((g) => g.group), ...(brands.length > 0 ? [BRAND_KEY] : [])],
+    [variantGroups, brands.length]
+  );
+
+  // Ao carregar o produto, abre apenas a primeira gaveta
+  useEffect(() => {
+    setOpenDrawers(drawerKeys.length > 0 ? { [drawerKeys[0]]: true } : {});
+  }, [drawerKeys.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Remove seleções que deixaram de ser permitidas pelas regras de combinação
+  useEffect(() => {
+    const invalid = Object.entries(selectedVariants).filter(([g, v]) => !isVariantAllowed(g, v.label)).map(([g]) => g);
+    if (invalid.length === 0) return;
+    setSelectedVariants((prev) => {
+      const next = { ...prev };
+      invalid.forEach((g) => delete next[g]);
+      return next;
+    });
+  }, [selectedVariants, isVariantAllowed]);
+
+  const toggleDrawer = (key: string) => setOpenDrawers((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  // Depois de escolher, fecha a gaveta atual e abre a próxima que ainda falta escolher
+  const advanceFrom = (key: string, nextSelectedGroups: Record<string, unknown>, brandChosen: boolean) => {
+    const idx = drawerKeys.indexOf(key);
+    const next = drawerKeys.slice(idx + 1).find((k) => (k === BRAND_KEY ? !brandChosen : !nextSelectedGroups[k]));
+    setOpenDrawers((prev) => ({ ...prev, [key]: false, ...(next ? { [next]: true } : {}) }));
+  };
   const [loading, setLoading] = useState(true);
   const [qty, setQty]         = useState(1);
   const { showPrices }        = usePrices();
@@ -195,18 +230,15 @@ export default function ProductDetailPage() {
             <div className="relative group">
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-accent/5 rounded-5xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               <div className="absolute -top-3 -right-3 w-full h-full border-2 border-primary/15 rounded-4xl z-0" />
-              <div className="relative aspect-square rounded-4xl overflow-hidden border-2 border-white shadow-red-lg group-hover:shadow-red-xl transition-shadow duration-500 z-10 bg-white">
-                <AppImage
-                  src={product.image_url ?? '/assets/images/no_image.png'}
-                  alt={product.name} fill
-                  className="transition-transform duration-700 group-hover:scale-105"
-                  style={{ objectFit: 'contain', padding: '32px', backgroundColor: 'white' }}
-                  priority
-                />
+              <ProductImage
+                src={product.image_url} alt={product.name} variant="detail" priority
+                className="rounded-4xl border-2 border-white shadow-red-lg group-hover:shadow-red-xl transition-shadow duration-500 z-10"
+                imgClassName="transition-transform duration-700 group-hover:scale-105"
+              >
                 <div className="absolute top-4 left-4">
                   <span className="badge text-white text-[10px]" style={{ backgroundColor: '#151826' }}>{product.category}</span>
                 </div>
-              </div>
+              </ProductImage>
             </div>
 
             {/* Info */}
@@ -217,113 +249,139 @@ export default function ProductDetailPage() {
                 <p className="text-muted text-sm mt-1">Unidade: <strong>{product.unit}</strong></p>
               </div>
 
-              {product.description && (
+              {product.description && product.description.length <= 160 && (
                 <p className="text-base text-muted leading-relaxed border-l-2 border-primary/30 pl-4">
                   {product.description}
                 </p>
               )}
+              {product.description && product.description.length > 160 && (
+                <Drawer
+                  title="Especificações"
+                  icon="DocumentTextIcon"
+                  open={!!openDrawers['__specs__']}
+                  onToggle={() => toggleDrawer('__specs__')}
+                >
+                  <p className="text-sm text-muted leading-relaxed whitespace-pre-line">{product.description}</p>
+                </Drawer>
+              )}
 
-              {/* Seletores por grupo de variantes */}
-              {variantGroups.map(({ group, items }) => {
-                const selected = selectedVariants[group] ?? null;
-                return (
-                  <div key={group} className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">{group}</span>
-                      </div>
-                      <div className="flex-1 h-px bg-border" />
-                      {!selected && (
-                        <span className="text-[10px] text-primary font-bold animate-pulse">Selecione uma opção</span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {items.map((v) => {
-                        const isSelected = selected?.id === v.id;
-                        const allowed = isVariantAllowed(group, v.label);
-                        // Auto-deselect if currently selected but no longer allowed
-                        if (isSelected && !allowed) {
-                          setSelectedVariants((prev) => {
-                            const { [group]: _, ...rest } = prev;
-                            return rest as any;
-                          });
-                        }
-                        return (
-                          <button
-                            key={v.id}
-                            type="button"
-                            disabled={!allowed}
-                            onClick={() => {
-                              if (!allowed) return;
-                              setSelectedVariants((prev) => ({
-                                ...prev,
-                                [group]: isSelected
-                                  ? (({ [group]: _, ...rest }) => rest)(prev) as any
-                                  : { id: v.id, label: v.label, priceDelta: v.price_delta },
-                              }));
-                            }}
-                            className="px-4 py-2 rounded-xl border-2 transition-all flex items-baseline gap-1.5"
-                            style={{
-                              borderColor: !allowed ? '#f0f0f0' : isSelected ? '#af1518' : '#dde3ed',
-                              backgroundColor: !allowed ? '#fafafa' : isSelected ? '#af151810' : 'white',
-                              color: !allowed ? '#d1d5db' : isSelected ? '#af1518' : '#6b7280',
-                              cursor: allowed ? 'pointer' : 'not-allowed',
-                              opacity: allowed ? 1 : 0.45,
-                            }}
-                          >
-                            <span className="text-sm font-bold">{v.label}</span>
-                            {showPrices && v.price_delta > 0 && (
-                              <span className="text-[10px] font-normal opacity-70">
-                                R$ {v.price_delta.toFixed(2).replace('.', ',')}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-
-                            {/* Seletor de marca */}
-              {brands.length > 0 && (
+              {/* Gavetas de opções: uma por grupo (bitola, espessura…) + marcas */}
+              {drawerKeys.length > 0 && (
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">Marca</span>
-                      <span className="text-[10px] text-muted ml-1.5">· fabricante</span>
-                    </div>
-                    <div className="flex-1 h-px bg-border" />
-                    {!selectedBrand && (
-                      <span className="text-[10px] text-primary font-bold animate-pulse">Selecione uma opção</span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {brands.map((b) => {
-                      const isSelected = selectedBrand?.id === b.id;
-                      return (
-                        <button
-                          key={b.id}
-                          type="button"
-                          onClick={() => setSelectedBrand(isSelected ? null : b)}
-                          className="px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2"
-                          style={{
-                            borderColor: isSelected ? '#af1518' : '#dde3ed',
-                            backgroundColor: isSelected ? '#af151810' : 'white',
-                            color: isSelected ? '#af1518' : '#6b7280',
-                          }}
-                        >
-                          <span className="text-[11px]">🏷️</span>
-                          <span className="text-sm font-bold">{b.name}</span>
-                          {showPrices && b.price > 0 && (
-                            <span className="text-[10px] font-normal opacity-70">
-                              R$ {b.price.toFixed(2).replace('.', ',')}
-                            </span>
+                  {variantGroups.map(({ group, items }) => {
+                    const selected = selectedVariants[group] ?? null;
+                    const q = (optionSearch[group] ?? '').trim().toLowerCase();
+                    const visible = q ? items.filter((v) => v.label.toLowerCase().includes(q)) : items;
+                    return (
+                      <Drawer
+                        key={group}
+                        title={group}
+                        count={items.length}
+                        icon="AdjustmentsHorizontalIcon"
+                        required
+                        selectedLabel={selected?.label ?? null}
+                        open={!!openDrawers[group]}
+                        onToggle={() => toggleDrawer(group)}
+                      >
+                        {items.length > 8 && (
+                          <input
+                            type="text"
+                            value={optionSearch[group] ?? ''}
+                            onChange={(e) => setOptionSearch((prev) => ({ ...prev, [group]: e.target.value }))}
+                            placeholder={`Buscar em ${group.toLowerCase()}...`}
+                            className="w-full mb-3"
+                          />
+                        )}
+                        <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto scroll-soft p-1 -m-1">
+                          {visible.map((v) => {
+                            const isSelected = selected?.id === v.id;
+                            const allowed = isVariantAllowed(group, v.label);
+                            return (
+                              <button
+                                key={v.id}
+                                type="button"
+                                disabled={!allowed}
+                                onClick={() => {
+                                  if (!allowed) return;
+                                  if (isSelected) {
+                                    setSelectedVariants((prev) => {
+                                      const { [group]: _removed, ...rest } = prev;
+                                      return rest;
+                                    });
+                                    return;
+                                  }
+                                  const nextSel = { ...selectedVariants, [group]: { id: v.id, label: v.label, priceDelta: v.price_delta } };
+                                  setSelectedVariants(nextSel);
+                                  advanceFrom(group, nextSel, !!selectedBrand);
+                                }}
+                                className="px-4 py-2 rounded-xl border-2 transition-all flex items-baseline gap-1.5"
+                                style={{
+                                  borderColor: !allowed ? '#f0f0f0' : isSelected ? '#af1518' : '#dde3ed',
+                                  backgroundColor: !allowed ? '#fafafa' : isSelected ? '#af151810' : 'white',
+                                  color: !allowed ? '#d1d5db' : isSelected ? '#af1518' : '#6b7280',
+                                  cursor: allowed ? 'pointer' : 'not-allowed',
+                                  opacity: allowed ? 1 : 0.45,
+                                }}
+                              >
+                                <span className="text-sm font-bold">{v.label}</span>
+                                {showPrices && v.price_delta > 0 && (
+                                  <span className="text-[10px] font-normal opacity-70">
+                                    R$ {v.price_delta.toFixed(2).replace('.', ',')}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                          {visible.length === 0 && (
+                            <p className="text-xs text-muted italic py-2">Nenhuma opção encontrada para "{optionSearch[group]}".</p>
                           )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </div>
+                      </Drawer>
+                    );
+                  })}
+
+                  {brands.length > 0 && (
+                    <Drawer
+                      title="Marca"
+                      subtitle="· fabricante"
+                      count={brands.length}
+                      icon="TagIcon"
+                      required
+                      selectedLabel={selectedBrand?.name ?? null}
+                      open={!!openDrawers[BRAND_KEY]}
+                      onToggle={() => toggleDrawer(BRAND_KEY)}
+                    >
+                      <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto scroll-soft p-1 -m-1">
+                        {brands.map((b) => {
+                          const isSelected = selectedBrand?.id === b.id;
+                          return (
+                            <button
+                              key={b.id}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) { setSelectedBrand(null); return; }
+                                setSelectedBrand(b);
+                                advanceFrom(BRAND_KEY, selectedVariants, true);
+                              }}
+                              className="px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2"
+                              style={{
+                                borderColor: isSelected ? '#af1518' : '#dde3ed',
+                                backgroundColor: isSelected ? '#af151810' : 'white',
+                                color: isSelected ? '#af1518' : '#6b7280',
+                              }}
+                            >
+                              <span className="text-sm font-bold">{b.name}</span>
+                              {showPrices && b.price > 0 && (
+                                <span className="text-[10px] font-normal opacity-70">
+                                  R$ {b.price.toFixed(2).replace('.', ',')}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </Drawer>
+                  )}
                 </div>
               )}
 
@@ -418,14 +476,8 @@ export default function ProductDetailPage() {
                 {related.map((rel) => (
                   <a key={rel.id} href={`/products/${rel.id}`}
                     className="group bg-white border border-border rounded-3xl overflow-hidden hover-lift shadow-sm block">
-                    <div className="relative overflow-hidden bg-white" style={{ height: '144px' }}>
-                      <AppImage
-                        src={rel.image_url ?? '/assets/images/no_image.png'}
-                        alt={rel.name} fill
-                        className="transition-transform duration-500 group-hover:scale-105"
-                        style={{ objectFit: 'contain', padding: '12px' }}
-                      />
-                    </div>
+                    <ProductImage src={rel.image_url} alt={rel.name} variant="card"
+                      imgClassName="transition-transform duration-500 group-hover:scale-105" />
                     <div className="p-4">
                       <p className="text-sm font-bold text-foreground leading-snug">{rel.name}</p>
                       {showPrices && rel.price > 0

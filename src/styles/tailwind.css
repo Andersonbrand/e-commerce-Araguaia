@@ -103,23 +103,83 @@ body {
     text-transform: uppercase;
 }
 
-/* Form inputs */
-.form-input {
-    width: 100%;
-    padding: 0.875rem 1rem;
-    border-radius: 0.75rem;
+@layer components {
+/* ==========================================================================
+   CAMPOS DE FORMULÁRIO — estilo global
+   Aplica-se automaticamente a todo <input>, <select> e <textarea> do sistema
+   (via :where → especificidade zero, então classes utilitárias ainda podem
+   ajustar largura, padding etc.). Os componentes de src/components/ui/FormControls
+   usam as mesmas classes (.field-control).
+   ========================================================================== */
+:where(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']):not([type='color']):not([type='submit']):not([type='button']),
+       select, textarea),
+.field-control {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+    padding: 0.8rem 1rem;
+    border-radius: 0.875rem;
     border: 1px solid var(--border);
-    background: white;
-    font-size: 0.875rem;
+    background-color: #fff;
     color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
-.form-input:focus {
+:where(input, select, textarea):where(:hover:not(:disabled):not(:focus)),
+.field-control:hover:not(:disabled):not(:focus) {
+    border-color: #c5cddb;
+}
+:where(input, select, textarea):where(:focus),
+.field-control:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(175, 21, 24, 0.08);
+    box-shadow: 0 0 0 4px rgba(175, 21, 24, 0.08);
 }
-.form-input::placeholder { color: rgba(90, 98, 114, 0.5); }
+:where(input, select, textarea):where(:disabled),
+.field-control:disabled {
+    background-color: var(--surface);
+    color: var(--muted);
+    cursor: not-allowed;
+}
+:where(input, textarea)::placeholder,
+.field-control::placeholder { color: rgba(90, 98, 114, 0.55); }
+.field-control[aria-invalid='true'] {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
+}
+:where(textarea), textarea.field-control { resize: vertical; min-height: 5rem; }
+
+/* Select: remove a seta nativa e usa um chevron suave, sempre com folga da borda */
+:where(select), select.field-control {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 2.5rem;
+    cursor: pointer;
+    text-overflow: ellipsis;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235a6272' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    background-size: 1rem;
+}
+select option { padding: 0.5rem; color: var(--foreground); background: #fff; }
+
+/* Números sem os spinners nativos (ficam colados na borda) */
+input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Compatibilidade: classe antiga */
+.form-input { width: 100%; }
+}
+
+/* Barra de rolagem fina e arredondada (modais, listas, gavetas) */
+.scroll-soft { scrollbar-width: thin; scrollbar-color: #cbd3e1 transparent; }
+.scroll-soft::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-soft::-webkit-scrollbar-track { background: transparent; margin: 12px 0; }
+.scroll-soft::-webkit-scrollbar-thumb { background: #cbd3e1; border-radius: 9999px; border: 2px solid transparent; background-clip: content-box; }
+.scroll-soft::-webkit-scrollbar-thumb:hover { background: #a9b3c6; background-clip: content-box; }
 
 /* Admin row */
 .admin-row:hover { background: var(--surface); }

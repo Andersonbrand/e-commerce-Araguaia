@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import AppIcon from '@/components/ui/AppIcon';
+import ProductImage from '@/components/ui/ProductImage';
+import { Field, Input, Select, Textarea } from '@/components/ui/FormControls';
 import { createClient } from '@/lib/supabase/client';
 import { COMPANIES, COMPANY_ORDER, CompanyId } from '@/context/CompanyContext';
 import { Product } from '@/lib/supabase';
@@ -60,6 +62,53 @@ interface VariantRule {
     allowsLabels: string[];
 }
 
+// Campo de nome do grupo: edita um rascunho local e só confirma ao sair do campo / Enter
+function GroupNameInput({ name, onCommit }: { name: string; onCommit: (value: string) => boolean }) {
+    const [draft, setDraft] = useState(name);
+    useEffect(() => { setDraft(name); }, [name]);
+    const commit = () => {
+        if (draft.trim() === name) { setDraft(name); return; }
+        if (!onCommit(draft)) setDraft(name); // inválido: volta ao nome anterior
+    };
+    return (
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <span aria-hidden>📌</span>
+            <input
+                type="text"
+                value={draft}
+                maxLength={40}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur(); }
+                    if (e.key === 'Escape') { setDraft(name); (e.target as HTMLInputElement).blur(); }
+                }}
+                title="Clique para renomear o grupo"
+                aria-label={`Nome do grupo ${name}`}
+                className="min-w-0 flex-1 bg-transparent border border-transparent hover:border-blue-200 focus:border-blue-400 focus:bg-white rounded-lg px-2 py-1 text-[11px] font-bold text-blue-700 uppercase tracking-widest focus:outline-none transition-colors"
+            />
+            <AppIcon name="PencilSquareIcon" size={12} className="text-blue-300 shrink-0" />
+        </div>
+    );
+}
+
+// Botões subir/descer reutilizados em grupos, opções e marcas
+function MoveButtons({ onUp, onDown, disableUp, disableDown, label }: {
+    onUp: () => void; onDown: () => void; disableUp: boolean; disableDown: boolean; label: string;
+}) {
+    const cls = 'flex items-center justify-center w-7 h-8 rounded-lg text-muted hover:text-primary hover:bg-surface transition-all disabled:opacity-25 disabled:hover:text-muted disabled:hover:bg-transparent disabled:cursor-not-allowed';
+    return (
+        <div className="flex items-center shrink-0">
+            <button type="button" onClick={onUp} disabled={disableUp} className={cls} title={`Subir ${label}`} aria-label={`Subir ${label}`}>
+                <AppIcon name="ChevronUpIcon" size={15} />
+            </button>
+            <button type="button" onClick={onDown} disabled={disableDown} className={cls} title={`Descer ${label}`} aria-label={`Descer ${label}`}>
+                <AppIcon name="ChevronDownIcon" size={15} />
+            </button>
+        </div>
+    );
+}
+
 export default function ProductModal({ product, categories, onSave, onClose }: Props) {
     const supabase      = createClient();
     const allCategories = Array.from(new Set([...DEFAULT_CATEGORIES, ...categories]));
@@ -73,8 +122,6 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
     const [uploading, setUploading]   = useState(false);
     const [saving, setSaving]         = useState(false);
     const [preview, setPreview]       = useState<string | null>(null);
-    const [showNewCat, setShowNewCat] = useState(false);
-    const [newCat, setNewCat]         = useState('');
     const fileRef                     = useRef<HTMLInputElement>(null);
 
     // Variantes (agrupadas por variant_group)
@@ -171,35 +218,12 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        if (name === 'category' && value === '__new__') {
-            setShowNewCat(true);
-            setNewCat('');
-            return;
-        }
         setForm((prev) => ({
             ...prev,
             [name]: type === 'checkbox'
                 ? (e.target as HTMLInputElement).checked
                 : (name === 'price' || name === 'stock') ? toNum(value) : value,
         }));
-    };
-
-    const handleNewCatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        setNewCat(val);
-        setForm((prev) => ({ ...prev, category: val }));
-    };
-
-    const confirmNewCat = () => {
-        if (!newCat.trim()) return;
-        setForm((prev) => ({ ...prev, category: newCat.trim() }));
-        setShowNewCat(false);
-    };
-
-    const cancelNewCat = () => {
-        setShowNewCat(false);
-        setNewCat('');
-        setForm((prev) => ({ ...prev, category: allCategories[0] ?? 'Cimento' }));
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,6 +287,76 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         const toDelete = variants.filter((v) => v.variant_group === groupName && v.id);
         setDeletedVariantIds((prev) => [...prev, ...toDelete.map((v) => v.id!)]);
         setVariants((prev) => prev.filter((v) => v.variant_group !== groupName));
+    };
+
+    // Renomeia o grupo (também nas regras de dependência que o citam)
+    const renameGroup = (oldName: string, rawNew: string): boolean => {
+        const name = rawNew.trim().replace(/\s+/g, ' ');
+        if (!name) { toast.error('O nome do grupo não pode ficar vazio.'); return false; }
+        if (variantGroups.some((g) => g.groupName !== oldName && g.groupName.toLowerCase() === name.toLowerCase())) {
+            toast.error(`Já existe um grupo chamado "${name}".`);
+            return false;
+        }
+        setVariants((prev) => prev.map((v) => v.variant_group === oldName ? { ...v, variant_group: name } : v));
+        setVariantRules((prev) => prev.map((r) => ({
+            ...r,
+            whenGroup: r.whenGroup === oldName ? name : r.whenGroup,
+            allowsGroup: r.allowsGroup === oldName ? name : r.allowsGroup,
+        })));
+        return true;
+    };
+
+    // Ao terminar de editar o texto de uma opção, mantém as regras de dependência apontando para ela
+    const labelOnFocus = useRef<Record<string, string>>({});
+    const commitLabelRename = (tempId: string) => {
+        const old = labelOnFocus.current[tempId];
+        const cur = variants.find((v) => v.tempId === tempId);
+        delete labelOnFocus.current[tempId];
+        if (!old || !cur || !cur.label.trim() || cur.label === old) return;
+        const grp = cur.variant_group;
+        const nv = cur.label;
+        setVariantRules((prev) => prev.map((r) => ({
+            ...r,
+            whenLabel: r.whenGroup === grp && r.whenLabel === old ? nv : r.whenLabel,
+            allowsLabels: r.allowsGroup === grp ? r.allowsLabels.map((l) => (l === old ? nv : l)) : r.allowsLabels,
+        })));
+    };
+
+    // Reordenação: o índice final da lista vira o sort_order salvo no banco
+    const moveGroup = (groupName: string, dir: -1 | 1) => {
+        setVariants((prev) => {
+            const names = Array.from(new Set(prev.map((v) => v.variant_group)));
+            const i = names.indexOf(groupName);
+            const j = i + dir;
+            if (i < 0 || j < 0 || j >= names.length) return prev;
+            [names[i], names[j]] = [names[j], names[i]];
+            return names.flatMap((n) => prev.filter((v) => v.variant_group === n));
+        });
+    };
+
+    const moveVariant = (tempId: string, dir: -1 | 1) => {
+        setVariants((prev) => {
+            const v = prev.find((x) => x.tempId === tempId);
+            if (!v) return prev;
+            const idxs = prev.map((x, i) => (x.variant_group === v.variant_group ? i : -1)).filter((i) => i >= 0);
+            const pos = idxs.findIndex((i) => prev[i].tempId === tempId);
+            const tgt = pos + dir;
+            if (tgt < 0 || tgt >= idxs.length) return prev;
+            const next = [...prev];
+            [next[idxs[pos]], next[idxs[tgt]]] = [next[idxs[tgt]], next[idxs[pos]]];
+            return next;
+        });
+    };
+
+    const moveBrand = (tempId: string, dir: -1 | 1) => {
+        setBrands((prev) => {
+            const i = prev.findIndex((b) => b.tempId === tempId);
+            const j = i + dir;
+            if (i < 0 || j < 0 || j >= prev.length) return prev;
+            const next = [...prev];
+            [next[i], next[j]] = [next[j], next[i]];
+            return next;
+        });
     };
 
     const updateVariant = (tempId: string, field: keyof Omit<LocalVariant, 'tempId' | 'id'>, value: string | number) => {
@@ -432,7 +526,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.name.trim()) { toast.error('Informe o nome do produto.'); return; }
-        if (!form.category.trim()) { toast.error('Escolha ou crie uma categoria para o produto.'); return; }
+        if (!form.category.trim()) { toast.error('Escolha uma categoria para o produto. Para criar novas, use "Gerenciar Categorias".'); return; }
         if (hasVariants && variants.some((v) => !v.label.trim())) {
             toast.error('Existem opções de variação sem nome. Preencha todas ou remova as vazias.'); return;
         }
@@ -493,9 +587,9 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
     return (
         <div className="fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-4xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-red-xl border border-border">
-                {/* Header */}
-                <div className="sticky top-0 bg-white border-b border-border px-8 py-5 flex items-center justify-between rounded-t-4xl z-10">
+            <div className="bg-white rounded-4xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-red-xl border border-border">
+                {/* Header (fixo) */}
+                <div className="shrink-0 bg-white border-b border-border px-8 py-5 flex items-center justify-between z-10">
                     <div>
                         <h2 className="text-xl font-bold text-foreground">{product ? 'Editar Produto' : 'Novo Produto'}</h2>
                         <p className="text-[11px] text-muted uppercase tracking-widest">{product ? 'Atualize as informações' : 'Preencha os dados'}</p>
@@ -505,7 +599,8 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                {/* Corpo rolável: a barra de rolagem fica dentro do modal, longe dos cantos arredondados */}
+                <form onSubmit={handleSubmit} className="flex-1 min-h-0 overflow-y-auto scroll-soft p-8 pr-6 mr-2 space-y-6">
                     {/* Imagem */}
                     <div className="space-y-3">
                         <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block">Imagem do Produto</label>
@@ -517,18 +612,18 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                 </button>
                             ))}
                         </div>
-                        <div className="relative w-full h-44 rounded-2xl border-2 border-dashed border-border overflow-hidden bg-surface flex items-center justify-center">
+                        <div className="relative w-full h-52 rounded-2xl border-2 border-dashed border-border overflow-hidden bg-surface">
                             {preview ? (
                                 <>
-                                    <img src={preview} alt="Preview" className="w-full h-full object-cover"
+                                    <ProductImage src={preview} alt="Pré-visualização" variant="fill" padding={12}
                                         onError={() => { setPreview(null); toast.error('Imagem inválida.'); }} />
                                     <button type="button" onClick={handleRemoveImage}
-                                        className="absolute top-3 right-3 w-8 h-8 rounded-xl bg-white/90 border border-border text-muted hover:text-primary flex items-center justify-center shadow-sm">
+                                        className="absolute top-3 right-3 z-10 w-8 h-8 rounded-xl bg-white/90 border border-border text-muted hover:text-primary flex items-center justify-center shadow-sm">
                                         <AppIcon name="XMarkIcon" size={16} />
                                     </button>
                                 </>
                             ) : (
-                                <div className="text-center px-4">
+                                <div className="absolute inset-0 flex items-center justify-center text-center px-4">
                                     {uploading ? (
                                         <div className="space-y-2">
                                             <svg className="animate-spin h-8 w-8 text-primary mx-auto" fill="none" viewBox="0 0 24 24">
@@ -538,10 +633,10 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                             <p className="text-sm text-muted">Enviando...</p>
                                         </div>
                                     ) : (
-                                        <>
+                                        <div>
                                             <AppIcon name="PhotoIcon" size={36} className="text-muted mx-auto mb-2" />
                                             <p className="text-sm text-muted font-medium">Nenhuma imagem</p>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -558,9 +653,8 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                         )}
                         {imageMode === 'url' && (
                             <div className="flex gap-2">
-                                <input type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)}
-                                    placeholder="https://exemplo.com/imagem.jpg"
-                                    className="flex-1 px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors" />
+                                <Input type="url" value={urlInput} onChange={(e) => setUrlInput(e.target.value)}
+                                    placeholder="https://exemplo.com/imagem.jpg" className="flex-1" />
                                 <button type="button" onClick={handleUrlApply}
                                     className="px-5 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all">
                                     Aplicar
@@ -570,91 +664,41 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                     </div>
 
                     {/* Nome */}
-                    <div>
-                        <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-2">Nome do Produto *</label>
-                        <input type="text" name="name" value={form.name} onChange={handleChange}
-                            placeholder="Ex: Cimento CP-II 50kg — Votoran" required
-                            className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors" />
-                    </div>
+                    <Field label="Nome do Produto" required>
+                        <Input type="text" name="name" value={form.name} onChange={handleChange}
+                            placeholder="Ex: Cimento CP-II 50kg — Votoran" required />
+                    </Field>
 
                     {/* Categoria + Unidade */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
-                            <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-2">Categoria *</label>
-                            {showNewCat ? (
-                                <div className="space-y-2">
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={newCat}
-                                            onChange={handleNewCatChange}
-                                            placeholder="Nome da categoria"
-                                            autoFocus
-                                            className="flex-1 px-3 py-3 rounded-xl border-2 border-primary/40 bg-white text-sm focus:outline-none focus:border-primary transition-colors font-medium"
-                                        />
-                                        <button type="button" onClick={confirmNewCat}
-                                            className="px-3 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all"
-                                            title="Confirmar categoria">
-                                            <AppIcon name="CheckIcon" size={16} />
-                                        </button>
-                                        <button type="button" onClick={cancelNewCat}
-                                            className="px-3 py-3 rounded-xl bg-surface border border-border text-muted text-sm hover:bg-border transition-all"
-                                            title="Cancelar">
-                                            <AppIcon name="XMarkIcon" size={16} />
-                                        </button>
-                                    </div>
-                                    {newCat.trim() && (
-                                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/8 border border-primary/20">
-                                            <AppIcon name="TagIcon" size={14} className="text-primary" />
-                                            <span className="text-[12px] font-bold text-primary">
-                                                Categoria: <span className="text-foreground">{newCat}</span>
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <select name="category" value={form.category} onChange={handleChange}
-                                    className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors">
-                                    {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                                    <option value="__new__">+ Nova categoria</option>
-                                </select>
-                            )}
-                        </div>
-                        <div>
-                            <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-2">Unidade *</label>
-                            <select name="unit" value={form.unit} onChange={handleChange}
-                                className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <Field label="Categoria" required hint="Para criar ou editar categorias, use “Gerenciar Categorias” no painel.">
+                            <Select name="category" value={form.category} onChange={handleChange}>
+                                {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+                            </Select>
+                        </Field>
+                        <Field label="Unidade" required>
+                            <Select name="unit" value={form.unit} onChange={handleChange}>
                                 {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                            </select>
-                        </div>
+                            </Select>
+                        </Field>
                     </div>
 
                     {/* Preço + Estoque */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <div>
-                            <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-2">Preço (R$)</label>
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted text-sm font-bold">R$</span>
-                                <input type="number" name="price" value={form.price || ''} onChange={handleChange}
-                                    step="0.01" min="0" placeholder="0,00"
-                                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors" />
-                            </div>
-                            <p className="text-[10px] text-muted mt-1">Deixe 0 se o preço for sob consulta</p>
-                        </div>
-                        <div>
-                            <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-2">Estoque</label>
-                            <input type="number" name="stock" value={form.stock || ''} onChange={handleChange} min="0" placeholder="0"
-                                className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors" />
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <Field label="Preço (R$)" hint="Deixe 0 se o preço for sob consulta">
+                            <Input type="number" name="price" prefix="R$" value={form.price || ''} onChange={handleChange}
+                                step="0.01" min="0" placeholder="0,00" />
+                        </Field>
+                        <Field label="Estoque">
+                            <Input type="number" name="stock" value={form.stock || ''} onChange={handleChange} min="0" placeholder="0" />
+                        </Field>
                     </div>
 
                     {/* Descrição */}
-                    <div>
-                        <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-2">Descrição / Especificações</label>
-                        <textarea name="description" value={form.description ?? ''} onChange={handleChange} rows={3}
-                            placeholder="Especificações técnicas, marca, características..."
-                            className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors resize-none" />
-                    </div>
+                    <Field label="Descrição / Especificações">
+                        <Textarea name="description" value={form.description ?? ''} onChange={handleChange} rows={3}
+                            placeholder="Especificações técnicas, marca, características..." />
+                    </Field>
 
                     {/* ===== VARIAÇÕES / GRUPOS DE OPÇÕES ===== */}
                     <div className="rounded-2xl border border-border overflow-hidden">
@@ -685,17 +729,22 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                             <div className="p-4 space-y-4">
 
                                 {/* Renderiza cada grupo separadamente */}
-                                {variantGroups.map((group) => (
-                                    <div key={group.groupName} className="rounded-xl border border-blue-100 bg-blue-50/40 overflow-hidden">
-                                        {/* Cabeçalho do grupo */}
-                                        <div className="flex items-center justify-between px-3 py-2 bg-blue-100/60 border-b border-blue-100">
-                                            <span className="text-[11px] font-bold text-blue-700 uppercase tracking-widest">
-                                                📌 {group.groupName}
-                                            </span>
+                                {variantGroups.map((group, gIdx) => (
+                                    <div key={group.items[0].tempId} className="rounded-xl border border-blue-100 bg-blue-50/40 overflow-hidden">
+                                        {/* Cabeçalho do grupo: nome editável, reordenar e remover */}
+                                        <div className="flex items-center gap-2 px-3 py-2 bg-blue-100/60 border-b border-blue-100">
+                                            <GroupNameInput name={group.groupName} onCommit={(value) => renameGroup(group.groupName, value)} />
+                                            <MoveButtons
+                                                label={`grupo ${group.groupName}`}
+                                                onUp={() => moveGroup(group.groupName, -1)}
+                                                onDown={() => moveGroup(group.groupName, 1)}
+                                                disableUp={gIdx === 0}
+                                                disableDown={gIdx === variantGroups.length - 1}
+                                            />
                                             <button
                                                 type="button"
                                                 onClick={() => removeGroup(group.groupName)}
-                                                className="text-[10px] text-blue-400 hover:text-red-500 font-bold transition-colors px-2 py-0.5 rounded"
+                                                className="text-[10px] text-blue-400 hover:text-red-500 font-bold transition-colors px-2 py-0.5 rounded shrink-0"
                                                 title={`Remover grupo ${group.groupName}`}
                                             >
                                                 Remover grupo
@@ -704,18 +753,20 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
                                         {/* Linhas de opções */}
                                         <div className="p-3 space-y-2">
-                                            <div className="grid grid-cols-12 gap-2 px-1 mb-1">
-                                                <span className="col-span-5 text-[9px] uppercase tracking-widest font-bold text-muted">Opção / Label</span>
-                                                <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Preço (R$)</span>
-                                                <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Estoque</span>
-                                                <span className="col-span-1" />
+                                            <div className="flex items-center gap-2 px-1 mb-1">
+                                                <span className="flex-1 text-[9px] uppercase tracking-widest font-bold text-muted">Opção / Especificação</span>
+                                                <span className="w-24 text-[9px] uppercase tracking-widest font-bold text-muted">Preço (R$)</span>
+                                                <span className="w-20 text-[9px] uppercase tracking-widest font-bold text-muted">Estoque</span>
+                                                <span className="w-[84px] shrink-0" />
                                             </div>
 
-                                            {group.items.map((v) => (
-                                                <div key={v.tempId} className="grid grid-cols-12 gap-2 items-center">
+                                            {group.items.map((v, vIdx) => (
+                                                <div key={v.tempId} className="flex items-center gap-2">
                                                     <input
                                                         type="text"
                                                         value={v.label}
+                                                        onFocus={() => { labelOnFocus.current[v.tempId] = v.label; }}
+                                                        onBlur={() => commitLabelRename(v.tempId)}
                                                         onChange={(e) => updateVariant(v.tempId, 'label', e.target.value)}
                                                         placeholder={
                                                             group.groupName === 'Espessura' ? 'ex: 2,0mm' :
@@ -726,7 +777,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                                             group.groupName === 'Medida' ? 'ex: 17x27' :
                                                             'valor...'
                                                         }
-                                                        className="col-span-5 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                                        className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                                     />
                                                     <input
                                                         type="number"
@@ -734,7 +785,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                                         onChange={(e) => updateVariant(v.tempId, 'priceDelta', parseFloat(e.target.value) || 0)}
                                                         placeholder="0,00"
                                                         step="0.01"
-                                                        className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                                        className="w-24 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                                     />
                                                     <input
                                                         type="number"
@@ -742,15 +793,26 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                                         onChange={(e) => updateVariant(v.tempId, 'stock', parseInt(e.target.value) || 0)}
                                                         placeholder="0"
                                                         min="0"
-                                                        className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                                        className="w-20 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                                     />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeVariant(v.tempId)}
-                                                        className="col-span-1 flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all"
-                                                    >
-                                                        <AppIcon name="XMarkIcon" size={15} />
-                                                    </button>
+                                                    <div className="flex items-center shrink-0">
+                                                        <MoveButtons
+                                                            label="opção"
+                                                            onUp={() => moveVariant(v.tempId, -1)}
+                                                            onDown={() => moveVariant(v.tempId, 1)}
+                                                            disableUp={vIdx === 0}
+                                                            disableDown={vIdx === group.items.length - 1}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeVariant(v.tempId)}
+                                                            title="Remover opção"
+                                                            aria-label="Remover opção"
+                                                            className="flex items-center justify-center w-7 h-8 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all"
+                                                        >
+                                                            <AppIcon name="XMarkIcon" size={15} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
 
@@ -979,21 +1041,21 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
                         {hasBrands && (
                             <div className="p-4 space-y-3">
-                                <div className="grid grid-cols-12 gap-2 px-1">
-                                    <span className="col-span-5 text-[9px] uppercase tracking-widest font-bold text-muted">Marca / Fabricante</span>
-                                    <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Preço (R$)</span>
-                                    <span className="col-span-3 text-[9px] uppercase tracking-widest font-bold text-muted">Estoque</span>
-                                    <span className="col-span-1" />
+                                <div className="flex items-center gap-2 px-1">
+                                    <span className="flex-1 text-[9px] uppercase tracking-widest font-bold text-muted">Marca / Fabricante</span>
+                                    <span className="w-24 text-[9px] uppercase tracking-widest font-bold text-muted">Preço (R$)</span>
+                                    <span className="w-20 text-[9px] uppercase tracking-widest font-bold text-muted">Estoque</span>
+                                    <span className="w-[84px] shrink-0" />
                                 </div>
 
-                                {brands.map((b) => (
-                                    <div key={b.tempId} className="grid grid-cols-12 gap-2 items-center">
+                                {brands.map((b, bIdx) => (
+                                    <div key={b.tempId} className="flex items-center gap-2">
                                         <input
                                             type="text"
                                             value={b.name}
                                             onChange={(e) => updateBrand(b.tempId, 'name', e.target.value)}
                                             placeholder="ex: Gerdau"
-                                            className="col-span-5 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                            className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                         />
                                         <input
                                             type="number"
@@ -1002,7 +1064,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                             placeholder="0,00"
                                             step="0.01"
                                             min="0"
-                                            className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                            className="w-24 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                         />
                                         <input
                                             type="number"
@@ -1010,15 +1072,26 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                             onChange={(e) => updateBrand(b.tempId, 'stock', parseInt(e.target.value) || 0)}
                                             placeholder="0"
                                             min="0"
-                                            className="col-span-3 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
+                                            className="w-20 px-3 py-2 rounded-xl border border-border bg-white text-sm focus:outline-none focus:border-primary transition-colors"
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={() => removeBrand(b.tempId)}
-                                            className="col-span-1 flex items-center justify-center w-8 h-8 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all"
-                                        >
-                                            <AppIcon name="XMarkIcon" size={15} />
-                                        </button>
+                                        <div className="flex items-center shrink-0">
+                                            <MoveButtons
+                                                label="marca"
+                                                onUp={() => moveBrand(b.tempId, -1)}
+                                                onDown={() => moveBrand(b.tempId, 1)}
+                                                disableUp={bIdx === 0}
+                                                disableDown={bIdx === brands.length - 1}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => removeBrand(b.tempId)}
+                                                title="Remover marca"
+                                                aria-label="Remover marca"
+                                                className="flex items-center justify-center w-7 h-8 rounded-lg text-muted hover:text-red-500 hover:bg-red-50 transition-all"
+                                            >
+                                                <AppIcon name="XMarkIcon" size={15} />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
 

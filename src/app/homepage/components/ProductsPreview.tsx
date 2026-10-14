@@ -1,123 +1,105 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import AppImage from '@/components/ui/AppImage';
+import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
+import TiltCard from '@/components/ui/TiltCard';
+import Reveal from '@/components/ui/Reveal';
+import CategoryMarquee from './CategoryMarquee';
 import { supabase, Product } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
 import { useCart } from '@/context/CartContext';
 import { useCompany, COMPANIES, CompanyId, COMPANY_ORDER, COMPANY_CATEGORIES } from '@/context/CompanyContext';
 import toast from 'react-hot-toast';
 
-// Imagens por categoria — fotos reais do estoque da Comercial Araguaia
+// Imagens fallback por categoria (usando fotos reais de produtos quando possível)
 const CATEGORY_IMAGES: Record<string, string> = {
-  // Araguaia
-  'Cimento': '/assets/images/categories/cimento.png',
-  'Vergalhões': '/assets/images/categories/vergalhoes.png',
-  'Barras e Perfis': '/assets/images/categories/barras-perfis.png',
-  'Chapas': '/assets/images/categories/chapas.png',
-  'Arames': '/assets/images/categories/arames.png',
-  'Tubos': '/assets/images/categories/tubos.png',
-  'Argamassas': '/assets/images/categories/argamassas.png',
-
-  // Confiance Indústria
-  'Telhas de Zinco': '/assets/images/categories/telhas-zinco.png',
-  'Bobinas de Zinco': '/assets/images/categories/bobinas.png',
-  'Colunas': '/assets/images/categories/coluna-aco.png',
-  'Treliças': '/assets/images/categories/trelicas.png',
-
-  // Aços Confiance / compartilhadas
-  'Telhas de Fibrocimento': '/assets/images/categories/telhas.png',
-  'Aços Planos': '/assets/images/categories/acos-planos.png',          // chapas planas em rack — literalmente "aços planos"
+  'Cimento':            '/assets/images/about/sacos-cimento.jpg',
+  'Vergalhões':         '/assets/images/about/vergalhoes.jpg',
+  'Ferragens':          '/assets/images/about/estoque.jpg',
+  'Serralheria':        '/assets/images/about/estoque.jpg',
+  'Barras e Perfis':    '/assets/images/about/vergalhoes.jpg',
+  'Aços Planos':        '/assets/images/about/vergalhoes.jpg',
+  'Arames':             '/assets/images/about/estoque.jpg',
+  'Chapas':             '/assets/images/about/estoque.jpg',
+  'Telhas':             'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800',
+  'Bobinas de Zinco':   'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800',
+  'Colunas e Treliças': '/assets/images/about/vergalhoes.jpg',
+  'Colunas':            '/assets/images/about/vergalhoes.jpg',
+  'Treliças':           '/assets/images/about/vergalhoes.jpg',
+  'Tubos':              '/assets/images/about/vergalhoes.jpg',
+  'Parafusos':          '/assets/images/about/estoque.jpg',
 };
-const FALLBACK_IMAGE = '/assets/images/categories/estoque-geral.png';
+const FALLBACK_IMAGE = '/assets/images/about/estoque.jpg';
 
 export default function ProductsPreview() {
   const [products, setProducts] = useState<Product[]>([]);
-  const { showPrices } = usePrices();
-  const { addToCart } = useCart();
+  const { showPrices }          = usePrices();
+  const { addToCart }           = useCart();
   const { activeCompany, company, setActiveCompany, isGrupoView } = useCompany();
 
-  useEffect(() => {
-    supabase.from('products').select('*').eq('is_active', true).limit(40)
-      .then(({ data }) => setProducts(data ?? []));
+  const fetchProducts = useCallback(() => {
+    supabase.from('products').select('*').eq('is_active', true).limit(200)
+      .then(({ data }) => setProducts((data ?? []) as Product[]));
   }, []);
 
+  useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
   const handleAdd = (product: Product) => {
-    addToCart(product, activeCompany);
+    addToCart(product);
     toast.success(`${product.name} adicionado ao orçamento!`);
   };
 
   // Filtro por empresa
   const filteredProducts = isGrupoView ? products : products.filter(p => {
     if (!company) return true;
-    // 1. companies[] do banco (após migration)
+    // Prioriza companies[] do produto
     const pCos = (p as any).companies as string[] | undefined;
     if (pCos && pCos.length > 0) return pCos.includes(activeCompany!);
-    // 2. Fallback: comparação EXATA por categoria (sem substring para evitar vazamento)
+    // Fallback: filtra por categoria
     const allowedCats = COMPANY_CATEGORIES[activeCompany as CompanyId] ?? [];
-    return allowedCats.some(cat => cat.toLowerCase() === p.category.toLowerCase());
+    return allowedCats.some(cat => p.category.toLowerCase().includes(cat.toLowerCase()));
   });
 
-  // Categorias com produto representativo:
-  // Prioridade: 1) is_featured=true com imagem 2) is_featured=true sem imagem 3) com imagem 4) qualquer
+  // Categorias com produto representativo (preferencialmente com imagem real)
   const categoryMap = new Map<string, Product>();
   filteredProducts.forEach(p => {
     if (!categoryMap.has(p.category)) {
       categoryMap.set(p.category, p);
     } else {
+      // Prefere produto com imagem real
       const current = categoryMap.get(p.category)!;
-      const pFeatured = (p as any).is_featured;
-      const cFeatured = (current as any).is_featured;
-      // Substitui se: p é featured e atual não; ou ambos featured mas p tem imagem; ou atual sem imagem e p tem
-      if ((pFeatured && !cFeatured) ||
-        (pFeatured && cFeatured && !current.image_url && p.image_url) ||
-        (!cFeatured && !current.image_url && p.image_url)) {
-        categoryMap.set(p.category, p);
-      }
+      if (!current.image_url && p.image_url) categoryMap.set(p.category, p);
     }
   });
   const categories = Array.from(categoryMap.entries()).slice(0, 4);
 
-  // Bento: usa a image_url do produto em destaque daquela categoria.
-  // O categoryMap já priorizou is_featured=true com imagem no loop acima.
-  // Fallback: mapa estático → imagem geral.
-  // Sempre usa a imagem da categoria do mapa estático quando disponível
-  // Isso garante que o bento exibe a imagem correta independente do produto representante
-  const getBentoCatImage = (cat: string, prod?: Product) =>
-    CATEGORY_IMAGES[cat] || prod?.image_url || FALLBACK_IMAGE;
+  // "Mais vendido": Cimento Montes Claros ocupa o card principal quando a empresa ativa o vende.
+  // Se não houver esse produto na visão atual, mantém o comportamento anterior (primeira categoria).
+  const cimentoMontesClaros = filteredProducts.find((p) => /montes\s*claros/i.test(p.name));
+  const allCategoryEntries = Array.from(categoryMap.entries());
+  const sideCategories = cimentoMontesClaros
+    ? allCategoryEntries.slice(1).filter(([cat]) => cat !== cimentoMontesClaros.category).slice(0, 3)
+    : categories.slice(1);
 
-  // Cards "Itens em Destaque": usa a imagem real do produto cadastrada pelo admin.
-  // Fallback: mapa de categoria → imagem geral.
-  const getProductImage = (product: Product) =>
-    product.image_url || CATEGORY_IMAGES[product.category] || FALLBACK_IMAGE;
+  const getCatImage = (cat: string, product: Product) =>
+    product.image_url || CATEGORY_IMAGES[cat] || FALLBACK_IMAGE;
+  // Foto real do produto → 'contain' (inteira, sem cortes). Foto ambientada de fallback → 'cover'.
+  const getCatFit = (product: Product) => (product.image_url ? 'contain' : 'cover');
 
-  // Verifica se a empresa atual tem categoria Cimento
-  const hasCimento = categories.some(([cat]) => cat.toLowerCase() === 'cimento');
+  // Destaques controlados pelo admin (is_featured); se nenhum estiver marcado, mostra os 4 primeiros
+  const flagged = filteredProducts.filter((p) => p.is_featured);
+  const featured = (flagged.length > 0 ? flagged : filteredProducts).slice(0, 4);
 
-  // Produtos em destaque: prefere is_featured=true, senão usa os primeiros disponíveis
-  const featuredFirst = filteredProducts.filter(p => (p as any).is_featured);
-  const nonFeatured = filteredProducts.filter(p => !(p as any).is_featured);
-  const featured = [...featuredFirst, ...nonFeatured].slice(0, 4);
-
-  // Cimento Montes Claros só é priorizado no bento QUANDO empresa tem Cimento
-  const cimentoMontesClaros = hasCimento
-    ? filteredProducts.find(p =>
-      p.name.toLowerCase().includes('montes claros') || p.name.toLowerCase().includes('cpii')
-    )
-    : undefined;
-  const categoriesSorted = [...categories].sort((a, b) => {
-    if (hasCimento) {
-      if (a[0].toLowerCase() === 'cimento') return -1;
-      if (b[0].toLowerCase() === 'cimento') return 1;
-    }
-    return 0;
-  });
+  // Todas as categorias (com contagem) para a faixa animada
+  const marqueeCategories = Array.from(
+    filteredProducts.reduce((m, p) => m.set(p.category, (m.get(p.category) ?? 0) + 1), new Map<string, number>())
+  ).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
 
   return (
-    <section className="py-16 sm:py-24 lg:py-32 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <section className="py-32 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
           <div className="space-y-3">
             {company && (
@@ -129,8 +111,8 @@ export default function ProductsPreview() {
               </div>
             )}
             <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-primary block">Nosso Catálogo</span>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-foreground">
-              Produtos{' '}
+            <h2 className="text-5xl md:text-6xl font-bold tracking-tight leading-[1.05] text-foreground">
+              Categorias{' '}
               <span className="font-display italic text-gradient-red">principais.</span>
             </h2>
           </div>
@@ -144,7 +126,7 @@ export default function ProductsPreview() {
         {isGrupoView && (
           <div className="mb-12 rounded-4xl border-2 border-dashed border-[#dde3ed] p-10 text-center">
             <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-muted mb-4">Grupo HC</p>
-            <h3 className="text-2xl font-bold text-foreground mb-2 text-center">Selecione uma empresa para ver os produtos</h3>
+            <h3 className="text-2xl font-bold text-foreground mb-2">Selecione uma empresa para ver os produtos</h3>
             <p className="text-muted mb-6 text-sm">Cada empresa tem seu próprio portfólio especializado.</p>
             <div className="flex flex-wrap justify-center gap-3">
               {COMPANY_ORDER.map((id) => {
@@ -162,22 +144,98 @@ export default function ProductsPreview() {
           </div>
         )}
 
+        {/* Bento grid de categorias */}
+        {(cimentoMontesClaros || categories.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
+            {cimentoMontesClaros ? (
+              <Link href={`/products/${cimentoMontesClaros.id}`}
+                className="lg:col-span-5 product-card group relative rounded-4xl overflow-hidden shadow-red-lg hover-lift cursor-pointer bg-white border border-border block">
+                <div className="relative h-[400px] overflow-hidden">
+                  <ProductImage src={getCatImage(cimentoMontesClaros.category, cimentoMontesClaros)} alt={cimentoMontesClaros.name}
+                    variant="fill" fit={getCatFit(cimentoMontesClaros)} padding="24px 24px 140px"
+                    imgClassName="product-img transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/85 via-foreground/35 to-transparent pointer-events-none" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <span className="badge mb-3 bg-primary text-white">Mais vendido</span>
+                  <h3 className="text-2xl font-bold text-white mb-1">{cimentoMontesClaros.name}</h3>
+                  <p className="text-sm text-white/70">{cimentoMontesClaros.category}</p>
+                </div>
+              </Link>
+            ) : categories[0] && (
+              <Link href={`/products?categoria=${encodeURIComponent(categories[0][0])}`}
+                className="lg:col-span-5 product-card group relative rounded-4xl overflow-hidden shadow-red-lg hover-lift cursor-pointer bg-white border border-border block">
+                <div className="relative h-[400px] overflow-hidden">
+                  <ProductImage src={getCatImage(categories[0][0], categories[0][1])} alt={categories[0][0]}
+                    variant="fill" fit={getCatFit(categories[0][1])} padding="24px 24px 140px"
+                    imgClassName="product-img transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/85 via-foreground/35 to-transparent pointer-events-none" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <span className="badge mb-3 bg-primary text-white">Mais vendido</span>
+                  <h3 className="text-2xl font-bold text-white mb-1">{categories[0][0]}</h3>
+                  <p className="text-sm text-white/70">
+                    {filteredProducts.filter(p => p.category === categories[0][0]).length} produtos disponíveis
+                  </p>
+                </div>
+              </Link>
+            )}
+
+            <div className="lg:col-span-3 grid grid-rows-2 gap-5">
+              {[sideCategories[0], sideCategories[1]].filter(Boolean).map(([cat, prod]) => (
+                <Link key={cat} href={`/products?categoria=${encodeURIComponent(cat)}`}
+                  className="product-card group relative rounded-4xl overflow-hidden shadow-sm hover-lift cursor-pointer bg-white border border-border block">
+                  <div className="relative h-full min-h-[190px] overflow-hidden">
+                    <ProductImage src={getCatImage(cat, prod)} alt={cat}
+                      variant="fill" fit={getCatFit(prod)} padding="16px 16px 84px"
+                      imgClassName="product-img transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-foreground/80 via-foreground/30 to-transparent pointer-events-none" />
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-5">
+                    <span className="badge mb-2 bg-surface-2 text-foreground">Destaque</span>
+                    <h3 className="text-base font-bold text-white">{cat}</h3>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {sideCategories[2] && (
+              <Link href={`/products?categoria=${encodeURIComponent(sideCategories[2][0])}`}
+                className="lg:col-span-4 product-card group relative rounded-4xl overflow-hidden shadow-red-lg hover-lift cursor-pointer bg-white border border-border block">
+                <div className="relative h-[400px] overflow-hidden">
+                  <ProductImage src={getCatImage(sideCategories[2][0], sideCategories[2][1])} alt={sideCategories[2][0]}
+                    variant="fill" fit={getCatFit(sideCategories[2][1])} padding="24px 24px 120px"
+                    imgClassName="product-img transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/85 via-foreground/35 to-transparent pointer-events-none" />
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <span className="badge mb-3 bg-surface-2 text-foreground">Destaque</span>
+                  <h3 className="text-2xl font-bold text-white mb-1">{sideCategories[2][0]}</h3>
+                </div>
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Faixa de categorias animada */}
+        <CategoryMarquee categories={marqueeCategories} />
+
         {/* Produtos destaque */}
         {featured.length > 0 && (
-          <div>
+          <div className="mt-20">
+            <h3 className="text-2xl font-bold text-foreground mb-8">Produtos em Destaque</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featured.map((product) => (
-                <div key={product.id} className="product-card group bg-white border border-border rounded-4xl overflow-hidden hover-lift shadow-sm">
-                  <a href={`/products/${product.id}`} className="relative overflow-hidden bg-white block" style={{ height: '200px' }}>
-                    <AppImage
-                      src={getProductImage(product)}
-                      alt={product.name} fill
-                      className="product-img transition-transform duration-700 group-hover:scale-105"
-                      style={{ objectFit: 'contain', padding: '12px' }}
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                      <span className="bg-white/90 text-foreground text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xl shadow">Ver detalhes</span>
-                    </div>
+              {featured.map((product, idx) => (
+                <Reveal key={product.id} delay={idx * 0.08} className="h-full">
+                <TiltCard className="h-full">
+                <div className="product-card group bg-white border border-border rounded-4xl overflow-hidden hover-lift shadow-sm h-full">
+                  <a href={`/products/${product.id}`} className="block">
+                    <ProductImage src={product.image_url} alt={product.name} variant="card"
+                      imgClassName="product-img transition-transform duration-700 group-hover:scale-105">
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <span className="bg-white/90 text-foreground text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xl shadow">Ver detalhes</span>
+                      </div>
+                    </ProductImage>
                   </a>
                   <div className="p-5 space-y-3">
                     <span className="text-[10px] uppercase tracking-widest font-bold text-primary">{product.category}</span>
@@ -193,6 +251,8 @@ export default function ProductsPreview() {
                     </div>
                   </div>
                 </div>
+                </TiltCard>
+                </Reveal>
               ))}
             </div>
           </div>

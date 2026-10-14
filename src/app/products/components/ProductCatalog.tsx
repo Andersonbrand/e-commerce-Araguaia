@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import AppImage from '@/components/ui/AppImage';
+import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
 import { supabase, Product } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
@@ -317,13 +317,13 @@ export default function ProductCatalog() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5">
                   {paginated.map((product) => (
                     <div key={product.id} className="product-card group bg-white border border-border rounded-3xl overflow-hidden hover-lift shadow-sm flex flex-col">
-                      <a href={`/products/${product.id}`} className="relative bg-white block flex-shrink-0 overflow-hidden" style={{ height: '180px' }}>
-                        <AppImage src={product.image_url ?? '/assets/images/no_image.png'} alt={product.name} fill
-                          className="product-img transition-transform duration-700 group-hover:scale-105"
-                          style={{ objectFit: 'contain', padding: '12px' }} />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <span className="bg-white/90 text-foreground text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xl shadow">Ver detalhes</span>
-                        </div>
+                      <a href={`/products/${product.id}`} className="block flex-shrink-0">
+                        <ProductImage src={product.image_url} alt={product.name} variant="card"
+                          imgClassName="product-img transition-transform duration-700 group-hover:scale-105">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <span className="bg-white/90 text-foreground text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xl shadow">Ver detalhes</span>
+                          </div>
+                        </ProductImage>
                       </a>
                       <div className="p-4 space-y-2 flex flex-col flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">

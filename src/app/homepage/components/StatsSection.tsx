@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Reveal from '@/components/ui/Reveal';
 
 interface StatItem { value: number; suffix: string; label: string; color: string; }
 
 const stats: StatItem[] = [
-  { value: 35,   suffix: '+', label: 'Anos no mercado',               color: 'text-primary' },
+  { value: 25,   suffix: '+', label: 'Anos no mercado',               color: 'text-primary' },
   { value: 5000, suffix: '+', label: 'Clientes ativos',               color: 'text-accent'  },
   { value: 800,  suffix: '+', label: 'Produtos em estoque',           color: 'text-primary' },
   { value: 90,   suffix: '%', label: 'Clientes confiam na qualidade', color: 'text-accent'  },
@@ -26,6 +27,10 @@ function useCountUp(target: number, duration: number, start: boolean) {
   const [count, setCount] = useState(0);
   useEffect(() => {
     if (!start) return;
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCount(target);
+      return;
+    }
     let startTime: number | null = null;
     const raf = requestAnimationFrame(function step(ts) {
       if (!startTime) startTime = ts;
@@ -41,8 +46,8 @@ function useCountUp(target: number, duration: number, start: boolean) {
 function StatCard({ stat, animate }: { stat: StatItem; animate: boolean }) {
   const count = useCountUp(stat.value, 2000, animate);
   return (
-    <div className="text-center space-y-2 px-8 py-6 border-r border-border/40 last:border-r-0">
-      <p className={`text-5xl md:text-6xl font-display font-bold ${stat.color}`}>
+    <div className="text-center space-y-2 px-8 py-6">
+      <p className={`text-5xl md:text-6xl font-display font-bold tabular-nums ${stat.color}`}>
         {count.toLocaleString('pt-BR')}{stat.suffix}
       </p>
       <p className="text-[11px] uppercase tracking-[0.25em] text-muted font-bold">{stat.label}</p>
@@ -79,9 +84,13 @@ export default function StatsSection() {
 
   return (
     <section className="py-20 bg-white border-y border-border/40">
-      <div ref={ref} className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div ref={ref} className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 border border-border/40 rounded-3xl overflow-hidden bg-white shadow-sm">
-          {stats.map((stat) => <StatCard key={stat.label} stat={stat} animate={animate} />)}
+          {stats.map((stat, i) => (
+            <Reveal key={stat.label} delay={i * 0.1} y={20} className="border-r border-border/40 last:border-r-0">
+              <StatCard stat={stat} animate={animate} />
+            </Reveal>
+          ))}
         </div>
       </div>
 

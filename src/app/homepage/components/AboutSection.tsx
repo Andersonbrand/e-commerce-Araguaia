@@ -10,12 +10,6 @@ const values = [
   { icon: 'UserGroupIcon',  title: 'Atendimento Técnico',  desc: 'Equipe especializada para auxiliar na escolha dos materiais certos para cada projeto.' },
 ];
 
-const empresas = [
-  { nome: 'Comercial Araguaia', ano: '1990', cor: '#af1518', desc: 'A origem de tudo. Distribuidora de materiais de construção civil que abriu caminho para o grupo.' },
-  { nome: 'Confiance Indústria', ano: '2020', cor: '#1a3a6b', desc: 'Com tecnologia própria fabricando telhas de zinco, bobinas e estruturas metálicas com tecnologia própria.' },
-  { nome: 'Aços Confiance', ano: '2022', cor: '#b04d00', desc: 'A mais nova do grupo, focada em aço no atacado para serralherias e construtoras com preços imbatíveis.' },
-];
-
 export default function AboutSection() {
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -112,30 +106,6 @@ export default function AboutSection() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Cards das 3 empresas do grupo (resumo) */}
-        <div className="animate-on-scroll opacity-0 translate-y-8 transition-all duration-1000 delay-300">
-          <div className="text-center mb-10">
-            <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-muted mb-2">Nossas Empresas</p>
-            <h3 className="text-3xl font-bold text-foreground">O Grupo HC em números</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {empresas.map((emp) => (
-              <div key={emp.nome} className="rounded-4xl border border-[#dde3ed] bg-white p-7 relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
-                <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: emp.cor }} />
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl font-display font-bold" style={{ color: emp.cor }}>{emp.ano}</span>
-                  <span className="text-[9px] uppercase tracking-[0.3em] font-bold px-2 py-1 rounded-lg"
-                    style={{ backgroundColor: `${emp.cor}12`, color: emp.cor }}>
-                    Fundação
-                  </span>
-                </div>
-                <h4 className="text-lg font-bold text-foreground mb-2">{emp.nome}</h4>
-                <p className="text-sm text-muted leading-relaxed text-justify">{emp.desc}</p>
-              </div>
-            ))}
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import AppImage from '@/components/ui/AppImage';
+import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
 import { useCart } from '@/context/CartContext';
 import QuantityInput from '@/components/ui/QuantityInput';
@@ -171,12 +171,8 @@ export default function CartPage() {
                   return (
                     <div key={cartKey} className="rounded-2xl p-4 border border-border flex gap-4 items-start hover-lift bg-white">
                       {/* Imagem */}
-                      <div className="w-20 h-20 rounded-xl overflow-hidden bg-surface flex-shrink-0 flex items-center justify-center border border-[#f0f0f0]">
-                        <AppImage
-                          src={product.image_url ?? '/assets/images/no_image.png'}
-                          alt={product.name} width={80} height={80}
-                          className="w-full h-full object-contain p-1"
-                        />
+                      <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border border-[#f0f0f0]">
+                        <ProductImage src={product.image_url} alt={product.name} variant="thumb" />
                       </div>
 
                       <div className="flex-1 min-w-0">
