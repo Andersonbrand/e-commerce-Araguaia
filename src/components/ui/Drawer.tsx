@@ -35,6 +35,7 @@ export default function Drawer({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
+        data-no-press
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left rounded-2xl"
       >
         {icon && (

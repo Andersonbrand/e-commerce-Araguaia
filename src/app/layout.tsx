@@ -6,6 +6,7 @@ import { CartProvider } from '@/context/CartContext';
 import { PriceProvider } from '@/context/PriceContext';
 import { CompanyProvider } from '@/context/CompanyContext';
 import CompanyBanner from '@/components/CompanyBanner';
+import ClickEffects from '@/components/ui/ClickEffects';
 import '../styles/tailwind.css';
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <CompanyProvider>
                 {children}
                 <CompanyBanner />
+                <ClickEffects />
                 <Toaster position="top-center" toastOptions={{
                   duration: 3000,
                   style: {

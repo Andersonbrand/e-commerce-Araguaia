@@ -23,9 +23,10 @@ export default function ProductDetailPage() {
   const [related, setRelated] = useState<Product[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [brands, setBrands] = useState<ProductBrand[]>([]);
-  const [selectedBrand, setSelectedBrand] = useState<ProductBrand | null>(null);
-  // selectedVariant: map de groupName -> opção selecionada
-  const [selectedVariants, setSelectedVariants] = useState<Record<string, SelectedVariant>>({});
+  // Seleção múltipla: cada grupo aceita uma ou mais opções, e as marcas também
+  const [selectedBrands, setSelectedBrands] = useState<ProductBrand[]>([]);
+  // selectedVariants: groupName -> opções marcadas
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, SelectedVariant[]>>({});
 
   // Derivado: grupos únicos de variantes
   const variantGroups = React.useMemo(() => {
@@ -43,24 +44,17 @@ export default function ProductDetailPage() {
 
   // Para um grupo+item, verifica se está permitido pelas regras com base nas seleções atuais
   const isVariantAllowed = React.useCallback((group: string, label: string): boolean => {
-    // Filtrar regras que afetam este grupo
     const rulesForGroup = variantRules.filter((r) => r.allows.group === group);
     if (rulesForGroup.length === 0) return true; // sem regra → sempre permitido
 
-    // Verificar se alguma seleção atual dispara uma regra para este grupo
-    for (const rule of rulesForGroup) {
-      const selectedInWhenGroup = selectedVariants[rule.when.group];
-      if (selectedInWhenGroup && selectedInWhenGroup.label === rule.when.label) {
-        // Regra ativa: só permite os labels listados
-        return rule.allows.labels.includes(label);
-      }
-    }
-    // Nenhuma regra ativa → permitido
-    return true;
+    // Regra ativa = alguma das opções marcadas no grupo-gatilho bate com ela
+    const active = rulesForGroup.filter((rule) =>
+      (selectedVariants[rule.when.group] ?? []).some((v) => v.label === rule.when.label)
+    );
+    if (active.length === 0) return true;
+    // Com várias opções marcadas, vale a união do que cada regra ativa permite
+    return active.some((rule) => rule.allows.labels.includes(label));
   }, [variantRules, selectedVariants]);
-
-  // Para compatibilidade com CartContext (usa o primeiro grupo selecionado)
-  const selectedVariant: SelectedVariant | null = Object.values(selectedVariants)[0] ?? null;
 
   // Gavetas: chave = nome do grupo de variantes, ou BRAND_KEY para as marcas
   const BRAND_KEY = '__brand__';
@@ -78,23 +72,40 @@ export default function ProductDetailPage() {
 
   // Remove seleções que deixaram de ser permitidas pelas regras de combinação
   useEffect(() => {
-    const invalid = Object.entries(selectedVariants).filter(([g, v]) => !isVariantAllowed(g, v.label)).map(([g]) => g);
-    if (invalid.length === 0) return;
-    setSelectedVariants((prev) => {
-      const next = { ...prev };
-      invalid.forEach((g) => delete next[g]);
-      return next;
+    let changed = false;
+    const next: Record<string, SelectedVariant[]> = {};
+    Object.entries(selectedVariants).forEach(([g, list]) => {
+      const kept = list.filter((v) => isVariantAllowed(g, v.label));
+      if (kept.length !== list.length) changed = true;
+      if (kept.length > 0) next[g] = kept;
     });
+    if (changed) setSelectedVariants(next);
   }, [selectedVariants, isVariantAllowed]);
 
   const toggleDrawer = (key: string) => setOpenDrawers((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // Depois de escolher, fecha a gaveta atual e abre a próxima que ainda falta escolher
-  const advanceFrom = (key: string, nextSelectedGroups: Record<string, unknown>, brandChosen: boolean) => {
-    const idx = drawerKeys.indexOf(key);
-    const next = drawerKeys.slice(idx + 1).find((k) => (k === BRAND_KEY ? !brandChosen : !nextSelectedGroups[k]));
-    setOpenDrawers((prev) => ({ ...prev, [key]: false, ...(next ? { [next]: true } : {}) }));
+  // Marca/desmarca uma opção (várias podem ficar marcadas no mesmo grupo)
+  const toggleVariant = (group: string, v: ProductVariant) => {
+    setSelectedVariants((prev) => {
+      const list = prev[group] ?? [];
+      const exists = list.some((x) => x.id === v.id);
+      const nextList = exists
+        ? list.filter((x) => x.id !== v.id)
+        : [...list, { id: v.id, label: v.label, priceDelta: v.price_delta }];
+      const next = { ...prev };
+      if (nextList.length > 0) next[group] = nextList; else delete next[group];
+      return next;
+    });
   };
+  const clearGroup = (group: string) =>
+    setSelectedVariants((prev) => { const { [group]: _removed, ...rest } = prev; return rest; });
+  const toggleBrand = (b: ProductBrand) =>
+    setSelectedBrands((prev) => (prev.some((x) => x.id === b.id) ? prev.filter((x) => x.id !== b.id) : [...prev, b]));
+
+  // Texto do selo no cabeçalho da gaveta
+  const selectionSummary = (labels: string[]) =>
+    labels.length === 0 ? null : labels.length === 1 ? labels[0] : `${labels.length} selecionadas`;
+
   const [loading, setLoading] = useState(true);
   const [qty, setQty]         = useState(1);
   const { showPrices }        = usePrices();
@@ -137,37 +148,65 @@ export default function ProductDetailPage() {
       });
   }, [id]);
 
+  const MAX_LINES = 40;
+  const missingGroup = variantGroups.find((g) => !(selectedVariants[g.group]?.length));
+  const missingBrand = brands.length > 0 && selectedBrands.length === 0;
+
+  // Cada combinação (uma opção de cada grupo × uma marca) vira uma linha do orçamento.
+  // As listas seguem a ordem cadastrada no admin, não a ordem dos cliques.
+  const lines = React.useMemo(() => {
+    if (!product || missingGroup || missingBrand) return [];
+    const groupLists = variantGroups.map((g) => {
+      const chosen = selectedVariants[g.group] ?? [];
+      return g.items
+        .filter((it) => chosen.some((c) => c.id === it.id))
+        .map((it) => ({ group: g.group, v: { id: it.id, label: it.label, priceDelta: it.price_delta } as SelectedVariant }));
+    });
+    let combos: Array<Array<{ group: string; v: SelectedVariant }>> = [[]];
+    groupLists.forEach((list) => { combos = combos.flatMap((c) => list.map((item) => [...c, item])); });
+    const brandOptions: Array<ProductBrand | null> =
+      brands.length > 0 ? brands.filter((b) => selectedBrands.some((s) => s.id === b.id)) : [null];
+    return combos.flatMap((c) => brandOptions.map((b) => {
+      const variantsMap: Record<string, SelectedVariant> = {};
+      c.forEach(({ group, v }) => { variantsMap[group] = v; });
+      const variantPrice = c.find(({ v }) => v.priceDelta > 0)?.v.priceDelta ?? 0;
+      const unit = b?.price && b.price > 0 ? b.price : variantPrice || product.price || 0;
+      return { variantsMap, first: c[0]?.v ?? null, brand: b, unit };
+    }));
+  }, [product, variantGroups, selectedVariants, brands, selectedBrands, missingGroup, missingBrand]);
+
+  const lineLabel = (ln: { variantsMap: Record<string, SelectedVariant>; brand: ProductBrand | null }) =>
+    [Object.values(ln.variantsMap).map((v) => v.label).join(' · '), ln.brand ? ln.brand.name : ''].filter(Boolean).join(' — ');
+
   const handleAdd = () => {
     if (!product) return;
-    // Verificar se todos os grupos têm uma opção selecionada
-    const missingGroup = variantGroups.find((g) => !selectedVariants[g.group]);
     if (missingGroup) {
-      toast.error(`Selecione uma opção em "${missingGroup.group}".`);
+      toast.error(`Selecione ao menos uma opção em "${missingGroup.group}".`);
       return;
     }
-    if (brands.length > 0 && !selectedBrand) {
-      toast.error('Selecione uma marca antes de adicionar.');
+    if (missingBrand) {
+      toast.error('Selecione ao menos uma marca antes de adicionar.');
       return;
     }
-    for (let i = 0; i < qty; i++) addToCart(
-      product,
-      activeCompany,
-      selectedVariant,
-      selectedVariants,
-      selectedBrand?.name ?? null,
+    if (lines.length > MAX_LINES) {
+      toast.error(`Você marcou ${lines.length} combinações. Reduza para até ${MAX_LINES} por vez.`);
+      return;
+    }
+    lines.forEach((ln) =>
+      addToCart(product, activeCompany, ln.first, ln.variantsMap, ln.brand?.name ?? null, qty)
     );
-    const variantSuffix = Object.values(selectedVariants).map((v) => v.label).join(', ');
-    const brandSuffix   = selectedBrand ? ` — ${selectedBrand.name}` : '';
-    const suffix = [variantSuffix ? ` (${variantSuffix})` : '', brandSuffix].join('');
-    toast.success(`${qty}x ${product.name}${suffix} adicionado ao orçamento!`);
+    if (lines.length > 1) {
+      toast.success(`${lines.length} itens de ${product.name} (${qty}x cada) adicionados ao orçamento!`);
+    } else {
+      const suffix = lines[0] ? ` (${lineLabel(lines[0])})` : '';
+      toast.success(`${qty}x ${product.name}${suffix} adicionado ao orçamento!`);
+    }
   };
 
-  // Preço efetivo: marca > variante com maior preço > preço base
-  const variantPrice = Object.values(selectedVariants).find((v) => v.priceDelta > 0)?.priceDelta ?? 0;
-  const unitPrice  = (selectedBrand?.price && selectedBrand.price > 0)
-    ? selectedBrand.price
-    : variantPrice || (product?.price ?? 0);
-  const totalPrice = unitPrice * qty;
+  // Preço: com uma só combinação mostra o unitário; com várias, soma todas as linhas
+  const unitPrice  = lines.length === 1 ? lines[0].unit : (product?.price ?? 0);
+  const totalPrice = lines.length > 1 ? lines.reduce((sum, l) => sum + l.unit * qty, 0) : unitPrice * qty;
+  const allPriced  = lines.length > 1 && lines.every((l) => l.unit > 0);
 
   if (loading) {
     return (
@@ -269,7 +308,7 @@ export default function ProductDetailPage() {
               {drawerKeys.length > 0 && (
                 <div className="space-y-3">
                   {variantGroups.map(({ group, items }) => {
-                    const selected = selectedVariants[group] ?? null;
+                    const selected = selectedVariants[group] ?? [];
                     const q = (optionSearch[group] ?? '').trim().toLowerCase();
                     const visible = q ? items.filter((v) => v.label.toLowerCase().includes(q)) : items;
                     return (
@@ -279,10 +318,19 @@ export default function ProductDetailPage() {
                         count={items.length}
                         icon="AdjustmentsHorizontalIcon"
                         required
-                        selectedLabel={selected?.label ?? null}
+                        selectedLabel={selectionSummary(selected.map((s) => s.label))}
                         open={!!openDrawers[group]}
                         onToggle={() => toggleDrawer(group)}
                       >
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <p className="text-[11px] text-muted">Marque uma ou mais opções</p>
+                          {selected.length > 0 && (
+                            <button type="button" onClick={() => clearGroup(group)}
+                              className="text-[11px] font-bold text-primary hover:underline">
+                              Limpar ({selected.length})
+                            </button>
+                          )}
+                        </div>
                         {items.length > 8 && (
                           <input
                             type="text"
@@ -294,27 +342,16 @@ export default function ProductDetailPage() {
                         )}
                         <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto scroll-soft p-1 -m-1">
                           {visible.map((v) => {
-                            const isSelected = selected?.id === v.id;
+                            const isSelected = selected.some((s) => s.id === v.id);
                             const allowed = isVariantAllowed(group, v.label);
                             return (
                               <button
                                 key={v.id}
                                 type="button"
                                 disabled={!allowed}
-                                onClick={() => {
-                                  if (!allowed) return;
-                                  if (isSelected) {
-                                    setSelectedVariants((prev) => {
-                                      const { [group]: _removed, ...rest } = prev;
-                                      return rest;
-                                    });
-                                    return;
-                                  }
-                                  const nextSel = { ...selectedVariants, [group]: { id: v.id, label: v.label, priceDelta: v.price_delta } };
-                                  setSelectedVariants(nextSel);
-                                  advanceFrom(group, nextSel, !!selectedBrand);
-                                }}
-                                className="px-4 py-2 rounded-xl border-2 transition-all flex items-baseline gap-1.5"
+                                aria-pressed={isSelected}
+                                onClick={() => { if (allowed) toggleVariant(group, v); }}
+                                className="px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-1.5"
                                 style={{
                                   borderColor: !allowed ? '#f0f0f0' : isSelected ? '#af1518' : '#dde3ed',
                                   backgroundColor: !allowed ? '#fafafa' : isSelected ? '#af151810' : 'white',
@@ -323,6 +360,7 @@ export default function ProductDetailPage() {
                                   opacity: allowed ? 1 : 0.45,
                                 }}
                               >
+                                {isSelected && <AppIcon name="CheckIcon" size={14} />}
                                 <span className="text-sm font-bold">{v.label}</span>
                                 {showPrices && v.price_delta > 0 && (
                                   <span className="text-[10px] font-normal opacity-70">
@@ -347,29 +385,36 @@ export default function ProductDetailPage() {
                       count={brands.length}
                       icon="TagIcon"
                       required
-                      selectedLabel={selectedBrand?.name ?? null}
+                      selectedLabel={selectionSummary(selectedBrands.map((b) => b.name))}
                       open={!!openDrawers[BRAND_KEY]}
                       onToggle={() => toggleDrawer(BRAND_KEY)}
                     >
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <p className="text-[11px] text-muted">Marque uma ou mais marcas</p>
+                        {selectedBrands.length > 0 && (
+                          <button type="button" onClick={() => setSelectedBrands([])}
+                            className="text-[11px] font-bold text-primary hover:underline">
+                            Limpar ({selectedBrands.length})
+                          </button>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto scroll-soft p-1 -m-1">
                         {brands.map((b) => {
-                          const isSelected = selectedBrand?.id === b.id;
+                          const isSelected = selectedBrands.some((s) => s.id === b.id);
                           return (
                             <button
                               key={b.id}
                               type="button"
-                              onClick={() => {
-                                if (isSelected) { setSelectedBrand(null); return; }
-                                setSelectedBrand(b);
-                                advanceFrom(BRAND_KEY, selectedVariants, true);
-                              }}
-                              className="px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-2"
+                              aria-pressed={isSelected}
+                              onClick={() => toggleBrand(b)}
+                              className="px-4 py-2 rounded-xl border-2 transition-all flex items-center gap-1.5"
                               style={{
                                 borderColor: isSelected ? '#af1518' : '#dde3ed',
                                 backgroundColor: isSelected ? '#af151810' : 'white',
                                 color: isSelected ? '#af1518' : '#6b7280',
                               }}
                             >
+                              {isSelected && <AppIcon name="CheckIcon" size={14} />}
                               <span className="text-sm font-bold">{b.name}</span>
                               {showPrices && b.price > 0 && (
                                 <span className="text-[10px] font-normal opacity-70">
@@ -390,33 +435,46 @@ export default function ProductDetailPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] uppercase tracking-widest text-muted font-bold">
                     Preço unitário / {product.unit}
-                    {Object.values(selectedVariants).length > 0 && (
-                      <span className="ml-2 normal-case text-primary font-bold">
-                        — {Object.values(selectedVariants).map((v) => v.label).join(' · ')}
-                      </span>
+                    {lines.length === 1 && lineLabel(lines[0]) && (
+                      <span className="ml-2 normal-case text-primary font-bold">— {lineLabel(lines[0])}</span>
                     )}
-                    {selectedBrand && (
-                      <span className="ml-2 normal-case text-primary font-bold">🏷️ {selectedBrand.name}</span>
+                    {lines.length > 1 && (
+                      <span className="ml-2 normal-case text-primary font-bold">— {lines.length} combinações selecionadas</span>
                     )}
                   </p>
-                  {qty > 1 && showPrices && unitPrice > 0 && (
+                  {qty > 1 && showPrices && lines.length <= 1 && unitPrice > 0 && (
                     <span className="text-[11px] text-muted">
                       {qty}x R$ {unitPrice.toFixed(2).replace('.', ',')}
                     </span>
                   )}
                 </div>
 
-                {showPrices && unitPrice > 0 ? (
+                {showPrices && (lines.length > 1 ? allPriced : unitPrice > 0) ? (
                   <div className="flex items-end gap-3">
                     <p className="text-4xl font-display font-bold" style={{ color: '#151826' }}>
                       R$ {totalPrice.toFixed(2).replace('.', ',')}
                     </p>
-                    {qty > 1 && (
+                    {(qty > 1 || lines.length > 1) && (
                       <p className="text-sm text-muted mb-1">total</p>
                     )}
                   </div>
                 ) : (
                   <p className="text-2xl font-bold text-muted italic">Sob consulta</p>
+                )}
+
+                {lines.length > 1 && (
+                  <ul className="mt-3 pt-3 border-t border-border max-h-40 overflow-y-auto scroll-soft space-y-1.5">
+                    {lines.map((ln, i) => (
+                      <li key={i} className="flex items-center justify-between gap-3 text-[12px]">
+                        <span className="min-w-0 truncate text-foreground">{lineLabel(ln)}</span>
+                        {showPrices && (
+                          <span className="shrink-0 font-bold text-muted">
+                            {ln.unit > 0 ? `R$ ${ln.unit.toFixed(2).replace('.', ',')}` : 'Sob consulta'}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
 
@@ -426,24 +484,22 @@ export default function ProductDetailPage() {
 
                 <button
                   onClick={handleAdd}
-                  disabled={
-                    variantGroups.some((g) => !selectedVariants[g.group]) ||
-                    (brands.length > 0 && !selectedBrand)
-                  }
+                  disabled={!!missingGroup || missingBrand}
                   className="flex-1 py-3.5 rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                   style={{ backgroundColor: '#151826', boxShadow: '0 4px 20px #15182640' }}
                 >
                   <AppIcon name="ShoppingCartIcon" size={18} />
-                  {variantGroups.find((g) => !selectedVariants[g.group])
-                    ? `Selecione ${variantGroups.find((g) => !selectedVariants[g.group])!.group}`
-                    : brands.length > 0 && !selectedBrand ? 'Selecione uma marca'
+                  {missingGroup
+                    ? `Selecione ${missingGroup.group}`
+                    : missingBrand ? 'Selecione uma marca'
+                    : lines.length > 1 ? `Adicionar ${lines.length} itens ao Orçamento`
                     : 'Adicionar ao Orçamento'}
                 </button>
               </div>
 
               {/* WhatsApp */}
               <a
-                href={`https://wa.me/5577981046133?text=Olá! Tenho interesse no produto: ${encodeURIComponent(product.name)}${Object.entries(selectedVariants).map(([g, v]) => `, ${g}: ${v.label}`).join('')}${selectedBrand ? `, marca: ${selectedBrand.name}` : ''}${qty > 1 ? `, quantidade: ${qty}` : ''}`}
+                href={`https://wa.me/5577981046133?text=Olá! Tenho interesse no produto: ${encodeURIComponent(product.name)}${Object.entries(selectedVariants).map(([g, list]) => `, ${g}: ${list.map((v) => v.label).join(' / ')}`).join('')}${selectedBrands.length > 0 ? `, marca: ${selectedBrands.map((b) => b.name).join(' / ')}` : ''}${qty > 1 ? `, quantidade: ${qty}` : ''}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all text-sm font-bold text-muted hover:text-primary"
               >

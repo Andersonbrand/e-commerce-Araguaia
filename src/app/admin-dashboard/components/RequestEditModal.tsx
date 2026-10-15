@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '@/components/ui/Button';
 import React, { useState, useMemo } from 'react';
 import AppIcon from '@/components/ui/AppIcon';
 import { supabase } from '@/lib/supabase';
@@ -50,6 +51,7 @@ export default function RequestEditModal({ request, onClose, onSaved }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return; // evita envio duplicado
     if (!name.trim())  { toast.error('Informe o nome do cliente.'); return; }
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) { toast.error('Informe um e-mail válido.'); return; }
     if (!phone.trim()) { toast.error('Informe o telefone do cliente.'); return; }
@@ -170,10 +172,10 @@ export default function RequestEditModal({ request, onClose, onSaved }: Props) {
         <div className="p-5 border-t border-border flex gap-3 flex-shrink-0">
           <button type="button" onClick={onClose}
             className="flex-1 py-2.5 rounded-xl border border-border text-sm font-bold text-foreground hover:bg-surface transition-colors">Cancelar</button>
-          <button type="submit" disabled={saving}
+          <Button type="submit" loading={saving}
             className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors disabled:opacity-60">
-            {saving ? 'Salvando...' : 'Salvar alterações'}
-          </button>
+            Salvar alterações
+          </Button>
         </div>
       </form>
     </div>

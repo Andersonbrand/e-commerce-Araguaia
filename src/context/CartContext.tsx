@@ -16,7 +16,7 @@ export interface CartItem {
   selectedVariant?: SelectedVariant | null;       // legado (primeiro grupo)
   selectedVariants?: Record<string, SelectedVariant>; // todos os grupos: { "Espessura": {...}, "Peso": {...} }
   selectedBrandName?: string | null;              // nome da marca selecionada
-  cartKey: string; // `${product.id}:${variantId || 'base'}`
+  cartKey: string; // `${product.id}:${ids das opções}` (+ `:${marca}` quando houver)
 }
 
 interface CartState {
@@ -24,32 +24,43 @@ interface CartState {
 }
 
 type CartAction =
-  | { type: 'ADD'; product: Product; company?: string | null; variant?: SelectedVariant | null; allVariants?: Record<string, SelectedVariant>; brandName?: string | null }
+  | { type: 'ADD'; product: Product; company?: string | null; variant?: SelectedVariant | null; allVariants?: Record<string, SelectedVariant>; brandName?: string | null; quantity?: number }
   | { type: 'REMOVE'; cartKey: string }
   | { type: 'UPDATE_QTY'; cartKey: string; quantity: number }
   | { type: 'CLEAR' }
   | { type: 'LOAD'; items: CartItem[] };
 
-function makeCartKey(productId: string, variantId?: string | null): string {
-  return `${productId}:${variantId ?? 'base'}`;
+// A chave considera TODAS as opções escolhidas e a marca: combinações diferentes
+// (ex.: mesma espessura com marcas distintas) viram linhas separadas no carrinho.
+// Para um produto com uma única variante e sem marca, a chave continua `${produto}:${variante}`.
+function makeCartKey(
+  productId: string,
+  allVariants?: Record<string, SelectedVariant> | null,
+  fallbackVariantId?: string | null,
+  brandName?: string | null,
+): string {
+  const ids = allVariants ? Object.keys(allVariants).sort().map((g) => allVariants[g].id) : [];
+  const variantPart = ids.length > 0 ? ids.join('+') : (fallbackVariantId ?? 'base');
+  return brandName ? `${productId}:${variantPart}:${brandName}` : `${productId}:${variantPart}`;
 }
 
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case 'ADD': {
-      const key = makeCartKey(action.product.id, action.variant?.id);
+      const key = makeCartKey(action.product.id, action.allVariants, action.variant?.id, action.brandName);
+      const addQty = Math.max(1, Math.floor(action.quantity ?? 1));
       const existing = state.items.find((i) => i.cartKey === key);
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.cartKey === key ? { ...i, quantity: i.quantity + 1 } : i
+            i.cartKey === key ? { ...i, quantity: i.quantity + addQty } : i
           ),
         };
       }
       return {
         items: [...state.items, {
           product: action.product,
-          quantity: 1,
+          quantity: addQty,
           addedFromCompany: action.company ?? null,
           selectedVariant: action.variant ?? null,
           selectedVariants: action.allVariants ?? undefined,
@@ -75,7 +86,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       return {
         items: action.items.map((i) => ({
           ...i,
-          cartKey: i.cartKey ?? makeCartKey(i.product.id, i.selectedVariant?.id),
+          cartKey: i.cartKey ?? makeCartKey(i.product.id, i.selectedVariants, i.selectedVariant?.id, i.selectedBrandName),
         })),
       };
     default:
@@ -87,7 +98,7 @@ interface CartContextType {
   items: CartItem[];
   totalItems: number;
   subtotal: number;
-  addToCart: (product: Product, company?: string | null, variant?: SelectedVariant | null, allVariants?: Record<string, SelectedVariant>, brandName?: string | null) => void;
+  addToCart: (product: Product, company?: string | null, variant?: SelectedVariant | null, allVariants?: Record<string, SelectedVariant>, brandName?: string | null, quantity?: number) => void;
   removeFromCart: (cartKey: string) => void;
   updateQuantity: (cartKey: string, quantity: number) => void;
   clearCart: () => void;
@@ -127,8 +138,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         items: state.items,
         totalItems,
         subtotal,
-        addToCart: (product, company, variant, allVariants, brandName) =>
-          dispatch({ type: 'ADD', product, company, variant, allVariants, brandName }),
+        addToCart: (product, company, variant, allVariants, brandName, quantity) =>
+          dispatch({ type: 'ADD', product, company, variant, allVariants, brandName, quantity }),
         removeFromCart: (cartKey) => dispatch({ type: 'REMOVE', cartKey }),
         updateQuantity: (cartKey, quantity) =>
           dispatch({ type: 'UPDATE_QTY', cartKey, quantity }),

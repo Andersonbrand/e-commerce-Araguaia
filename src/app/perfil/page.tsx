@@ -1,8 +1,11 @@
 'use client';
 
+import { friendlyError } from '@/lib/friendly-error';
+import Button from '@/components/ui/Button';
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import Select from '@/components/ui/Select';
 import AppIcon from '@/components/ui/AppIcon';
 import AppLogo from '@/components/ui/AppLogo';
 import { createClient } from '@/lib/supabase/client';
@@ -84,16 +87,21 @@ export default function PerfilPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || saving) return; // evita gravação duplicada
     setSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase.from('user_profiles').upsert(
-      { ...profile, id: user.id, updated_at: new Date().toISOString() },
-      { onConflict: 'id' }
-    );
-    setSaving(false);
-    if (error) { toast.error('Erro ao salvar: ' + error.message); return; }
-    toast.success('Perfil atualizado!');
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from('user_profiles').upsert(
+        { ...profile, id: user.id, updated_at: new Date().toISOString() },
+        { onConflict: 'id' }
+      );
+      if (error) { toast.error(friendlyError(error, 'salvar o perfil')); return; }
+      toast.success('Perfil atualizado!');
+    } catch (err: any) {
+      toast.error(friendlyError(err, 'salvar o perfil'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const markRead = async (id: string) => {
@@ -217,25 +225,17 @@ export default function PerfilPage() {
                     <label className="text-[10px] uppercase tracking-[0.2em] font-bold text-muted block mb-2">
                       Estado
                     </label>
-                    <select
-                      name="address_state"
-                      value={profile.address_state ?? ''}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
-                    >
-                      <option value="">Selecione...</option>
-                      {BR_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <Select name="address_state" value={profile.address_state ?? ''}
+                      onChange={(v) => setProfile((prev) => ({ ...prev, address_state: v }))}
+                      placeholder="Selecione..." options={[{ value: '', label: 'Selecione...' }, ...BR_STATES]} />
                   </div>
                 </div>
 
                 <div className="flex justify-end pt-2">
-                  <button type="submit" disabled={saving}
+                  <Button type="submit" loading={saving}
                     className="px-10 py-3.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary-dark transition-all shadow-red-lg disabled:opacity-60 flex items-center gap-2">
-                    {saving
-                      ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Salvando...</>
-                      : <><AppIcon name="CheckIcon" size={16} />Salvar Alterações</>}
-                  </button>
+                    <AppIcon name="CheckIcon" size={16} />Salvar Alterações
+                  </Button>
                 </div>
               </form>
             )}

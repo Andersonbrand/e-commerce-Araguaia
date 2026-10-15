@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '@/components/ui/Button';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -72,7 +73,7 @@ export default function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleSignOut = async () => { await signOut(); router.push('/homepage'); };
+  const handleSignOut = async () => { await signOut(); router.push('/homepage'); }; // usado em <Button>: trava e mostra "Carregando..." até concluir
   const headerAccent = company?.primaryColor ?? '#af1518';
 
   return (
@@ -94,7 +95,7 @@ export default function Header() {
         <div className="flex items-center justify-between gap-4">
 
           {/* Logo */}
-          <Link href="/homepage" onClick={() => setActiveCompany(null)} className="flex items-center gap-3 group flex-shrink-0">
+          <Link href="/homepage" data-no-ripple onClick={() => setActiveCompany(null)} className="flex items-center gap-3 group flex-shrink-0">
             <AppLogo size={38} />
             <div className="flex flex-col leading-none">
               {isGrupoView ? (
@@ -173,9 +174,9 @@ export default function Header() {
                   </div>
                   <span className="text-[12px] font-bold text-foreground max-w-[80px] truncate">{displayName}</span>
                 </Link>
-                <button onClick={handleSignOut} className="text-[11px] uppercase tracking-widest font-bold text-muted hover:text-foreground transition-colors flex items-center gap-1">
+                <Button onClick={handleSignOut} className="text-[11px] uppercase tracking-widest font-bold text-muted hover:text-foreground transition-colors flex items-center gap-1">
                   <AppIcon name="ArrowLeftEndOnRectangleIcon" size={13} />Sair
-                </button>
+                </Button>
               </div>
             ) : (
               <Link href="/login" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border hover:bg-surface transition-all text-[11px] font-bold text-muted uppercase tracking-widest">
@@ -265,10 +266,10 @@ export default function Header() {
                   </div>
                   <span className="text-[13px] font-bold text-foreground">{displayName}</span>
                 </Link>
-                <button onClick={() => { handleSignOut(); setMenuOpen(false); }}
+                <Button onClick={async () => { await handleSignOut(); setMenuOpen(false); }}
                   className="flex items-center gap-1.5 text-[12px] font-bold text-muted hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-surface">
                   <AppIcon name="ArrowLeftEndOnRectangleIcon" size={14} />Sair
-                </button>
+                </Button>
               </div>
             ) : (
               <Link href="/login" onClick={() => setMenuOpen(false)}

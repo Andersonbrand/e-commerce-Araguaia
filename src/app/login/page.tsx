@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '@/components/ui/Button';
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -22,15 +23,21 @@ function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // evita envio duplicado
     setLoading(true);
-    const { error } = await signIn(form.email, form.password);
-    if (error) { setLoading(false); toast.error('E-mail ou senha inválidos.'); return; }
-    toast.success('Bem-vindo!');
-    // Aguarda o Supabase propagar a sessão nos cookies antes de navegar.
-    // router.refresh() logo após router.push() cancela a navegação em curso
-    // causando o tela de loading infinito — por isso usamos só window.location.
-    await new Promise(resolve => setTimeout(resolve, 300));
-    window.location.href = redirectTo;
+    try {
+      const { error } = await signIn(form.email, form.password);
+      if (error) { setLoading(false); toast.error('E-mail ou senha inválidos.'); return; }
+      toast.success('Bem-vindo!');
+      // Aguarda o Supabase propagar a sessão nos cookies antes de navegar.
+      // router.refresh() logo após router.push() cancela a navegação em curso
+      // causando o tela de loading infinito — por isso usamos só window.location.
+      await new Promise(resolve => setTimeout(resolve, 300));
+      window.location.href = redirectTo; // o botão permanece em "Carregando..." até a página trocar
+    } catch {
+      setLoading(false);
+      toast.error('Não foi possível entrar agora. Verifique sua conexão e tente novamente.');
+    }
   };
 
   return (
@@ -79,13 +86,10 @@ function LoginForm() {
                 </button>
               </div>
             </div>
-            <button type="submit" disabled={loading}
-              className="w-full py-3.5 rounded-xl text-white text-[12px] font-bold uppercase tracking-widest transition-all shadow-lg disabled:opacity-60 flex items-center justify-center gap-2"
-              style={{ backgroundColor: '#0a1a3a' }}>
-              {loading ? (
-                <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Entrando...</>
-              ) : 'Entrar'}
-            </button>
+            <Button type="submit" loading={loading}
+              className="w-full py-3.5 rounded-xl text-white text-[12px] font-bold uppercase tracking-widest transition-all shadow-lg disabled:opacity-60 flex items-center justify-center gap-2" style={{ backgroundColor: '#0a1a3a' }}>
+              Entrar
+            </Button>
           </form>
 
           <div className="flex items-center gap-3 my-6">

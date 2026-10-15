@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '@/components/ui/Button';
 import React, { useState, useEffect, useRef } from 'react';
 import AppIcon from '@/components/ui/AppIcon';
 import ProductImage from '@/components/ui/ProductImage';
@@ -525,6 +526,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+    if (saving) return; // evita envio duplicado
         if (!form.name.trim()) { toast.error('Informe o nome do produto.'); return; }
         if (!form.category.trim()) { toast.error('Escolha uma categoria para o produto. Para criar novas, use "Gerenciar Categorias".'); return; }
         if (hasVariants && variants.some((v) => !v.label.trim())) {
@@ -672,14 +674,14 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                     {/* Categoria + Unidade */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <Field label="Categoria" required hint="Para criar ou editar categorias, use “Gerenciar Categorias” no painel.">
-                            <Select name="category" value={form.category} onChange={handleChange}>
-                                {allCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                            </Select>
+                            <Select name="category" value={form.category}
+                                onChange={(v) => handleChange({ target: { name: 'category', value: v, type: 'select-one' } } as any)}
+                                options={allCategories} />
                         </Field>
                         <Field label="Unidade" required>
-                            <Select name="unit" value={form.unit} onChange={handleChange}>
-                                {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                            </Select>
+                            <Select name="unit" value={form.unit}
+                                onChange={(v) => handleChange({ target: { name: 'unit', value: v, type: 'select-one' } } as any)}
+                                options={UNITS} />
                         </Field>
                     </div>
 
@@ -929,42 +931,26 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
                                                         <label className="text-[9px] uppercase tracking-widest font-bold text-muted block mb-1">Quando grupo</label>
-                                                        <select
-                                                            value={rule.whenGroup}
-                                                            onChange={(e) => updateVariantRule(rule.tempId, 'whenGroup', e.target.value)}
-                                                            className="w-full px-2 py-1.5 rounded-lg border border-border bg-white text-xs focus:outline-none focus:border-purple-400"
-                                                        >
-                                                            {variantGroups.map((g) => (
-                                                                <option key={g.groupName} value={g.groupName}>{g.groupName}</option>
-                                                            ))}
-                                                        </select>
+                                                        <Select size="sm" value={rule.whenGroup}
+                                                            onChange={(v) => updateVariantRule(rule.tempId, 'whenGroup', v)}
+                                                            options={variantGroups.map((g) => g.groupName)} />
                                                     </div>
                                                     <div>
                                                         <label className="text-[9px] uppercase tracking-widest font-bold text-muted block mb-1">For igual a</label>
-                                                        <select
-                                                            value={rule.whenLabel}
-                                                            onChange={(e) => updateVariantRule(rule.tempId, 'whenLabel', e.target.value)}
-                                                            className="w-full px-2 py-1.5 rounded-lg border border-border bg-white text-xs focus:outline-none focus:border-purple-400"
-                                                        >
-                                                            {whenItems.map((v) => (
-                                                                <option key={v.tempId} value={v.label}>{v.label || '(sem label)'}</option>
-                                                            ))}
-                                                        </select>
+                                                        <Select size="sm" value={rule.whenLabel}
+                                                            onChange={(v) => updateVariantRule(rule.tempId, 'whenLabel', v)}
+                                                            options={whenItems.map((v) => ({ value: v.label, label: v.label || '(sem label)' }))} />
                                                     </div>
                                                 </div>
 
                                                 {/* PERMITE */}
                                                 <div>
                                                     <label className="text-[9px] uppercase tracking-widest font-bold text-muted block mb-1">Permitir no grupo</label>
-                                                    <select
-                                                        value={rule.allowsGroup}
-                                                        onChange={(e) => updateVariantRule(rule.tempId, 'allowsGroup', e.target.value)}
-                                                        className="w-full px-2 py-1.5 rounded-lg border border-border bg-white text-xs focus:outline-none focus:border-purple-400 mb-2"
-                                                    >
-                                                        {otherGroups.map((g) => (
-                                                            <option key={g} value={g}>{g}</option>
-                                                        ))}
-                                                    </select>
+                                                    <div className="mb-2">
+                                                        <Select size="sm" value={rule.allowsGroup}
+                                                            onChange={(v) => updateVariantRule(rule.tempId, 'allowsGroup', v)}
+                                                            options={otherGroups} />
+                                                    </div>
 
                                                     <label className="text-[9px] uppercase tracking-widest font-bold text-muted block mb-1">
                                                         Opções permitidas — <span className="text-purple-500 normal-case">marque as que ficarão disponíveis</span>
@@ -1178,12 +1164,10 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                             className="flex-1 py-3.5 rounded-xl border border-border text-sm font-bold text-foreground hover:bg-surface transition-colors">
                             Cancelar
                         </button>
-                        <button type="submit" disabled={saving || uploading}
-                            className="flex-1 py-3.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg disabled:opacity-60 flex items-center justify-center gap-2">
-                            {saving
-                                ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Salvando...</>
-                                : <><AppIcon name="CheckIcon" size={16} />{product ? 'Salvar Alterações' : 'Cadastrar Produto'}</>}
-                        </button>
+                        <Button type="submit" loading={saving} disabled={uploading}
+                          className="flex-1 py-3.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg disabled:opacity-60 flex items-center justify-center gap-2">
+                          <AppIcon name="CheckIcon" size={16} />{product ? 'Salvar Alterações' : 'Cadastrar Produto'}
+                        </Button>
                     </div>
                 </form>
             </div>

@@ -6,6 +6,8 @@ import AppLogo, { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
 import ProductImage from '@/components/ui/ProductImage';
 import { Input } from '@/components/ui/FormControls';
+import Select from '@/components/ui/Select';
+import Button from '@/components/ui/Button';
 import ProductModal from './ProductModal';
 import QuoteResponseModal from './QuoteResponseModal';
 import RequestEditModal from './RequestEditModal';
@@ -59,6 +61,11 @@ export default function AdminPanel() {
   const [respondingTo, setRespondingTo]     = useState<any | null>(null);
   const [activeCompanyFilter, setActiveCompanyFilter] = useState<CompanyId | 'all'>('all');
   const [togglingPrices, setTogglingPrices] = useState(false);
+  // Operações em andamento: bloqueiam o botão até concluir (evitam cliques duplicados)
+  const [deletingProduct, setDeletingProduct]   = useState(false);
+  const [removingCategory, setRemovingCategory] = useState(false);
+  const [busyProductId, setBusyProductId]       = useState<string | null>(null);
+  const [busyRequestId, setBusyRequestId]       = useState<string | null>(null);
   const [showCatManager, setShowCatManager] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null);
   // Sidebar / gaveta de categorias
@@ -135,35 +142,53 @@ export default function AdminPanel() {
     [requests, activeCompanyFilter]);
 
   const handleTogglePrices = async () => {
+    if (togglingPrices) return;
     setTogglingPrices(true);
-    await togglePrices();
-    setTogglingPrices(false);
-    toast.success(!showPrices ? 'Preços visíveis ao público.' : 'Preços ocultados — exibindo "Sob consulta".');
+    try {
+      await togglePrices();
+      toast.success(!showPrices ? 'Preços visíveis ao público.' : 'Preços ocultados — exibindo "Sob consulta".');
+    } catch (err: any) {
+      toast.error(friendlyError(err, 'alterar a exibição de preços'));
+    } finally {
+      setTogglingPrices(false);
+    }
   };
 
   const handleUpdateStatus = async (req: UnifiedRequest, status: string) => {
-    const table = req.source === 'cart' ? 'orders' : 'quotes';
-    const { data, error } = await supabase.from(table).update({ status }).eq('id', req.id).select('id');
-    if (error || !data || data.length === 0) {
-      if (error) console.error('[AdminPanel] status:', error);
-      toast.error(error ? friendlyError(error, 'atualizar o status') : 'O status não foi alterado. A solicitação pode ter sido removida ou você não tem permissão.');
-      return;
+    if (busyRequestId) return;
+    setBusyRequestId(req.id);
+    try {
+      const table = req.source === 'cart' ? 'orders' : 'quotes';
+      const { data, error } = await supabase.from(table).update({ status }).eq('id', req.id).select('id');
+      if (error || !data || data.length === 0) {
+        if (error) console.error('[AdminPanel] status:', error);
+        toast.error(error ? friendlyError(error, 'atualizar o status') : 'O status não foi alterado. A solicitação pode ter sido removida ou você não tem permissão.');
+        return;
+      }
+      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status } : r));
+      toast.success('Status atualizado!');
+    } finally {
+      setBusyRequestId(null);
     }
-    setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status } : r));
-    toast.success('Status atualizado!');
   };
 
   const handleDelete = async (id: string) => {
-    const { data, error } = await supabase.from('products').delete().eq('id', id).select('id');
-    if (error || !data || data.length === 0) {
-      if (error) console.error('[AdminPanel] excluir produto:', error);
-      toast.error(error ? friendlyError(error, 'excluir o produto') : 'O produto não foi excluído. Ele pode já ter sido removido ou você não tem permissão.');
+    if (deletingProduct) return;
+    setDeletingProduct(true);
+    try {
+      const { data, error } = await supabase.from('products').delete().eq('id', id).select('id');
+      if (error || !data || data.length === 0) {
+        if (error) console.error('[AdminPanel] excluir produto:', error);
+        toast.error(error ? friendlyError(error, 'excluir o produto') : 'O produto não foi excluído. Ele pode já ter sido removido ou você não tem permissão.');
+        setDeleteConfirm(null);
+        return;
+      }
+      toast.success('Produto removido.');
       setDeleteConfirm(null);
-      return;
+      fetchAll();
+    } finally {
+      setDeletingProduct(false);
     }
-    toast.success('Produto removido.');
-    setDeleteConfirm(null);
-    fetchAll();
   };
 
   const handleCreateCategory = async () => {
@@ -173,9 +198,16 @@ export default function AdminPanel() {
     if (name.toLowerCase() === 'todos') { toast.error('"Todos" é um nome reservado para o filtro. Escolha outro nome.'); return; }
     const existing = categories.find((c) => c !== 'Todos' && c.toLowerCase() === name.toLowerCase());
     if (existing) { toast.error(`Já existe a categoria "${existing}".`); return; }
+    if (creatingCategory) return;
     setCreatingCategory(true);
-    const { error } = await supabase.from('product_categories').insert({ name });
-    setCreatingCategory(false);
+    let error: any = null;
+    try {
+      ({ error } = await supabase.from('product_categories').insert({ name }));
+    } catch (err) {
+      error = err;
+    } finally {
+      setCreatingCategory(false);
+    }
     if (error) {
       console.error('[AdminPanel] criar categoria:', error);
       const missingTable = error.code === '42P01' || /product_categories/i.test(error.message ?? '');
@@ -190,19 +222,25 @@ export default function AdminPanel() {
   };
 
   const handleDeleteCategory = async (cat: string) => {
-    // Move todos os produtos dessa categoria para 'Outros' e remove a categoria
-    const { error } = await supabase.from('products').update({ category: 'Outros' }).eq('category', cat);
-    if (error) {
-      console.error('[AdminPanel] excluir categoria:', error);
-      toast.error(friendlyError(error, 'excluir a categoria'));
-      return;
+    if (removingCategory) return;
+    setRemovingCategory(true);
+    try {
+      // Move todos os produtos dessa categoria para 'Outros' e remove a categoria
+      const { error } = await supabase.from('products').update({ category: 'Outros' }).eq('category', cat);
+      if (error) {
+        console.error('[AdminPanel] excluir categoria:', error);
+        toast.error(friendlyError(error, 'excluir a categoria'));
+        return;
+      }
+      await supabase.from('product_categories').delete().eq('name', cat); // ignora erro: tabela pode não existir
+      setStoredCategories((prev) => prev.filter((c) => c !== cat));
+      toast.success(`Categoria "${cat}" removida. Produtos movidos para "Outros".`);
+      setDeletingCategory(null);
+      if (activeCategory === cat) setActiveCategory('Todos');
+      fetchAll();
+    } finally {
+      setRemovingCategory(false);
     }
-    await supabase.from('product_categories').delete().eq('name', cat); // ignora erro: tabela pode não existir
-    setStoredCategories((prev) => prev.filter((c) => c !== cat));
-    toast.success(`Categoria "${cat}" removida. Produtos movidos para "Outros".`);
-    setDeletingCategory(null);
-    if (activeCategory === cat) setActiveCategory('Todos');
-    fetchAll();
   };
 
   // Renomear categoria: atualiza a categoria de todos os produtos que a usam
@@ -213,6 +251,7 @@ export default function AdminPanel() {
   };
 
   const handleRenameCategory = async (oldName: string) => {
+    if (savingCategory) return;
     const newName = renameValue.trim().replace(/\s+/g, ' ');
     if (!newName) { toast.error('Informe o novo nome da categoria.'); return; }
     if (newName.length > 50) { toast.error('O nome da categoria pode ter no máximo 50 caracteres.'); return; }
@@ -241,7 +280,7 @@ export default function AdminPanel() {
 
   // Excluir solicitação (e as respostas já enviadas para ela)
   const handleDeleteRequest = async () => {
-    if (!deleteRequestTarget) return;
+    if (!deleteRequestTarget || deletingRequest) return;
     const req = deleteRequestTarget;
     setDeletingRequest(true);
     try {
@@ -266,8 +305,19 @@ export default function AdminPanel() {
   };
 
   const handleToggleActive = async (product: Product) => {
-    await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id);
-    fetchAll();
+    if (busyProductId) return;
+    setBusyProductId(product.id);
+    try {
+      const { error } = await supabase.from('products').update({ is_active: !product.is_active }).eq('id', product.id);
+      if (error) {
+        console.error('[AdminPanel] ativar/desativar produto:', error);
+        toast.error(friendlyError(error, 'alterar o status do produto'));
+        return;
+      }
+      await fetchAll();
+    } finally {
+      setBusyProductId(null);
+    }
   };
 
   const navItems: { id: Tab; label: string; icon: string; badge?: number }[] = [
@@ -347,11 +397,11 @@ export default function AdminPanel() {
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${showPrices ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
           </div>
-          <button onClick={() => signOut()}
+          <Button onClick={() => signOut()}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted hover:bg-red-50 hover:text-primary transition-colors">
             <AppIcon name="ArrowLeftEndOnRectangleIcon" size={18} />
             <span className="text-sm font-medium">Sair</span>
-          </button>
+          </Button>
         </div>
       </>
     );
@@ -540,7 +590,7 @@ export default function AdminPanel() {
                         <p className={`text-sm font-bold ${product.stock < 50 ? 'text-primary' : 'text-foreground'}`}>{product.stock}</p>
                       </div>
                       <div className="col-span-2 hidden md:flex items-center gap-2">
-                        <button onClick={() => handleToggleActive(product)}
+                        <button onClick={() => handleToggleActive(product)} disabled={busyProductId === product.id}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${product.is_active ? 'bg-primary' : 'bg-border'}`}>
                           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${product.is_active ? 'translate-x-4' : 'translate-x-0.5'}`} />
                         </button>
@@ -613,12 +663,23 @@ export default function AdminPanel() {
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
                         {req.total != null && req.total > 0 && <span className="text-lg font-bold text-primary">R$ {req.total.toFixed(2).replace('.', ',')}</span>}
-                        <select value={req.status} onChange={(e) => handleUpdateStatus(req, e.target.value)}
-                          className={`text-[11px] font-bold px-3 py-1.5 rounded-xl border focus:outline-none cursor-pointer ${STATUS_STYLES[req.status] ?? 'bg-surface border-border text-muted'}`}>
-                          {req.source === 'cart'
-                            ? <><option value="pending">Pendente</option><option value="confirmed">Confirmado</option><option value="delivered">Entregue</option><option value="cancelled">Cancelado</option></>
-                            : <><option value="new">Novo</option><option value="read">Lido</option><option value="replied">Respondido</option></>}
-                        </select>
+                        <Select size="pill" fit menuMinWidth={170} disabled={busyRequestId === req.id}
+                          value={req.status}
+                          onChange={(v) => handleUpdateStatus(req, v)}
+                          aria-label="Status da solicitação"
+                          toneClassName={STATUS_STYLES[req.status] ?? 'bg-surface border-border text-muted'}
+                          options={req.source === 'cart'
+                            ? [
+                                { value: 'pending', label: 'Pendente', dot: 'bg-yellow-400' },
+                                { value: 'confirmed', label: 'Confirmado', dot: 'bg-blue-500' },
+                                { value: 'delivered', label: 'Entregue', dot: 'bg-green-500' },
+                                { value: 'cancelled', label: 'Cancelado', dot: 'bg-gray-400' },
+                              ]
+                            : [
+                                { value: 'new', label: 'Novo', dot: 'bg-red-500' },
+                                { value: 'read', label: 'Lido', dot: 'bg-gray-400' },
+                                { value: 'replied', label: 'Respondido', dot: 'bg-green-500' },
+                              ]} />
                       </div>
                       {/* Ações: responder, editar, excluir */}
                       <div className="flex items-center gap-2 shrink-0">
@@ -676,8 +737,8 @@ export default function AdminPanel() {
             <h3 className="text-xl font-bold text-center text-foreground mb-2">Confirmar Exclusão</h3>
             <p className="text-sm text-muted text-center mb-8">Esta ação não pode ser desfeita.</p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 rounded-xl border border-border text-sm font-bold text-foreground hover:bg-surface transition-colors">Cancelar</button>
-              <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors">Excluir</button>
+              <button onClick={() => setDeleteConfirm(null)} disabled={deletingProduct} className="flex-1 py-3 rounded-xl border border-border text-sm font-bold text-foreground hover:bg-surface transition-colors">Cancelar</button>
+              <Button onClick={() => handleDelete(deleteConfirm)} loading={deletingProduct} className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors">Excluir</Button>
             </div>
           </div>
         </div>
@@ -781,10 +842,10 @@ export default function AdminPanel() {
             <div className="flex gap-3">
               <button onClick={() => setDeleteRequestTarget(null)} disabled={deletingRequest}
                 className="flex-1 py-3 rounded-xl border border-border text-sm font-bold text-foreground hover:bg-surface transition-colors">Cancelar</button>
-              <button onClick={handleDeleteRequest} disabled={deletingRequest}
-                className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors disabled:opacity-60">
-                {deletingRequest ? 'Excluindo...' : 'Excluir'}
-              </button>
+              <Button onClick={handleDeleteRequest} loading={deletingRequest}
+                className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors">
+                Excluir
+              </Button>
             </div>
           </div>
         </div>
@@ -817,11 +878,11 @@ export default function AdminPanel() {
                   <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} maxLength={50}
                     placeholder="Ex: Telhas Metálicas" className="flex-1"
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory(); } }} />
-                  <button type="button" onClick={handleCreateCategory} disabled={creatingCategory || !newCategoryName.trim()}
+                  <Button type="button" onClick={handleCreateCategory} loading={creatingCategory} disabled={!newCategoryName.trim()}
                     className="shrink-0 flex items-center gap-1.5 px-4 rounded-[0.875rem] bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <AppIcon name="PlusIcon" size={15} />
-                    {creatingCategory ? 'Criando...' : 'Criar'}
-                  </button>
+                    Criar
+                  </Button>
                 </div>
               </div>
               <p className="text-xs text-muted mb-3">
@@ -839,10 +900,10 @@ export default function AdminPanel() {
                         <input autoFocus value={renameValue} onChange={(e) => setRenameValue(e.target.value)} maxLength={50}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleRenameCategory(cat); if (e.key === 'Escape') setRenamingCategory(null); }}
                           className="flex-1 min-w-0 px-3 py-1.5 rounded-lg border border-primary bg-white text-sm focus:outline-none" />
-                        <button onClick={() => handleRenameCategory(cat)} disabled={savingCategory}
-                          className="px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark transition-colors disabled:opacity-60">
-                          {savingCategory ? 'Salvando...' : 'Salvar'}
-                        </button>
+                        <Button onClick={() => handleRenameCategory(cat)} loading={savingCategory}
+                          className="px-3 py-1.5 rounded-lg bg-primary text-white text-[11px] font-bold hover:bg-primary-dark transition-colors">
+                          Salvar
+                        </Button>
                         <button onClick={() => setRenamingCategory(null)}
                           className="px-3 py-1.5 rounded-lg border border-border text-muted text-[11px] font-bold hover:bg-surface transition-colors">
                           Cancelar
@@ -873,11 +934,11 @@ export default function AdminPanel() {
                         ) : (
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-[11px] text-red-600 font-bold">Confirmar?</span>
-                            <button onClick={() => handleDeleteCategory(cat)}
+                            <Button onClick={() => handleDeleteCategory(cat)} loading={removingCategory}
                               className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-[11px] font-bold hover:bg-red-700 transition-colors">
                               Sim
-                            </button>
-                            <button onClick={() => setDeletingCategory(null)}
+                            </Button>
+                            <button onClick={() => setDeletingCategory(null)} disabled={removingCategory}
                               className="px-2.5 py-1 rounded-lg border border-border text-muted text-[11px] font-bold hover:bg-surface transition-colors">
                               Não
                             </button>

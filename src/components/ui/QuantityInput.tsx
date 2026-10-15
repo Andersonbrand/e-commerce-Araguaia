@@ -70,7 +70,7 @@ export default function QuantityInput({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         onClick={() => inputRef.current?.select()}
-        className={`${size === 'sm' ? inputSm : inputMd} text-center font-bold text-foreground bg-transparent border-none outline-none select-all
+        className={`${size === 'sm' ? inputSm : inputMd} p-0 text-center font-bold text-foreground bg-transparent border-none outline-none shadow-none focus:shadow-none select-all
           [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
         aria-label="Quantidade"
       />

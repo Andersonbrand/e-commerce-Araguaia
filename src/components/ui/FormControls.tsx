@@ -73,19 +73,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   );
 });
 
-/* ---------- Select ---------- */
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  invalid?: boolean;
-}
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { invalid, className, children, ...props }, ref
-) {
-  return (
-    <select ref={ref} aria-invalid={invalid || undefined} className={cx('field-control w-full', className)} {...props}>
-      {children}
-    </select>
-  );
-});
+/* ---------- Select ----------
+   Dropdown próprio da aplicação (lista de opções no padrão do site, não a do navegador).
+   Uso: <Select value={v} onChange={(valor) => ...} options={['A', 'B']} /> — veja components/ui/Select.tsx */
+export { default as Select } from './Select';
+export type { SelectOption } from './Select';
 
 /* ---------- Textarea ---------- */
 interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {

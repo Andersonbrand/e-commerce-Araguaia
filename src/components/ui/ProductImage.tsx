@@ -15,7 +15,7 @@ import AppImage from '@/components/ui/AppImage';
  * Variantes:
  *  - thumb   → miniatura quadrada (lista do admin, carrinho). O tamanho vem do pai (w-10, w-20…).
  *  - card    → card do catálogo, destaques da home e relacionados (proporção 4:3).
- *  - detail  → imagem principal da página do produto (quadrada, respiro maior).
+ *  - detail  → imagem principal da página do produto (quadrada, respiro mínimo para preencher a moldura).
  *  - fill    → preenche 100% do pai posicionado (cards bento da home, preview do admin).
  *              Use `padding` para reservar espaço (ex.: para o texto sobreposto).
  */
@@ -45,7 +45,7 @@ export const FALLBACK_IMAGE = '/assets/images/no_image.png';
 const VARIANTS: Record<ProductImageVariant, { frame: string; padding: number; sizes: string }> = {
   thumb:  { frame: 'relative w-full aspect-square',  padding: 4,  sizes: '96px' },
   card:   { frame: 'relative w-full aspect-[4/3]',   padding: 12, sizes: '(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw' },
-  detail: { frame: 'relative w-full aspect-square',  padding: 32, sizes: '(max-width: 1024px) 100vw, 50vw' },
+  detail: { frame: 'relative w-full aspect-square',  padding: 8,  sizes: '(max-width: 1024px) 100vw, 50vw' },
   fill:   { frame: 'absolute inset-0',               padding: 8,  sizes: '(max-width: 768px) 100vw, 40vw' },
 };
 

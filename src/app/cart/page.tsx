@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '@/components/ui/Button';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
@@ -50,6 +51,7 @@ export default function CartPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!items.length) return;
+    if (loading) return; // evita envio duplicado
     setLoading(true);
     try {
       const orderItems = items.map((i) => ({
@@ -289,12 +291,10 @@ export default function CartPage() {
                         placeholder="Prazo, endereço de entrega..."
                         className="w-full px-3 py-2.5 rounded-xl border border-border bg-white/80 text-sm text-foreground placeholder:text-muted/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all resize-none" />
                     </div>
-                    <button type="submit" disabled={loading}
+                    <Button type="submit" loading={loading}
                       className="w-full mt-1 py-4 rounded-xl bg-primary text-white text-[12px] font-bold uppercase tracking-widest hover:bg-primary-dark transition-all shadow-red-lg disabled:opacity-60 flex items-center justify-center gap-2">
-                      {loading
-                        ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Enviando...</>
-                        : <><AppIcon name="PaperAirplaneIcon" size={16} />Solicitar Orçamento</>}
-                    </button>
+                      <AppIcon name="PaperAirplaneIcon" size={16} />Solicitar Orçamento
+                    </Button>
                     <p className="text-[11px] text-muted text-center flex items-center justify-center gap-1 mt-1">
                       <AppIcon name="LockClosedIcon" size={11} />Sem compromisso · retorno em 2h úteis
                     </p>

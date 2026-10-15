@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '@/components/ui/Button';
 import React, { useState, useRef } from 'react';
 import AppIcon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
@@ -47,6 +48,7 @@ export default function QuoteResponseModal({ request, onClose, onSent }: Props) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (sending) return; // evita envio duplicado
     setSending(true);
     try {
       let pdf_url  = null;
@@ -203,14 +205,10 @@ export default function QuoteResponseModal({ request, onClose, onSent }: Props) 
               className="flex-1 py-3.5 rounded-xl border border-border text-sm font-bold text-foreground hover:bg-surface transition-colors">
               Cancelar
             </button>
-            <button type="submit" disabled={sending || uploading}
+            <Button type="submit" loading={sending || uploading}
               className="flex-1 py-3.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg disabled:opacity-60 flex items-center justify-center gap-2">
-              {sending || uploading ? (
-                <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>{uploading ? 'Enviando PDF...' : 'Enviando...'}</>
-              ) : (
-                <><AppIcon name="PaperAirplaneIcon" size={16} />Enviar Resposta</>
-              )}
-            </button>
+              <AppIcon name="PaperAirplaneIcon" size={16} />Enviar Resposta
+            </Button>
           </div>
         </form>
       </div>

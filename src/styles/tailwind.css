@@ -111,8 +111,13 @@ body {
    ajustar largura, padding etc.). Os componentes de src/components/ui/FormControls
    usam as mesmas classes (.field-control).
    ========================================================================== */
-:where(input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']):not([type='color']):not([type='submit']):not([type='button']),
-       select, textarea),
+/* IMPORTANTE: o seletor do elemento (input/select/textarea) fica FORA do :where().
+   Dentro do :where() a especificidade é zero e o reset do Tailwind (`input { padding: 0 }`) vencia,
+   deixando campos sem espaçamento. Assim empata com o reset, ganha por vir depois, e ainda perde
+   para qualquer classe utilitária (px-*, border-*, bg-*...). */
+input:where(:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='hidden']):not([type='color']):not([type='submit']):not([type='button'])),
+select,
+textarea,
 .field-control {
     box-sizing: border-box;
     max-width: 100%;
@@ -143,16 +148,17 @@ body {
     color: var(--muted);
     cursor: not-allowed;
 }
-:where(input, textarea)::placeholder,
-.field-control::placeholder { color: rgba(90, 98, 114, 0.55); }
+input::placeholder,
+textarea::placeholder,
+.field-control::placeholder { color: rgba(90, 98, 114, 0.55); opacity: 1; }
 .field-control[aria-invalid='true'] {
     border-color: #dc2626;
     box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08);
 }
-:where(textarea), textarea.field-control { resize: vertical; min-height: 5rem; }
+textarea, textarea.field-control { resize: vertical; min-height: 5rem; }
 
 /* Select: remove a seta nativa e usa um chevron suave, sempre com folga da borda */
-:where(select), select.field-control {
+select, select.field-control {
     -webkit-appearance: none;
     appearance: none;
     padding-right: 2.5rem;
@@ -216,3 +222,26 @@ input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; marg
 /* Painel lateral de categorias do admin */
 @keyframes cat-panel-in { from { transform: translateX(-12px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .cat-panel { animation: cat-panel-in 0.18s ease-out; }
+
+/* Lista do dropdown próprio (components/ui/Select.tsx) */
+@keyframes select-menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.select-menu { animation: select-menu-in 0.14s ease-out; }
+
+/* ---------- Efeito de clique e estado dos botões ---------- */
+/* "Afundar" leve enquanto o botão está pressionado (a onda de clique vem de components/ui/ClickEffects.tsx) */
+button:not(:disabled):not([role='option']):not(.no-press):not([data-no-press]):active,
+a[data-ripple]:not([data-no-ripple]):active,
+header a:not([data-no-ripple]):active {
+    transform: scale(0.97);
+}
+@layer base {
+    button, a[data-ripple], header a {
+        transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+        transition-duration: 0.15s;
+        transition-timing-function: ease;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+    button:disabled { cursor: not-allowed; opacity: 0.6; }
+    button[aria-busy='true']:disabled { cursor: progress; }
+}

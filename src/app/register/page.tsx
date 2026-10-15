@@ -1,5 +1,6 @@
 'use client';
 
+import Button from '@/components/ui/Button';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -20,13 +21,19 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // evita cadastro duplicado
     if (form.password !== form.confirm) { toast.error('As senhas não coincidem.'); return; }
     if (form.password.length < 6)       { toast.error('Senha mínima de 6 caracteres.'); return; }
     setLoading(true);
-    const { error } = await signUp(form.email, form.password, form.name);
-    setLoading(false);
-    if (error) { toast.error(error); }
-    else        { toast.success('Cadastro realizado! Verifique seu e-mail.'); router.push('/login'); }
+    try {
+      const { error } = await signUp(form.email, form.password, form.name);
+      if (error) { toast.error(error); }
+      else       { toast.success('Cadastro realizado! Verifique seu e-mail.'); router.push('/login'); }
+    } catch {
+      toast.error('Não foi possível criar a conta agora. Verifique sua conexão e tente novamente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,12 +85,10 @@ export default function RegisterPage() {
               </div>
             ))}
 
-            <button type="submit" disabled={loading}
+            <Button type="submit" loading={loading}
               className="w-full py-3.5 rounded-xl text-white text-[12px] font-bold uppercase tracking-widest transition-all shadow-lg disabled:opacity-60 flex items-center justify-center gap-2" style={{ backgroundColor: '#0a1a3a' }}>
-              {loading
-                ? <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>Criando conta...</>
-                : 'Criar Conta'}
-            </button>
+              Criar Conta
+            </Button>
           </form>
 
           <div className="flex items-center gap-3 my-6">

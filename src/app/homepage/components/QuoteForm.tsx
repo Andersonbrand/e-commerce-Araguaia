@@ -1,6 +1,8 @@
 'use client';
 
+import Button from '@/components/ui/Button';
 import React, { useState } from 'react';
+import Select from '@/components/ui/Select';
 import AppIcon from '@/components/ui/AppIcon';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
@@ -24,6 +26,7 @@ export default function QuoteForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return; // evita envio duplicado
         setLoading(true);
         try {
             const { error } = await supabase.from('quotes').insert([{
@@ -92,10 +95,9 @@ export default function QuoteForm() {
                                 ))}
                                 <div className="md:col-span-2">
                                     <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-3">Categoria de Materiais *</label>
-                                    <select name="category" required value={form.category} onChange={handleChange} className="form-input bg-transparent cursor-pointer">
-                                        <option value="" disabled>Selecione uma categoria...</option>
-                                        {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                                    </select>
+                                    <Select name="category" required value={form.category}
+                                        onChange={(v) => setForm((prev) => ({ ...prev, category: v }))}
+                                        placeholder="Selecione uma categoria..." options={CATEGORIES} />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted block mb-3">Descreva sua Necessidade *</label>
@@ -106,12 +108,10 @@ export default function QuoteForm() {
                             </div>
 
                             <div className="flex flex-col sm:flex-row items-center gap-6">
-                                <button type="submit" disabled={loading}
-                                    className="w-full sm:w-auto px-12 py-4 rounded-xl bg-primary text-white font-bold text-sm uppercase tracking-widest hover:bg-primary-dark transition-all shadow-red-lg disabled:opacity-60 flex items-center justify-center gap-3">
-                                    {loading
-                                        ? <><svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Enviando...</>
-                                        : <><AppIcon name="PaperAirplaneIcon" size={16} />Solicitar Orçamento</>}
-                                </button>
+                                <Button type="submit" loading={loading}
+                                  className="w-full sm:w-auto px-12 py-4 rounded-xl bg-primary text-white font-bold text-sm uppercase tracking-widest hover:bg-primary-dark transition-all shadow-red-lg disabled:opacity-60 flex items-center justify-center gap-3">
+                                  <AppIcon name="PaperAirplaneIcon" size={16} />Solicitar Orçamento
+                                </Button>
                                 <p className="text-[11px] text-muted text-center sm:text-left">
                                     Retorno em até <strong className="text-foreground">24 horas úteis</strong>. Sem compromisso.
                                 </p>
