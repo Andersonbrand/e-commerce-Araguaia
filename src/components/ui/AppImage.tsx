@@ -69,6 +69,11 @@ const AppImage = memo(function AppImage({
 
     const imageProps = useMemo(() => {
         const baseProps: any = {
+            // Imagens que falham ANTES do React hidratar nunca disparam onError (ficam só com o texto alternativo).
+            // Esta checagem na montagem aplica a imagem de fallback também nesses casos.
+            ref: (img: HTMLImageElement | null) => {
+                if (img && img.complete && img.naturalWidth === 0 && imageSrc !== fallbackSrc) handleError();
+            },
             src: imageSrc,
             alt,
             className: imageClassName,

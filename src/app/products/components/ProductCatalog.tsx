@@ -225,7 +225,10 @@ export default function ProductCatalog() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
         <div className="flex gap-8">
           {/* Sidebar */}
-          <aside className="hidden md:flex flex-col gap-2 w-56 shrink-0 pt-6">
+          <aside className="hidden md:block w-56 shrink-0">
+            {/* Fixa durante toda a rolagem da seção de produtos: ocupa a altura visível (abaixo do header e acima
+                da faixa "Visualizando") e só a lista de categorias rola por dentro. */}
+            <div className="sticky top-24 pt-6 flex flex-col gap-2 max-h-[calc(100vh-6rem-6.5rem)]">
             <div className="relative mb-2">
               <AppIcon name="MagnifyingGlassIcon" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input type="text" placeholder="Buscar produto..." value={search}
@@ -241,7 +244,7 @@ export default function ProductCatalog() {
               <p className="text-[10px] uppercase tracking-[0.25em] font-bold text-muted">Categorias</p>
               <span className="text-[10px] text-muted">{categories.length - 1}</span>
             </div>
-            <div className="space-y-1 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
+            <div className="space-y-1 flex-1 min-h-0 overflow-y-auto scroll-soft pr-1 pb-2">
               {categories.map((cat) => (
                 <button key={cat} onClick={() => handleCategoryChange(cat)}
                   className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${
@@ -256,6 +259,7 @@ export default function ProductCatalog() {
                   )}
                 </button>
               ))}
+            </div>
             </div>
           </aside>
 

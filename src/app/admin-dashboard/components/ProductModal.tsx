@@ -528,7 +528,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         e.preventDefault();
     if (saving) return; // evita envio duplicado
         if (!form.name.trim()) { toast.error('Informe o nome do produto.'); return; }
-        if (!form.category.trim()) { toast.error('Escolha uma categoria para o produto. Para criar novas, use "Gerenciar Categorias".'); return; }
+        if (!form.category.trim()) { toast.error('Escolha uma categoria para o produto.'); return; }
         if (hasVariants && variants.some((v) => !v.label.trim())) {
             toast.error('Existem opções de variação sem nome. Preencha todas ou remova as vazias.'); return;
         }
@@ -673,7 +673,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
                     {/* Categoria + Unidade */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <Field label="Categoria" required hint="Para criar ou editar categorias, use “Gerenciar Categorias” no painel.">
+                        <Field label="Categoria" required>
                             <Select name="category" value={form.category}
                                 onChange={(v) => handleChange({ target: { name: 'category', value: v, type: 'select-one' } } as any)}
                                 options={allCategories} />

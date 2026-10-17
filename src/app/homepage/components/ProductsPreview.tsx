@@ -187,7 +187,7 @@ export default function ProductsPreview() {
                   className="product-card group relative rounded-4xl overflow-hidden shadow-sm hover-lift cursor-pointer bg-white border border-border block">
                   <div className="relative h-full min-h-[190px] overflow-hidden">
                     <ProductImage src={getCatImage(cat, prod)} alt={cat}
-                      variant="fill" fit={getCatFit(prod)} padding="16px 16px 84px"
+                      variant="fill" fit={getCatFit(prod)} padding="12px 12px 72px"
                       imgClassName="product-img transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-foreground/80 via-foreground/30 to-transparent pointer-events-none" />
                   </div>

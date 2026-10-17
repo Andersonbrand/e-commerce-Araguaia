@@ -89,7 +89,7 @@ export default function Footer() {
                                     <span className="font-bold text-[#af1518]">E-mail:</span>comercialaraguaia2018@outlook.com
                                 </a>
                                 <p><span className="font-bold text-[#af1518]">Endereço:</span> Guanambi / Bahia</p>
-                                <p>Seg–Sex, 7h–17h · Sáb, 8h–12h</p>
+                                <p><span className="font-bold text-[#af1518]">Horário de funcionamento:</span> Seg–Sex, 7h–17h · Sáb, 8h–12h</p>
                             </div>
                         </div>
                     </div>
