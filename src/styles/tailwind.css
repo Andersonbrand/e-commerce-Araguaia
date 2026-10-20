@@ -245,3 +245,29 @@ header a:not([data-no-ripple]):active {
     button:disabled { cursor: not-allowed; opacity: 0.6; }
     button[aria-busy='true']:disabled { cursor: progress; }
 }
+
+/* ---------- Faixa em loop contínuo (categorias e marcas da homepage) ----------
+   O trilho tem DUAS cópias idênticas do conteúdo (.hc-marquee-group), cada uma com padding-right igual
+   ao espaçamento. Assim translateX(-50%) equivale a exatamente uma cópia e o loop reinicia sem salto.
+   Importante: o trilho usa width: max-content — com a largura do contêiner, o -50% seria metade da
+   TELA (e não do conteúdo), e a faixa andaria um trecho, pararia e reiniciaria. */
+@keyframes hc-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.hc-marquee { position: relative; overflow: hidden; }
+.hc-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: hc-marquee var(--hc-marquee-duration, 40s) linear infinite;
+    will-change: transform;
+}
+.hc-marquee-group {
+    display: flex;
+    flex-shrink: 0;
+    gap: var(--hc-marquee-gap, 1rem);
+    padding-right: var(--hc-marquee-gap, 1rem);
+}
+.hc-marquee:hover .hc-marquee-track,
+.hc-marquee:focus-within .hc-marquee-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+    .hc-marquee-track { animation: none; }
+    .hc-marquee { overflow-x: auto; }
+}

@@ -80,7 +80,9 @@ export default function StatsSection() {
     return () => observer.disconnect();
   }, []);
 
-  const track = [...partners, ...partners, ...partners];
+  // Cada cópia do carrossel precisa ser mais larga que a tela: a lista se repete dentro dela
+  const brandSet = [...partners, ...partners];
+  const brandDuration = brandSet.length * 3.2;
 
   return (
     <section className="py-20 bg-white border-y border-border/40">
@@ -98,14 +100,18 @@ export default function StatsSection() {
         <p className="text-center text-[10px] uppercase tracking-[0.4em] text-muted font-bold mb-10">
           Marcas que Distribuímos
         </p>
-        <div className="relative">
+        <div className="hc-marquee">
           <div className="absolute left-0 top-0 h-full w-24 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
           <div className="absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-          <div className="marquee-track flex gap-12 items-center">
-            {track.map((p, i) => (
-              <div key={i} className="shrink-0 flex items-center gap-2.5 px-6 py-3 rounded-2xl border border-border/60 bg-white shadow-sm hover:shadow-md transition-shadow">
-                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="text-sm font-display font-bold tracking-tight whitespace-nowrap" style={{ color: p.color }}>{p.name}</span>
+          <div className="hc-marquee-track py-2" style={{ '--hc-marquee-duration': `${brandDuration}s`, '--hc-marquee-gap': '3rem' } as React.CSSProperties}>
+            {[false, true].map((hidden) => (
+              <div key={String(hidden)} className="hc-marquee-group items-center" aria-hidden={hidden || undefined}>
+                {brandSet.map((p, i) => (
+                  <div key={`${p.name}-${i}`} className="shrink-0 flex items-center gap-2.5 px-6 py-3 rounded-2xl border border-border/60 bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                    <span className="text-sm font-display font-bold tracking-tight whitespace-nowrap" style={{ color: p.color }}>{p.name}</span>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
