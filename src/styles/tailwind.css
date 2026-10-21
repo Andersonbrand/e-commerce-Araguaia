@@ -271,3 +271,25 @@ header a:not([data-no-ripple]):active {
     .hc-marquee-track { animation: none; }
     .hc-marquee { overflow-x: auto; }
 }
+
+/* ---------- Links de navegação do header (Início, Produtos, Sobre, Orçamento) ----------
+   Ao clicar, o link se preenche em vermelho com texto branco — o mesmo preenchimento e cor do hover
+   dos cards do carrossel de categorias. O fundo é um pseudo-elemento: não altera o layout do menu. */
+header a.nav-fill { position: relative; isolation: isolate; }
+header a.nav-fill::before {
+    content: '';
+    position: absolute;
+    inset: -8px -12px;
+    border-radius: 0.75rem;
+    background: var(--primary, #af1518);
+    box-shadow: 0 8px 20px rgba(175, 21, 24, 0.28);
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    z-index: -1;
+    pointer-events: none;
+}
+header a.nav-fill:active,
+header a.nav-fill[data-pressed] { color: #fff; }
+header a.nav-fill:active::before,
+header a.nav-fill[data-pressed]::before { opacity: 1; transform: scale(1); }

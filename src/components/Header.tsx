@@ -26,6 +26,7 @@ function CompanyPill({ company, isActive, onClick, locked }: {
   return (
     <button
       onClick={onClick}
+      data-ripple-color={isActive ? 'rgba(255,255,255,0.4)' : company.primaryColor}
       title={locked ? 'Navegue para outra página para trocar de empresa' : undefined}
       className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border whitespace-nowrap ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''}`}
       style={{
@@ -152,8 +153,8 @@ export default function Header() {
           {/* Nav desktop */}
           <nav className="hidden desk:flex items-center gap-3">
             {NAV_LINKS.map((link) => (
-              <Link key={link.href} href={link.href}
-                className="text-[11px] uppercase tracking-[0.08em] font-bold text-muted hover:text-foreground transition-colors duration-300 whitespace-nowrap">
+              <Link key={link.href} href={link.href} data-ripple-color="rgba(255,255,255,0.45)"
+                className="nav-fill text-[11px] uppercase tracking-[0.08em] font-bold text-muted hover:text-foreground transition-colors duration-300 whitespace-nowrap">
                 {link.label}
               </Link>
             ))}
@@ -225,6 +226,7 @@ export default function Header() {
                     const isActive = activeCompany === id;
                     return (
                       <button key={id}
+                        data-ripple-color={co.primaryColor}
                         onClick={() => { setActiveCompany(isActive ? null : id); setMenuOpen(false); }}
                         className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border-2 transition-all text-center"
                         style={{

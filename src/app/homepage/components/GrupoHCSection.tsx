@@ -77,6 +77,7 @@ export default function GrupoHCSection() {
             return (
               <button
                 key={id}
+                data-ripple-color={co.primaryColor}
                 onClick={() => setActiveCompany(isActive ? null : id)}
                 className="reveal opacity-0 translate-y-8 transition-all duration-700 text-left group relative overflow-hidden rounded-4xl border-2 focus:outline-none flex flex-col"
                 style={{
