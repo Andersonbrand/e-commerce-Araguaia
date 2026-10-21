@@ -228,7 +228,7 @@ export default function ProductsPreview() {
               {featured.map((product, idx) => (
                 <Reveal key={product.id} delay={idx * 0.08} className="h-full">
                 <TiltCard className="h-full">
-                <div className="product-card group bg-white border border-border rounded-4xl overflow-hidden hover-lift shadow-sm h-full">
+                <div className="bg-white border border-border rounded-4xl overflow-hidden shadow-sm group-hover:shadow-[0_20px_60px_rgba(175,21,24,0.12)] transition-shadow duration-300 h-full">
                   <a href={`/products/${product.id}`} className="block">
                     <ProductImage src={product.image_url} alt={product.name} variant="card"
                       imgClassName="product-img transition-transform duration-700 group-hover:scale-105">

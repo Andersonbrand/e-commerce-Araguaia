@@ -271,3 +271,24 @@ header a:not([data-no-ripple]):active {
     .hc-marquee-track { animation: none; }
     .hc-marquee { overflow-x: auto; }
 }
+
+/* ---------- Links de navegação do header (Início, Produtos, Sobre, Orçamento) ----------
+   Hover: o botão fica translúcido (fundo vermelho bem suave, texto mais opaco/apagado).
+   Selecionado (página atual, aria-current): só as letras ficam vermelhas — sem preenchimento.
+   O fundo é um pseudo-elemento: não altera o layout do menu. */
+header a.nav-fill { position: relative; isolation: isolate; color: var(--muted, #5b6577); transition: color 0.25s ease, opacity 0.25s ease; }
+header a.nav-fill::before {
+    content: '';
+    position: absolute;
+    inset: -8px -12px;
+    border-radius: 0.75rem;
+    background: rgba(175, 21, 24, 0.07);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    z-index: -1;
+    pointer-events: none;
+}
+header a.nav-fill:hover { opacity: 0.65; }
+header a.nav-fill:hover::before { opacity: 1; }
+header a.nav-fill[aria-current='page'] { color: #af1518; }
+header a.nav-fill[aria-current='page']:hover { opacity: 0.8; }

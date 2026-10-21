@@ -19,6 +19,12 @@ export default function ProductDetailPage() {
   const { id }                = useParams<{ id: string }>();
   const router                = useRouter();
   const supabase              = createClient();
+  // Volta para a listagem exatamente como estava (página, categoria e busca)
+  const backToProducts = () => {
+    let url = '/products';
+    try { url = sessionStorage.getItem('catalogReturnUrl') || url; } catch { /* ignore */ }
+    router.push(url);
+  };
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
@@ -222,7 +228,7 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
-        <Footer />
+        <Footer compact />
       </main>
     );
   }
@@ -233,12 +239,12 @@ export default function ProductDetailPage() {
         <Header />
         <div className="pt-40 text-center px-6">
           <p className="text-2xl font-bold text-foreground mb-4">Produto não encontrado</p>
-          <button onClick={() => router.push('/products')}
+          <button onClick={backToProducts}
             className="px-6 py-3 text-white rounded-xl font-bold transition-all" style={{ backgroundColor: '#151826' }}>
             Voltar
           </button>
         </div>
-        <Footer />
+        <Footer compact />
       </main>
     );
   }
@@ -251,7 +257,7 @@ export default function ProductDetailPage() {
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-3 mb-8 text-sm text-muted">
-            <button onClick={() => router.push('/products')}
+            <button onClick={backToProducts}
               className="flex items-center gap-2 font-semibold hover:text-primary transition-colors group">
               <span className="w-8 h-8 rounded-xl border border-border flex items-center justify-center group-hover:border-primary/40 group-hover:bg-primary/5 transition-all">
                 <AppIcon name="ArrowLeftIcon" size={14} />
@@ -547,7 +553,7 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
-      <Footer />
+      <Footer compact />
     </main>
   );
 }

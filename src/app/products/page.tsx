@@ -14,7 +14,7 @@ export default function ProductsPage() {
       }>
         <ProductCatalog />
       </Suspense>
-      <Footer />
+      <Footer compact hideOnGateway />
     </main>
   );
 }

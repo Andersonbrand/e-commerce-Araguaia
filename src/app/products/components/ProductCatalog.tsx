@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
+import TiltCard from '@/components/ui/TiltCard';
 import { supabase, Product } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
 import { useCart } from '@/context/CartContext';
@@ -11,6 +12,30 @@ import { useCompany, COMPANIES, COMPANY_ORDER, COMPANY_CATEGORIES, CompanyId } f
 import toast from 'react-hot-toast';
 
 const PAGE_SIZE = 16;
+
+/** Empresas que vendem um produto: companies[] do cadastro → company → mapa de categorias (fallback). */
+function companiesOf(p: Product): CompanyId[] {
+  const list = ((p as any).companies as string[] | undefined) ?? [];
+  if (list.length > 0) return list.filter((id): id is CompanyId => COMPANY_ORDER.includes(id as CompanyId));
+  const single = (p as any).company as string | undefined;
+  if (single && COMPANY_ORDER.includes(single as CompanyId)) return [single as CompanyId];
+  return COMPANY_ORDER.filter((id) => COMPANY_CATEGORIES[id].some((c) => c.toLowerCase() === p.category.toLowerCase()));
+}
+
+/**
+ * Qual empresa abrir ao entrar por uma categoria: a que mais tem produtos nela (empate: ordem do grupo).
+ * Se a empresa já selecionada (`prefer`) também vende a categoria, ela é mantida.
+ */
+function companyForCategory(products: Product[], category: string, prefer: CompanyId | null): CompanyId | null {
+  const counts: Record<string, number> = {};
+  products.filter((p) => p.category === category).forEach((p) => {
+    companiesOf(p).forEach((id) => { counts[id] = (counts[id] ?? 0) + 1; });
+  });
+  if (prefer && counts[prefer] > 0) return prefer;
+  const ranked = COMPANY_ORDER.filter((id) => counts[id] > 0)
+    .sort((a, b) => counts[b] - counts[a] || COMPANY_ORDER.indexOf(a) - COMPANY_ORDER.indexOf(b));
+  return ranked[0] ?? null;
+}
 
 // Gateway: obriga usuário a selecionar empresa antes de ver produtos
 function CompanyGateway() {
@@ -33,7 +58,7 @@ function CompanyGateway() {
         {COMPANY_ORDER.map((id) => {
           const co = COMPANIES[id];
           return (
-            <button key={id} onClick={() => setActiveCompany(id)}
+            <button key={id} onClick={() => setActiveCompany(id)} data-ripple-color={co.primaryColor}
               className="text-left p-5 sm:p-8 rounded-4xl border-2 hover:-translate-y-1 transition-all duration-300 group bg-white"
               style={{ borderColor: `${co.primaryColor}30` }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = co.primaryColor; e.currentTarget.style.boxShadow = `0 20px 60px ${co.primaryColor}20`; }}
@@ -66,7 +91,8 @@ export default function ProductCatalog() {
   const [loading, setLoading]               = useState(true);
   const [activeCategory, setActiveCategory] = useState(searchParams.get('categoria') ?? 'Todos');
   const [search, setSearch]                 = useState(searchParams.get('busca') ?? '');
-  const [page, setPage]                     = useState(1);
+  // A página atual fica na URL (?pagina=N): ao abrir um produto e voltar, o usuário retorna à mesma página
+  const [page, setPage]                     = useState(() => Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10) || 1));
   const { showPrices }                      = usePrices();
   const { addToCart }                       = useCart();
   const { activeCompany, company, setActiveCompany, isGrupoView } = useCompany();
@@ -82,7 +108,33 @@ export default function ProductCatalog() {
     const busca = searchParams.get('busca');
     if (cat)   setActiveCategory(cat);
     if (busca) setSearch(busca);
+    setPage(Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10) || 1));
   }, [searchParams]);
+
+  // Guarda a URL da listagem (com página, categoria e busca) para o "Voltar aos produtos" do produto individual
+  useEffect(() => {
+    try {
+      const qs = searchParams.toString();
+      sessionStorage.setItem('catalogReturnUrl', `/products${qs ? '?' + qs : ''}`);
+    } catch { /* sessionStorage indisponível */ }
+  }, [searchParams]);
+
+  // Entrada por categoria (carrossel, cards, link direto): seleciona sozinho a empresa dessa categoria,
+  // sem passar pela tela "De qual empresa você deseja ver os produtos?". Roda uma vez por categoria,
+  // então "Trocar empresa" continua funcionando normalmente depois.
+  const catParam = searchParams.get('categoria');
+  const [handledCat, setHandledCat] = useState<string | null>(null);
+  useEffect(() => {
+    if (loading || !catParam || catParam === 'Todos' || handledCat === catParam) return;
+    const target = companyForCategory(products, catParam, activeCompany);
+    if (target && target !== activeCompany) setActiveCompany(target);
+    setHandledCat(catParam);
+  }, [loading, catParam, handledCat, products, activeCompany, setActiveCompany]);
+
+  // Sem categoria na URL, a entrada por categoria volta a "não tratada" (permite entrar de novo pela mesma)
+  useEffect(() => {
+    if (!catParam && handledCat) setHandledCat(null);
+  }, [catParam, handledCat]);
 
   // Produtos filtrados por empresa: usa companies[] do produto se disponível,
   // caso contrário usa o mapeamento de categorias como fallback
@@ -108,6 +160,23 @@ export default function ProductCatalog() {
     [companyFilteredProducts]
   );
 
+  // Ao trocar de empresa (botão da empresa no header, "Trocar empresa"...), uma categoria que a nova
+  // empresa não vende não pode continuar filtrando — senão a lista fica vazia ("nenhum produto").
+  // Nesse caso volta para "Todos" e tira a categoria da URL, mostrando todos os produtos da empresa.
+  // Se a nova empresa vende a categoria, o filtro é mantido. Espera a entrada por categoria ser tratada
+  // (escolha automática da empresa) para não competir com ela.
+  useEffect(() => {
+    if (loading || !activeCompany || activeCategory === 'Todos') return;
+    if (catParam && catParam !== 'Todos' && handledCat !== catParam) return;
+    if (categories.includes(activeCategory)) return;
+    setActiveCategory('Todos');
+    setPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('categoria');
+    params.delete('pagina');
+    router.replace(`/products${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
+  }, [loading, activeCompany, activeCategory, categories, catParam, handledCat, searchParams, router]);
+
   const filtered = useMemo(() =>
     companyFilteredProducts.filter((p) => {
       const matchCat    = activeCategory === 'Todos' || p.category === activeCategory;
@@ -130,6 +199,7 @@ export default function ProductCatalog() {
     setActiveCategory(cat); setPage(1);
     const params = new URLSearchParams(searchParams.toString());
     if (cat === 'Todos') params.delete('categoria'); else params.set('categoria', cat);
+    params.delete('pagina');
     router.replace(`/products${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
   };
 
@@ -137,6 +207,7 @@ export default function ProductCatalog() {
     setSearch(value); setPage(1);
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set('busca', value); else params.delete('busca');
+    params.delete('pagina');
     router.replace(`/products${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
   };
 
@@ -145,7 +216,15 @@ export default function ProductCatalog() {
   // Muda de página — o useEffect abaixo cuida do scroll após o re-render
   const goToPage = (n: number) => {
     setPage(n);
+    const params = new URLSearchParams(searchParams.toString());
+    if (n <= 1) params.delete('pagina'); else params.set('pagina', String(n));
+    router.replace(`/products${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
   };
+
+  // Página da URL maior que o total (ex.: filtro mudou) volta para a última existente
+  useEffect(() => {
+    if (!loading && totalPages > 0 && page > totalPages) setPage(totalPages);
+  }, [loading, totalPages, page]);
 
   // Rola para o topo após cada mudança de página, com animação manual
   // mais fluida que o behavior:'smooth' nativo (que varia entre browsers)
@@ -166,20 +245,22 @@ export default function ProductCatalog() {
     requestAnimationFrame(step);
   }, [page]);
 
+  // Vindo de uma categoria: enquanto a empresa é escolhida automaticamente, mostra só o carregamento
+  // (evita piscar a tela de escolha de empresa)
+  if (isGrupoView && catParam && catParam !== 'Todos' && handledCat !== catParam) {
+    return (
+      <div className="pt-40 flex items-center justify-center min-h-[60vh]">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
   // Exibe gateway se nenhuma empresa selecionada
   if (isGrupoView) {
     return (
-      <>
-        <div className="pt-28 pb-6 bg-gradient-to-b from-surface to-white relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-            <span className="text-[10px] uppercase tracking-[0.4em] font-bold text-primary">Catálogo</span>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground mt-3">
-              Nossos <span className="font-display italic text-gradient-red">Produtos</span>
-            </h1>
-          </div>
-        </div>
+      <div className="pt-24">
         <CompanyGateway />
-      </>
+      </div>
     );
   }
 
@@ -320,11 +401,12 @@ export default function ProductCatalog() {
               <>
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5">
                   {paginated.map((product) => (
-                    <div key={product.id} className="product-card group bg-white border border-border rounded-3xl overflow-hidden hover-lift shadow-sm flex flex-col">
+                    <TiltCard key={product.id} className="h-full">
+                    <div className="bg-white border border-border rounded-4xl overflow-hidden shadow-sm group-hover:shadow-[0_20px_60px_rgba(175,21,24,0.12)] transition-shadow duration-300 h-full flex flex-col">
                       <a href={`/products/${product.id}`} className="block flex-shrink-0">
                         <ProductImage src={product.image_url} alt={product.name} variant="card"
                           imgClassName="product-img transition-transform duration-700 group-hover:scale-105">
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                             <span className="bg-white/90 text-foreground text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xl shadow">Ver detalhes</span>
                           </div>
                         </ProductImage>
@@ -356,6 +438,7 @@ export default function ProductCatalog() {
                         </div>
                       </div>
                     </div>
+                    </TiltCard>
                   ))}
                 </div>
 
