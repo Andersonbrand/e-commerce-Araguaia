@@ -5,6 +5,7 @@ import React, { useState, useRef } from 'react';
 import AppIcon from '@/components/ui/AppIcon';
 import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
+import { toUpperText } from '@/lib/format';
 
 interface RequestSummary {
   id: string;
@@ -123,7 +124,7 @@ export default function QuoteResponseModal({ request, onClose, onSent }: Props) 
               <div className="space-y-2">
                 {request.items.map((item: any, i: number) => (
                   <div key={i} className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-foreground">{item.quantity}× {item.name}</span>
+                    <span className="font-medium text-foreground">{item.quantity}× {toUpperText(item.name)}</span>
                     <span className="text-primary font-bold">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
                   </div>
                 ))}

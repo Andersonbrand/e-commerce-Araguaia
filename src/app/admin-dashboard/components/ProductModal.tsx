@@ -10,6 +10,7 @@ import { COMPANIES, COMPANY_ORDER, CompanyId } from '@/context/CompanyContext';
 import { Product } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import { friendlyError, toNum } from '@/lib/friendly-error';
+import { toUpperText } from '@/lib/format';
 
 interface Props {
     product: Product | null;
@@ -676,7 +677,7 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                         <Field label="Categoria" required>
                             <Select name="category" value={form.category}
                                 onChange={(v) => handleChange({ target: { name: 'category', value: v, type: 'select-one' } } as any)}
-                                options={allCategories} />
+                                options={allCategories.map((c: string) => ({ value: c, label: toUpperText(c) }))} />
                         </Field>
                         <Field label="Unidade" required>
                             <Select name="unit" value={form.unit}

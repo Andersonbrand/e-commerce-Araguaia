@@ -17,6 +17,7 @@ import { usePrices } from '@/context/PriceContext';
 import { COMPANIES, COMPANY_ORDER, CompanyId } from '@/context/CompanyContext';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import { toUpperText } from '@/lib/format';
 
 type Tab = 'products' | 'quotes';
 
@@ -369,7 +370,7 @@ export default function AdminPanel() {
                 <AppIcon name="FunnelIcon" size={16} className={activeCategory !== 'Todos' ? 'text-primary' : 'text-muted'} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-bold text-foreground leading-tight whitespace-nowrap">Filtrar por categoria</p>
-                  <p className="text-[10px] text-muted truncate">{activeCategory === 'Todos' ? 'Todas as categorias' : activeCategory}</p>
+                  <p className="text-[10px] text-muted truncate">{activeCategory === 'Todos' ? 'Todas as categorias' : toUpperText(activeCategory)}</p>
                 </div>
                 <AppIcon name="ChevronRightIcon" size={14} className="text-muted shrink-0" />
               </button>
@@ -514,7 +515,7 @@ export default function AdminPanel() {
                     </button>
                   ) : (
                     <span className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1 rounded-xl bg-primary text-white text-[11px] font-bold uppercase tracking-widest">
-                      {activeCategory}
+                      {toUpperText(activeCategory)}
                       <button onClick={() => setActiveCategory('Todos')} aria-label="Limpar filtro de categoria"
                         className="w-5 h-5 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center">
                         <AppIcon name="XMarkIcon" size={12} />
@@ -556,7 +557,7 @@ export default function AdminPanel() {
                           <a href={`/products/${product.id}`} target="_blank" rel="noopener noreferrer"
                             className="text-sm font-bold text-foreground truncate hover:text-primary transition-colors block">
                             {(product as any).is_featured && <span className="text-amber-500 mr-1">⭐</span>}
-                            {product.name}
+                            {toUpperText(product.name)}
                           </a>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <p className="text-[11px] text-muted">{product.unit}</p>
@@ -581,7 +582,7 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <div className="col-span-2 hidden md:block">
-                        <span className={`badge border text-[10px] ${CATEGORY_COLORS[product.category] ?? 'bg-surface text-muted border-border'}`}>{product.category}</span>
+                        <span className={`badge border text-[10px] ${CATEGORY_COLORS[product.category] ?? 'bg-surface text-muted border-border'}`}>{toUpperText(product.category)}</span>
                       </div>
                       <div className="col-span-2 hidden desk:block">
                         <p className="text-sm font-bold text-foreground">{product.price > 0 ? `R$ ${product.price.toFixed(2).replace('.', ',')}` : 'Sob consulta'}</p>
@@ -707,7 +708,7 @@ export default function AdminPanel() {
                           {req.items.map((item: any, i: number) => (
                             <div key={i} className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2 text-sm">
                               <span className="font-bold text-foreground">{item.quantity}×</span>
-                              <span className="text-foreground">{item.name}</span>
+                              <span className="text-foreground">{toUpperText(item.name)}</span>
                               <span className="text-muted text-[11px]">/ {item.unit}</span>
                               {item.price > 0 && <span className="text-primary font-bold text-[11px] ml-1">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>}
                             </div>
@@ -801,7 +802,7 @@ export default function AdminPanel() {
                       className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left text-[13px] font-bold transition-colors ${
                         active ? 'bg-primary text-white' : 'text-foreground hover:bg-surface'
                       }`}>
-                      <span className="truncate">{cat === 'Todos' ? 'Todas as categorias' : cat}</span>
+                      <span className="truncate">{cat === 'Todos' ? 'TODAS AS CATEGORIAS' : toUpperText(cat)}</span>
                       <span className={`text-[11px] shrink-0 ${active ? 'text-white/80' : 'text-muted'}`}>{count}</span>
                     </button>
                   );
@@ -913,7 +914,7 @@ export default function AdminPanel() {
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                          <span className="text-sm font-bold text-foreground truncate">{cat}</span>
+                          <span className="text-sm font-bold text-foreground truncate">{toUpperText(cat)}</span>
                           <span className="text-[11px] text-muted shrink-0">{count} produto{count !== 1 ? 's' : ''}</span>
                         </div>
                         {!isDeleting ? (
