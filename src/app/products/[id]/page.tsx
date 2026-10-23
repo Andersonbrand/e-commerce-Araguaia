@@ -7,6 +7,8 @@ import Footer from '@/components/Footer';
 import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
 import Drawer from '@/components/ui/Drawer';
+import TiltCard from '@/components/ui/TiltCard';
+import { toUpperText } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
 import { Product, ProductVariant, ProductBrand } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
@@ -202,10 +204,10 @@ export default function ProductDetailPage() {
       addToCart(product, activeCompany, ln.first, ln.variantsMap, ln.brand?.name ?? null, qty)
     );
     if (lines.length > 1) {
-      toast.success(`${lines.length} itens de ${product.name} (${qty}x cada) adicionados ao orçamento!`);
+      toast.success(`${lines.length} itens de ${toUpperText(product.name)} (${qty}x cada) adicionados ao orçamento!`);
     } else {
       const suffix = lines[0] ? ` (${lineLabel(lines[0])})` : '';
-      toast.success(`${qty}x ${product.name}${suffix} adicionado ao orçamento!`);
+      toast.success(`${qty}x ${toUpperText(product.name)}${suffix} adicionado ao orçamento!`);
     }
   };
 
@@ -265,9 +267,9 @@ export default function ProductDetailPage() {
               Voltar aos produtos
             </button>
             <span className="text-border">›</span>
-            <span className="font-medium" style={{ color: '#151826' }}>{product.category}</span>
+            <span className="font-medium" style={{ color: '#151826' }}>{toUpperText(product.category)}</span>
             <span className="text-border">›</span>
-            <span className="text-foreground font-medium truncate max-w-xs">{product.name}</span>
+            <span className="text-foreground font-medium truncate max-w-xs">{toUpperText(product.name)}</span>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-16 items-start">
@@ -281,7 +283,7 @@ export default function ProductDetailPage() {
                 imgClassName="transition-transform duration-700 group-hover:scale-105"
               >
                 <div className="absolute top-4 left-4">
-                  <span className="badge text-white text-[10px]" style={{ backgroundColor: '#151826' }}>{product.category}</span>
+                  <span className="badge text-white text-[10px]" style={{ backgroundColor: '#151826' }}>{toUpperText(product.category)}</span>
                 </div>
               </ProductImage>
             </div>
@@ -289,8 +291,8 @@ export default function ProductDetailPage() {
             {/* Info */}
             <div className="space-y-6 lg:pt-4">
               <div>
-                <span className="text-[10px] uppercase tracking-[0.3em] font-bold" style={{ color: '#151826' }}>{product.category}</span>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mt-2 leading-tight">{product.name}</h1>
+                <span className="text-[10px] uppercase tracking-[0.3em] font-bold" style={{ color: '#151826' }}>{toUpperText(product.category)}</span>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mt-2 leading-tight">{toUpperText(product.name)}</h1>
                 <p className="text-muted text-sm mt-1">Unidade: <strong>{product.unit}</strong></p>
               </div>
 
@@ -532,21 +534,27 @@ export default function ProductDetailPage() {
           {related.length > 0 && (
             <div className="mt-20">
               <h2 className="text-2xl font-bold text-foreground mb-8">
-                Mais em <span style={{ color: '#151826' }}>{product.category}</span>
+                Mais em <span style={{ color: '#151826' }}>{toUpperText(product.category)}</span>
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {related.map((rel) => (
-                  <a key={rel.id} href={`/products/${rel.id}`}
-                    className="group bg-white border border-border rounded-3xl overflow-hidden hover-lift shadow-sm block">
-                    <ProductImage src={rel.image_url} alt={rel.name} variant="card"
-                      imgClassName="transition-transform duration-500 group-hover:scale-105" />
-                    <div className="p-4">
-                      <p className="text-sm font-bold text-foreground leading-snug">{rel.name}</p>
-                      {showPrices && rel.price > 0
-                        ? <p className="font-bold text-sm mt-1" style={{ color: '#151826' }}>R$ {rel.price.toFixed(2).replace('.', ',')}</p>
-                        : <p className="text-muted text-xs mt-1 italic">Sob consulta</p>}
-                    </div>
-                  </a>
+                  <TiltCard key={rel.id} className="h-full">
+                    <a href={`/products/${rel.id}`}
+                      className="bg-white border border-border rounded-4xl overflow-hidden shadow-sm group-hover:shadow-[0_20px_60px_rgba(175,21,24,0.12)] transition-shadow duration-300 h-full flex flex-col">
+                      <ProductImage src={rel.image_url} alt={rel.name} variant="card"
+                        imgClassName="product-img transition-transform duration-700 group-hover:scale-105">
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <span className="bg-white/90 text-foreground text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-xl shadow">Ver detalhes</span>
+                        </div>
+                      </ProductImage>
+                      <div className="p-4 flex-1">
+                        <p className="text-sm font-bold text-foreground leading-snug">{toUpperText(rel.name)}</p>
+                        {showPrices && rel.price > 0
+                          ? <p className="font-bold text-sm mt-1" style={{ color: '#151826' }}>R$ {rel.price.toFixed(2).replace('.', ',')}</p>
+                          : <p className="text-muted text-xs mt-1 italic">Sob consulta</p>}
+                      </div>
+                    </a>
+                  </TiltCard>
                 ))}
               </div>
             </div>

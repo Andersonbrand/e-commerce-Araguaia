@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
 import TiltCard from '@/components/ui/TiltCard';
+import { toUpperText } from '@/lib/format';
 import { supabase, Product } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
 import { useCart } from '@/context/CartContext';
@@ -192,7 +193,7 @@ export default function ProductCatalog() {
 
   const handleAdd = (product: Product) => {
     addToCart(product, activeCompany);
-    toast.success(`${product.name} adicionado ao orçamento!`);
+    toast.success(`${toUpperText(product.name)} adicionado ao orçamento!`);
   };
 
   const handleCategoryChange = (cat: string) => {
@@ -332,7 +333,7 @@ export default function ProductCatalog() {
                     activeCategory === cat ? 'text-white border-transparent shadow-lg' : 'bg-white text-muted border-border hover:border-primary/30 hover:text-primary'
                   }`}
                   style={activeCategory === cat ? { background: company?.gradient, borderColor: 'transparent' } : {}}>
-                  <span className="truncate block">{cat}</span>
+                  <span className="truncate block">{toUpperText(cat)}</span>
                   {cat !== 'Todos' && (
                     <span className={`text-[11px] font-normal ${activeCategory === cat ? 'text-white/70' : 'text-muted/60'}`}>
                       {companyFilteredProducts.filter((p) => p.category === cat).length} produtos
@@ -361,7 +362,7 @@ export default function ProductCatalog() {
                       activeCategory === cat ? 'text-white border-transparent' : 'border-border text-muted bg-white'
                     }`}
                     style={activeCategory === cat ? { background: company?.gradient } : {}}>
-                    {cat}
+                    {toUpperText(cat)}
                   </button>
                 ))}
               </div>
@@ -370,7 +371,7 @@ export default function ProductCatalog() {
             <div className="flex items-center justify-between mb-6">
               <p className="text-[12px] uppercase tracking-widest text-muted font-bold">
                 {loading ? 'Carregando...' : `${filtered.length} produto${filtered.length !== 1 ? 's' : ''}`}
-                {activeCategory !== 'Todos' && <span style={{ color: accentColor }}> em {activeCategory}</span>}
+                {activeCategory !== 'Todos' && <span style={{ color: accentColor }}> em {toUpperText(activeCategory)}</span>}
                 {search && <span> para "{search}"</span>}
               </p>
               {(activeCategory !== 'Todos' || search) && (
@@ -414,7 +415,7 @@ export default function ProductCatalog() {
                       <div className="p-4 space-y-2 flex flex-col flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: accentColor }}>
-                            {product.category}
+                            {toUpperText(product.category)}
                           </span>
                           {(() => {
                             const cos = (product as any).companies as string[] | undefined;
@@ -424,7 +425,7 @@ export default function ProductCatalog() {
                             return null;
                           })()}
                         </div>
-                        <h4 className="text-sm font-bold text-foreground leading-snug flex-1">{product.name}</h4>
+                        <h4 className="text-sm font-bold text-foreground leading-snug flex-1">{toUpperText(product.name)}</h4>
                         <p className="text-[11px] text-muted">{product.unit}</p>
                         <div className="flex items-center justify-between pt-1">
                           {showPrices && product.price > 0

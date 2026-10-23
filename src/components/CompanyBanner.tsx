@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCompany } from '@/context/CompanyContext';
 import AppIcon from '@/components/ui/AppIcon';
+import { toUpperText } from '@/lib/format';
 
 // Rotas onde o banner nunca deve aparecer
 const HIDDEN_ON_ROUTES = ['/login', '/register'];
@@ -58,7 +59,7 @@ export default function CompanyBanner() {
         <div className="hidden sm:flex items-center gap-1.5">
           {company.categories.slice(0, 3).map((cat) => (
             <span key={cat} className="text-[10px] font-bold px-2 py-1 rounded-lg bg-white/15 text-white whitespace-nowrap">
-              {cat}
+              {toUpperText(cat)}
             </span>
           ))}
         </div>

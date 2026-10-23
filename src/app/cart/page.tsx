@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { useCompany, COMPANIES, CompanyId } from '@/context/CompanyContext';
 import { usePrices } from '@/context/PriceContext';
 import toast from 'react-hot-toast';
+import { toUpperText } from '@/lib/format';
 
 function pluralUnit(unit: string, qty: number): string {
   if (qty <= 1) return unit;
@@ -200,7 +201,7 @@ export default function CartPage() {
                               </div>
                             )}
 
-                            <h3 className="font-bold text-foreground text-base leading-tight">{product.name}</h3>
+                            <h3 className="font-bold text-foreground text-base leading-tight">{toUpperText(product.name)}</h3>
 
                             {/* Todas as variantes selecionadas, uma por linha */}
                             {item.selectedVariants && Object.keys(item.selectedVariants).length > 0
@@ -224,7 +225,7 @@ export default function CartPage() {
                             )}
 
                             <p className="text-[12px] text-muted mt-0.5">
-                              {product.category} · {product.unit}
+                              {toUpperText(product.category)} · {product.unit}
                             </p>
                           </div>
 

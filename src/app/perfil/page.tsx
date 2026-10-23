@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { UserProfile, QuoteResponse } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { toUpperText } from '@/lib/format';
 
 type Tab = 'profile' | 'responses';
 
@@ -361,7 +362,7 @@ export default function PerfilPage() {
                           {resp.products_summary.map((item: any, i: number) => (
                             <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-border/50 last:border-0">
                               <span className="text-sm text-foreground font-medium">
-                                {item.quantity}× {item.name}
+                                {item.quantity}× {toUpperText(item.name)}
                                 <span className="text-muted text-[11px] ml-1">/ {item.unit}</span>
                               </span>
                               <span className="text-sm font-bold text-primary">

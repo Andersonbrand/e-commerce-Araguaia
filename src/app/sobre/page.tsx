@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AppImage from '@/components/ui/AppImage';
 import AppIcon from '@/components/ui/AppIcon';
+import { toUpperText } from '@/lib/format';
 import AppLogo from '@/components/ui/AppLogo';
 
 function useReveal(threshold = 0.15) {
@@ -313,7 +314,7 @@ export default function SobrePage() {
                         {emp.categorias.map(cat => (
                           <span key={cat} className="text-[11px] font-bold px-3 py-1.5 rounded-xl"
                             style={{ backgroundColor: emp.bgLight, color: emp.cor }}>
-                            {cat}
+                            {toUpperText(cat)}
                           </span>
                         ))}
                       </div>

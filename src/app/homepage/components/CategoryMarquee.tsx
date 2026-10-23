@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import Link from 'next/link';
 import CategoryIcon from '@/components/ui/CategoryIcon';
 import { assignCategoryIcons } from '@/lib/category-icons';
+import { toUpperText } from '@/lib/format';
 
 export interface MarqueeCategory { name: string; count: number; }
 
@@ -35,7 +36,7 @@ export default function CategoryMarquee({ categories }: { categories: MarqueeCat
             <CategoryIcon iconKey={icons[c.name]} size={22} />
           </span>
           <span className="leading-tight">
-            <span className="block text-sm font-bold text-foreground whitespace-nowrap">{c.name}</span>
+            <span className="block text-sm font-bold text-foreground whitespace-nowrap">{toUpperText(c.name)}</span>
             <span className="block text-[10px] uppercase tracking-widest text-muted font-bold">
               {c.count} {c.count === 1 ? 'produto' : 'produtos'}
             </span>

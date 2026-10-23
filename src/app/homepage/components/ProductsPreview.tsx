@@ -5,6 +5,7 @@ import Link from 'next/link';
 import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
 import TiltCard from '@/components/ui/TiltCard';
+import { toUpperText } from '@/lib/format';
 import Reveal from '@/components/ui/Reveal';
 import CategoryMarquee from './CategoryMarquee';
 import { supabase, Product } from '@/lib/supabase';
@@ -48,7 +49,7 @@ export default function ProductsPreview() {
 
   const handleAdd = (product: Product) => {
     addToCart(product);
-    toast.success(`${product.name} adicionado ao orçamento!`);
+    toast.success(`${toUpperText(product.name)} adicionado ao orçamento!`);
   };
 
   // Filtro por empresa
@@ -158,8 +159,8 @@ export default function ProductsPreview() {
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-8">
                   <span className="badge mb-3 bg-primary text-white">Mais vendido</span>
-                  <h3 className="text-2xl font-bold text-white mb-1">{cimentoMontesClaros.name}</h3>
-                  <p className="text-sm text-white/70">{cimentoMontesClaros.category}</p>
+                  <h3 className="text-2xl font-bold text-white mb-1">{toUpperText(cimentoMontesClaros.name)}</h3>
+                  <p className="text-sm text-white/70">{toUpperText(cimentoMontesClaros.category)}</p>
                 </div>
               </Link>
             ) : categories[0] && (
@@ -173,7 +174,7 @@ export default function ProductsPreview() {
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-8">
                   <span className="badge mb-3 bg-primary text-white">Mais vendido</span>
-                  <h3 className="text-2xl font-bold text-white mb-1">{categories[0][0]}</h3>
+                  <h3 className="text-2xl font-bold text-white mb-1">{toUpperText(categories[0][0])}</h3>
                   <p className="text-sm text-white/70">
                     {filteredProducts.filter(p => p.category === categories[0][0]).length} produtos disponíveis
                   </p>
@@ -193,7 +194,7 @@ export default function ProductsPreview() {
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 p-5">
                     <span className="badge mb-2 bg-surface-2 text-foreground">Destaque</span>
-                    <h3 className="text-base font-bold text-white">{cat}</h3>
+                    <h3 className="text-base font-bold text-white">{toUpperText(cat)}</h3>
                   </div>
                 </Link>
               ))}
@@ -210,7 +211,7 @@ export default function ProductsPreview() {
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-8">
                   <span className="badge mb-3 bg-surface-2 text-foreground">Destaque</span>
-                  <h3 className="text-2xl font-bold text-white mb-1">{sideCategories[2][0]}</h3>
+                  <h3 className="text-2xl font-bold text-white mb-1">{toUpperText(sideCategories[2][0])}</h3>
                 </div>
               </Link>
             )}
@@ -238,8 +239,8 @@ export default function ProductsPreview() {
                     </ProductImage>
                   </a>
                   <div className="p-5 space-y-3">
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-primary">{product.category}</span>
-                    <h4 className="text-sm font-bold text-foreground leading-snug">{product.name}</h4>
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-primary">{toUpperText(product.category)}</span>
+                    <h4 className="text-sm font-bold text-foreground leading-snug">{toUpperText(product.name)}</h4>
                     <div className="flex items-center justify-between pt-1">
                       {showPrices && product.price > 0
                         ? <span className="text-base font-bold text-foreground">R$ {product.price.toFixed(2).replace('.', ',')}</span>

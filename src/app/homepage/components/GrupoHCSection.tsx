@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from 'react';
 import { useCompany, COMPANIES, CompanyId } from '@/context/CompanyContext';
 import AppLogo, { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
+import { toUpperText } from '@/lib/format';
 
 const COMPANY_ORDER: CompanyId[] = ['araguaia', 'confiance-industria', 'acos-confiance'];
 
@@ -128,7 +129,7 @@ export default function GrupoHCSection() {
                           backgroundColor: isActive ? `${co.primaryColor}15` : '#f5f7fa',
                           color: isActive ? co.primaryColor : '#5a6272',
                         }}>
-                        {cat}
+                        {toUpperText(cat)}
                       </span>
                     ))}
                     {co.categories.length > 4 && (
