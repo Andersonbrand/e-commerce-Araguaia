@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ProductImage from '@/components/ui/ProductImage';
 import AppIcon from '@/components/ui/AppIcon';
@@ -94,6 +94,13 @@ export default function ProductCatalog() {
   const [search, setSearch]                 = useState(searchParams.get('busca') ?? '');
   // A página atual fica na URL (?pagina=N): ao abrir um produto e voltar, o usuário retorna à mesma página
   const [page, setPage]                     = useState(() => Math.max(1, parseInt(searchParams.get('pagina') ?? '1', 10) || 1));
+  // Transição entre páginas: o grid some, a tela rola até o topo da lista e o grid reaparece
+  const [changing, setChanging]             = useState(false);
+  const [lockedHeight, setLockedHeight]     = useState<number | null>(null);
+  const gridRef                             = useRef<HTMLDivElement>(null);
+  const scrollRafRef                        = useRef<number | null>(null);
+  const swapTimerRef                        = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const releaseTimerRef                     = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { showPrices }                      = usePrices();
   const { addToCart }                       = useCart();
   const { activeCompany, company, setActiveCompany, isGrupoView } = useCompany();
@@ -197,6 +204,7 @@ export default function ProductCatalog() {
   };
 
   const handleCategoryChange = (cat: string) => {
+    if (page !== 1) scrollToGrid();
     setActiveCategory(cat); setPage(1);
     const params = new URLSearchParams(searchParams.toString());
     if (cat === 'Todos') params.delete('categoria'); else params.set('categoria', cat);
@@ -214,37 +222,88 @@ export default function ProductCatalog() {
 
   const accentColor = company?.primaryColor ?? '#af1518';
 
-  // Muda de página — o useEffect abaixo cuida do scroll após o re-render
+  // Rola até o topo da lista de produtos (não até o topo da página) com easing próprio.
+  // Usa behavior:'instant' em cada frame porque o html tem scroll-behavior:smooth —
+  // sem isso cada scrollTo vira uma animação do browser brigando com a nossa (daí o "atraso").
+  const scrollToGrid = useCallback((instant = false) => {
+    const el = gridRef.current;
+    if (!el) return;
+    const startY  = window.scrollY;
+    const targetY = Math.max(0, el.getBoundingClientRect().top + startY - 120); // 120 = altura do header fixo + respiro
+    if (startY <= targetY + 4) return; // já está na lista (ou acima dela)
+
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    if (instant) {
+      window.scrollTo({ top: targetY, behavior: 'instant' as ScrollBehavior });
+      return;
+    }
+
+    const dist     = startY - targetY;
+    const duration = Math.min(550, Math.max(280, dist * 0.35));
+    const t0       = performance.now();
+    const ease     = (t: number) => 1 - Math.pow(1 - t, 3);
+
+    // Se o usuário mexer na roda/tela durante a animação, ele assume o controle
+    const stop = () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = null;
+    };
+    window.addEventListener('wheel', stop, { passive: true, once: true });
+    window.addEventListener('touchstart', stop, { passive: true, once: true });
+
+    const step = (now: number) => {
+      const progress = Math.min((now - t0) / duration, 1);
+      window.scrollTo({ top: startY - dist * ease(progress), behavior: 'instant' as ScrollBehavior });
+      scrollRafRef.current = progress < 1 ? requestAnimationFrame(step) : null;
+    };
+    scrollRafRef.current = requestAnimationFrame(step);
+  }, []);
+
+  // Muda de página: fade-out do grid + scroll suave ao mesmo tempo, troca os itens com o grid
+  // invisível e faz o fade-in. A altura do grid fica travada durante a troca para o rodapé não "pular".
   const goToPage = (n: number) => {
-    setPage(n);
-    const params = new URLSearchParams(searchParams.toString());
-    if (n <= 1) params.delete('pagina'); else params.set('pagina', String(n));
-    router.replace(`/products${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
+    if (n === page) return;
+
+    const commit = () => {
+      setPage(n);
+      const params = new URLSearchParams(searchParams.toString());
+      if (n <= 1) params.delete('pagina'); else params.set('pagina', String(n));
+      router.replace(`/products${params.toString() ? '?' + params.toString() : ''}`, { scroll: false });
+    };
+
+    // Quem prefere menos movimento: troca direto, sem animação
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      commit();
+      scrollToGrid(true);
+      return;
+    }
+
+    if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
+    if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
+
+    setLockedHeight(gridRef.current?.offsetHeight ?? null);
+    setChanging(true);
+    scrollToGrid();
+
+    swapTimerRef.current = setTimeout(() => {
+      commit();
+      // dois frames: garante que os novos cards já foram desenhados (ainda invisíveis) antes do fade-in
+      requestAnimationFrame(() => requestAnimationFrame(() => setChanging(false)));
+      releaseTimerRef.current = setTimeout(() => setLockedHeight(null), 320);
+    }, 170);
   };
+
+  // Limpa timers e animação ao sair da tela
+  useEffect(() => () => {
+    if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
+    if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+  }, []);
 
   // Página da URL maior que o total (ex.: filtro mudou) volta para a última existente
   useEffect(() => {
     if (!loading && totalPages > 0 && page > totalPages) setPage(totalPages);
   }, [loading, totalPages, page]);
-
-  // Rola para o topo após cada mudança de página, com animação manual
-  // mais fluida que o behavior:'smooth' nativo (que varia entre browsers)
-  useEffect(() => {
-    if (page === 1 && typeof window !== 'undefined' && window.scrollY === 0) return;
-    const startY   = window.scrollY;
-    if (startY === 0) return;
-    const duration = Math.min(600, startY * 0.4); // proporcional à distância, máx 600ms
-    const startTime = performance.now();
-    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
-
-    const step = (now: number) => {
-      const elapsed  = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      window.scrollTo(0, startY * (1 - easeOutCubic(progress)));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [page]);
 
   // Vindo de uma categoria: enquanto a empresa é escolhida automaticamente, mostra só o carregamento
   // (evita piscar a tela de escolha de empresa)
@@ -400,7 +459,13 @@ export default function ProductCatalog() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5">
+                <div
+                  ref={gridRef}
+                  className={`grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5 content-start transition-[opacity,transform] ${
+                    changing ? 'opacity-0 translate-y-2 duration-150 ease-in' : 'opacity-100 translate-y-0 duration-300 ease-out'
+                  }`}
+                  style={lockedHeight ? { minHeight: lockedHeight } : undefined}
+                >
                   {paginated.map((product) => (
                     <TiltCard key={product.id} className="h-full">
                     <div className="bg-white border border-border rounded-4xl overflow-hidden shadow-sm group-hover:shadow-[0_20px_60px_rgba(175,21,24,0.12)] transition-shadow duration-300 h-full flex flex-col">

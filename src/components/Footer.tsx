@@ -25,8 +25,7 @@ export default function Footer({ compact = false, hideOnGateway = false }: { com
         if (hideOnGateway && isGrupoView) return null;
 
         return (
-            // pb-24 quando a faixa "Visualizando" está na tela, para ela não cobrir as informações
-            <footer className={`border-t border-border bg-white ${isGrupoView ? '' : 'pb-24'}`}>
+            <footer className="border-t border-border bg-white">
                 <div className="h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#b04d00]" />
 
                 {/* Tudo em uma única linha no desktop (fonte e espaçamentos reduzidos); quebra em telas menores */}
