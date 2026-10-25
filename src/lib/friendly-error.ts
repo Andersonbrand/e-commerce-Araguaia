@@ -17,6 +17,8 @@ export function friendlyError(err: any, context = 'salvar o produto'): string {
         if (msg.includes('product_brands'))   return 'Não foi possível salvar as marcas do produto. Confira se todas as marcas estão preenchidas e tente novamente.';
         return 'Existe um campo obrigatório sem preenchimento. Revise o formulário e tente novamente.';
     }
+    if (msg.includes('uq_main_category'))
+        return 'Essa categoria já é categoria principal da home de outra empresa. Escolha "Nenhuma" ou tire a marca do outro produto.';
     if (code === '23505' || msg.includes('duplicate key'))
         return 'Já existe um registro com esses dados. Verifique nomes repetidos (marcas, opções ou produto).';
     if (code === '23503' || msg.includes('foreign key'))

@@ -10,6 +10,7 @@ import { COMPANIES, COMPANY_ORDER, CompanyId } from '@/context/CompanyContext';
 import { Product } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import { friendlyError, toNum } from '@/lib/friendly-error';
+import { normalizeProductImage } from '@/lib/normalize-product-image';
 import { toUpperText } from '@/lib/format';
 
 interface Props {
@@ -117,11 +118,12 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
 
     const [form, setForm]             = useState<FormData>({
         name: '', category: allCategories[0] ?? 'Cimento',
-        description: '', image_url: null, price: 0, unit: UNITS[0], stock: 0, is_active: true, companies: ['araguaia'], is_featured: false,
+        description: '', image_url: null, price: 0, unit: UNITS[0], stock: 0, is_active: true, companies: ['araguaia'], is_featured: false, best_seller_for: [], main_category_company: null,
     });
     const [imageMode, setImageMode]   = useState<ImageMode>('upload');
     const [urlInput, setUrlInput]     = useState('');
     const [uploading, setUploading]   = useState(false);
+    const [autoAdjust, setAutoAdjust] = useState(true); // padroniza a foto no upload (recorte, centralização, fundo branco)
     const [saving, setSaving]         = useState(false);
     const [preview, setPreview]       = useState<string | null>(null);
     const fileRef                     = useRef<HTMLInputElement>(null);
@@ -147,6 +149,38 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
     const [hasBrands, setHasBrands]             = useState(false);
     const [brands, setBrands]                   = useState<LocalBrand[]>([]);
     const [deletedBrandIds, setDeletedBrandIds] = useState<string[]>([]);
+
+    // Visão dos demais produtos: quem já é destaque, "mais vendido" e categoria principal de cada empresa
+    type CatalogFlag = {
+        id: string; name: string; category: string; companies: string[]; is_featured: boolean;
+        best_seller_for: string[]; main_category_company: string | null;
+    };
+    const [catalogFlags, setCatalogFlags]         = useState<CatalogFlag[]>([]);
+    const [bestSellerReady, setBestSellerReady]   = useState(true); // false = falta rodar add-featured-bestseller.sql
+    const [mainCategoryReady, setMainCategoryReady] = useState(true); // false = falta rodar add-main-category-company.sql
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            const base = await supabase.from('products').select('id, name, category, is_featured, companies').limit(1000);
+            if (cancelled) return;
+            if (base.error) { setBestSellerReady(false); setMainCategoryReady(false); return; }
+            // colunas das migrações: consultadas à parte para saber exatamente o que falta
+            const bs = await supabase.from('products').select('id, best_seller_for').limit(1000);
+            const mc = await supabase.from('products').select('id, main_category_company').limit(1000);
+            if (cancelled) return;
+            setBestSellerReady(!bs.error);
+            setMainCategoryReady(!mc.error);
+            const bsMap = new Map<string, string[]>(((bs.data ?? []) as any[]).map((r) => [r.id, r.best_seller_for ?? []]));
+            const mcMap = new Map<string, string | null>(((mc.data ?? []) as any[]).map((r) => [r.id, r.main_category_company ?? null]));
+            setCatalogFlags(((base.data ?? []) as any[]).map((p) => ({
+                id: p.id, name: p.name, category: p.category ?? '', companies: p.companies ?? [], is_featured: !!p.is_featured,
+                best_seller_for: bsMap.get(p.id) ?? [], main_category_company: mcMap.get(p.id) ?? null,
+            })));
+        })();
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Regras de dependência entre grupos
     const [variantRules, setVariantRules] = useState<VariantRule[]>([]);
@@ -234,14 +268,33 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         if (file.size > 5 * 1024 * 1024) { toast.error('Arquivo muito grande. Máximo 5MB.'); return; }
         setUploading(true);
         try {
-            const ext      = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+            // Padroniza a foto (recorta margens, centraliza e deixa o fundo branco puro). Se algo falhar, envia o original.
+            let toSend: Blob = file;
+            let ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+            let status: 'normalized' | 'fullBleed' | 'skipped' | 'original' = 'original';
+            if (autoAdjust) {
+                try {
+                    const r = await normalizeProductImage(file);
+                    toSend = r.blob; ext = r.ext; status = r.status;
+                } catch (adjustErr) {
+                    console.warn('[ProductModal] não foi possível ajustar a imagem; enviando original:', adjustErr);
+                }
+            }
             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-            const { error } = await supabase.storage.from('product-images').upload(filename, file, { cacheControl: '3600', upsert: true });
+            const { error } = await supabase.storage.from('product-images').upload(filename, toSend, {
+                cacheControl: '3600', upsert: true, contentType: toSend.type || undefined,
+            });
             if (error) throw error;
             const { data } = supabase.storage.from('product-images').getPublicUrl(filename);
             setForm((prev) => ({ ...prev, image_url: data.publicUrl }));
             setPreview(data.publicUrl);
-            toast.success('Imagem enviada!');
+            if (status === 'fullBleed') {
+                toast('Imagem enviada sem ajuste: ela tem fundo/cenário. Para ficar igual às demais, use uma foto do produto recortado sobre fundo branco.', { icon: '⚠️', duration: 7000 });
+            } else if (status === 'normalized') {
+                toast.success('Imagem enviada e ajustada (margens recortadas, produto centralizado, fundo branco).');
+            } else {
+                toast.success('Imagem enviada!');
+            }
         } catch (err: any) {
             toast.error(friendlyError(err, 'enviar a imagem'));
         } finally {
@@ -539,6 +592,21 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
         if (!((form as any).companies?.length > 0)) {
             toast.error('Selecione pelo menos uma empresa que vende este produto.'); return;
         }
+        // Categoria principal: a categoria não pode repetir em outra empresa e cada empresa tem 3 vagas
+        const mcc = (form as any).main_category_company as string | null;
+        if (mainCategoryReady && mcc) {
+            const norm = (t: string) => t.trim().toLowerCase();
+            const clash = catalogFlags.find((p) => p.id !== product?.id && p.main_category_company && norm(p.category) === norm(form.category));
+            if (clash) {
+                toast.error(`A categoria "${toUpperText(form.category)}" já é categoria principal de ${COMPANIES[clash.main_category_company as CompanyId]?.shortName ?? 'outra empresa'} (produto ${toUpperText(clash.name)}). Tire a marca de lá ou escolha "Nenhuma".`, { duration: 7000 });
+                return;
+            }
+            const taken = catalogFlags.filter((p) => p.id !== product?.id && p.main_category_company === mcc);
+            if (taken.length >= 3) {
+                toast.error(`${COMPANIES[mcc as CompanyId]?.shortName ?? 'A empresa'} já tem 3 categorias principais (${taken.map((p) => toUpperText(p.category)).join(', ')}). Tire uma delas antes.`, { duration: 7000 });
+                return;
+            }
+        }
         setSaving(true);
 
         // Etapa 1: dados do produto (preço e estoque são apenas valores do produto;
@@ -551,7 +619,33 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                 stock: toNum(form.stock, true),
                 companies: (form as any).companies ?? ['araguaia'],
                 variant_rules: buildVariantRulesPayload(),
+                // Destaque: guarda QUANDO foi marcado (os mais recentes aparecem primeiro na home)
+                featured_at: (form as any).is_featured
+                    ? ((product as any)?.is_featured && (product as any)?.featured_at ? (product as any).featured_at : new Date().toISOString())
+                    : null,
+                // Mais vendido: só vale para empresas em que o produto é vendido
+                best_seller_for: (((form as any).best_seller_for as string[] | undefined) ?? [])
+                    .filter((id) => ((form as any).companies as string[] ?? []).includes(id)),
+                // Categoria principal: UMA empresa (e só se o produto for vendido por ela)
+                main_category_company: ((form as any).main_category_company
+                    && ((form as any).companies as string[] ?? []).includes((form as any).main_category_company))
+                    ? (form as any).main_category_company : null,
+                main_category_at: null as string | null,
             };
+            payload.main_category_at = payload.main_category_company
+                ? (((product as any)?.main_category_company === payload.main_category_company && (product as any)?.main_category_at)
+                    ? (product as any).main_category_at : new Date().toISOString())
+                : null;
+
+            // Banco ainda sem a migração SQL: salva o produto normalmente, sem os campos novos
+            if (!bestSellerReady) {
+                delete (payload as any).featured_at;
+                delete (payload as any).best_seller_for;
+            }
+            if (!mainCategoryReady) {
+                delete (payload as any).main_category_company;
+                delete (payload as any).main_category_at;
+            }
 
             if (product) {
                 const { error } = await supabase.from('products')
@@ -652,6 +746,14 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                                     <AppIcon name="ArrowUpTrayIcon" size={18} />
                                     {uploading ? 'Enviando...' : 'Clique para selecionar (PNG, JPG, WEBP · máx 5MB)'}
                                 </button>
+                                <label className="flex items-start gap-2 text-[11px] text-muted cursor-pointer select-none">
+                                    <input type="checkbox" checked={autoAdjust} onChange={(e) => setAutoAdjust(e.target.checked)}
+                                        className="mt-0.5 accent-[#af1518]" />
+                                    <span>
+                                        <span className="font-bold text-foreground">Padronizar imagem automaticamente</span>
+                                        {' '}— recorta as margens, centraliza o produto e deixa o fundo branco puro, igual às demais fotos do site.
+                                    </span>
+                                </label>
                             </>
                         )}
                         {imageMode === 'url' && (
@@ -1139,12 +1241,124 @@ export default function ProductModal({ product, categories, onSave, onClose }: P
                     <div className="flex items-center justify-between p-4 rounded-xl bg-amber-50 border border-amber-200">
                         <div>
                             <p className="text-sm font-bold text-foreground">⭐ Produto em destaque</p>
-                            <p className="text-[11px] text-muted">Aparece nas "Categorias Principais" da homepage</p>
+                            <p className="text-[11px] text-muted">Aparece na seção "Produtos em Destaque" da home (até 4 por empresa)</p>
                         </div>
                         <button type="button" onClick={() => setForm((prev) => ({ ...prev, is_featured: !(prev as any).is_featured }))}
                             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${(form as any).is_featured ? 'bg-amber-500' : 'bg-border'}`}>
                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${(form as any).is_featured ? 'translate-x-6' : 'translate-x-1'}`} />
                         </button>
+                    </div>
+
+                    {/* Destaques ativos nas empresas deste produto */}
+                    {(() => {
+                        const cos = ((form as any).companies as string[] ?? []);
+                        const others = catalogFlags.filter((p) => p.id !== product?.id && p.is_featured && p.companies.some((c) => cos.includes(c)));
+                        const total = others.length + ((form as any).is_featured ? 1 : 0);
+                        if (total === 0) return null;
+                        return (
+                            <p className="-mt-2 px-1 text-[11px] text-muted">
+                                {total} {total === 1 ? 'produto em destaque' : 'produtos em destaque'} nas empresas selecionadas.
+                                A home mostra até 4 por empresa — valem os marcados mais recentemente.
+                            </p>
+                        );
+                    })()}
+
+                    {/* Categoria principal (cards "Destaque" de Categorias Principais) — escolha separada do destaque */}
+                    <div className="p-4 rounded-xl bg-sky-50 border border-sky-200">
+                        <p className="text-sm font-bold text-foreground">📂 Categoria principal da home</p>
+                        <p className="text-[11px] text-muted mb-3">
+                            Mostra este produto (e a categoria dele) nos cards "Destaque" de Categorias Principais de <strong>uma</strong> empresa.
+                            A categoria não pode se repetir em outra empresa. É independente do ⭐ acima: marcando os dois, o produto aparece nos dois lugares; marcando só um, não repete.
+                        </p>
+                        {!mainCategoryReady && (
+                            <p className="mb-3 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                Falta executar a migração SQL (add-main-category-company.sql) no Supabase para usar esta opção.
+                            </p>
+                        )}
+                        {(() => {
+                            const norm = (t: string) => t.trim().toLowerCase();
+                            const current = (form as any).main_category_company as string | null;
+                            const clash = catalogFlags.find((p) => p.id !== product?.id && p.main_category_company && norm(p.category) === norm(form.category));
+                            const chips: { id: string | null; label: string; color: string }[] = [
+                                { id: null, label: 'Nenhuma', color: '#6b7280' },
+                                ...COMPANY_ORDER.filter((id) => ((form as any).companies as string[] ?? []).includes(id))
+                                    .map((id) => ({ id: id as string, label: COMPANIES[id].shortName, color: COMPANIES[id].primaryColor })),
+                            ];
+                            return (
+                                <>
+                                    <div className="flex flex-wrap gap-2">
+                                        {chips.map((c) => {
+                                            const selected = (current ?? null) === c.id;
+                                            const used = c.id ? catalogFlags.filter((p) => p.id !== product?.id && p.main_category_company === c.id).length : 0;
+                                            return (
+                                                <button key={c.id ?? 'none'} type="button" disabled={!mainCategoryReady}
+                                                    aria-pressed={selected}
+                                                    onClick={() => setForm((prev) => ({ ...prev, main_category_company: c.id } as any))}
+                                                    className="px-3 py-2 rounded-xl border-2 text-[11px] font-bold transition-all disabled:opacity-40"
+                                                    style={{
+                                                        borderColor: selected ? c.color : '#dde3ed',
+                                                        backgroundColor: selected ? `${c.color}14` : 'white',
+                                                        color: selected ? c.color : '#6b7280',
+                                                    }}>
+                                                    {c.label}
+                                                    {c.id && <span className="ml-1.5 font-medium opacity-70">{used + (selected ? 1 : 0)}/3 vagas</span>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {mainCategoryReady && clash && current && (
+                                        <p className="mt-3 text-[11px] font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                                            A categoria "{toUpperText(form.category)}" já é categoria principal de {COMPANIES[clash.main_category_company as CompanyId]?.shortName ?? 'outra empresa'} (produto {toUpperText(clash.name)}). Escolha "Nenhuma" ou tire a marca de lá.
+                                        </p>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>
+
+                    {/* Mais vendido por empresa */}
+                    <div className="p-4 rounded-xl bg-rose-50 border border-rose-200">
+                        <p className="text-sm font-bold text-foreground">🏆 Item mais vendido</p>
+                        <p className="text-[11px] text-muted mb-3">
+                            Ocupa o card grande "Mais vendido" na home de cada empresa. Só um produto por empresa — ao marcar este, o anterior perde a marca.
+                        </p>
+                        {!bestSellerReady && (
+                            <p className="mb-3 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                                Falta executar a migração SQL (add-featured-bestseller.sql) no Supabase para usar esta opção.
+                            </p>
+                        )}
+                        <div className="space-y-2">
+                            {COMPANY_ORDER.filter((id) => ((form as any).companies as string[] ?? []).includes(id)).map((id) => {
+                                const co = COMPANIES[id];
+                                const mine = (((form as any).best_seller_for as string[] | undefined) ?? []).includes(id);
+                                const holder = catalogFlags.find((p) => p.id !== product?.id && p.best_seller_for.includes(id));
+                                return (
+                                    <div key={id} className="flex items-center justify-between gap-3 bg-white rounded-lg border border-border px-3 py-2">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-bold flex items-center gap-1.5" style={{ color: co.primaryColor }}>
+                                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: co.primaryColor }} />
+                                                {co.shortName}
+                                            </p>
+                                            <p className="text-[11px] text-muted truncate">
+                                                {mine
+                                                    ? 'Este produto é o mais vendido'
+                                                    : holder ? `Hoje: ${toUpperText(holder.name)}` : 'Nenhum escolhido ainda'}
+                                            </p>
+                                        </div>
+                                        <button type="button" disabled={!bestSellerReady}
+                                            aria-pressed={mine} aria-label={`Mais vendido da ${co.shortName}`}
+                                            onClick={() => setForm((prev) => {
+                                                const cur = ((prev as any).best_seller_for as string[] | undefined) ?? [];
+                                                return { ...prev, best_seller_for: mine ? cur.filter((x) => x !== id) : [...cur, id] } as any;
+                                            })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 disabled:opacity-40 ${mine ? '' : 'bg-border'}`}
+                                            style={mine ? { backgroundColor: co.primaryColor } : undefined}>
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm ${mine ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     {/* Ativo */}

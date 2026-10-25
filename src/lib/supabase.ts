@@ -39,7 +39,11 @@ export interface Product {
   stock: number;
   is_active: boolean;
   companies: string[];      // array: ['araguaia', 'acos-confiance'] — produto pode pertencer a múltiplas empresas
-  is_featured: boolean;     // aparece como destaque na homepage
+  is_featured: boolean;     // aparece como destaque na homepage (decisão do admin)
+  featured_at?: string | null;   // quando foi marcado como destaque; os mais recentes têm prioridade na home
+  best_seller_for?: string[];    // empresas para as quais este é o item MAIS VENDIDO (um por empresa)
+  main_category_company?: string | null; // empresa em cujas "Categorias Principais" da home este produto aparece (só uma; a categoria não repete em outra empresa)
+  main_category_at?: string | null;
   created_at: string;
   updated_at: string;
 }

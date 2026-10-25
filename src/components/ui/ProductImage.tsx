@@ -205,6 +205,10 @@ export default function ProductImage({
           style={{
             objectFit: fit,
             padding: typeof pad === 'number' ? `${pad}px` : pad,
+            // Fotos de produto: o "quase branco" do JPG (ex.: #FCFCFC) vira branco puro e o retângulo da imagem
+            // some no card branco. Só afeta tons ≥ ~246; o restante da foto muda menos de 4%.
+            // (fotos ambientadas, fit="cover", ficam como estão)
+            ...(fit === 'contain' ? { filter: 'brightness(1.035)' } : {}),
             // propriedades individuais (translate/scale) somam com o transform do hover, sem substituí-lo
             ...(trim ? {
               translate: `${trim.tx.toFixed(2)}px ${trim.ty.toFixed(2)}px`,

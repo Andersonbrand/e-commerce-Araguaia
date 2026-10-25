@@ -63,25 +63,50 @@ export default function ProductsPreview() {
     return allowedCats.some(cat => p.category.toLowerCase().includes(cat.toLowerCase()));
   });
 
-  // Categorias com produto representativo (preferencialmente com imagem real)
-  const categoryMap = new Map<string, Product>();
-  filteredProducts.forEach(p => {
-    if (!categoryMap.has(p.category)) {
-      categoryMap.set(p.category, p);
-    } else {
-      // Prefere produto com imagem real
-      const current = categoryMap.get(p.category)!;
-      if (!current.image_url && p.image_url) categoryMap.set(p.category, p);
-    }
-  });
-  const categories = Array.from(categoryMap.entries()).slice(0, 4);
+  // ── Seleção feita pelo ADMIN ──────────────────────────────────────────────
+  // Nada aqui é escolhido pelo site: o "mais vendido" e os destaques vêm das marcações do painel.
+  const ts = (v?: string | null) => (v ? Date.parse(v) || 0 : 0);
+  const byRecentFlag = (a: Product, b: Product) =>
+    ts(b.featured_at) - ts(a.featured_at) || ts(b.updated_at) - ts(a.updated_at);
 
-  // "Mais vendido": Cimento Montes Claros ocupa o card principal quando a empresa ativa o vende.
-  // Se não houver esse produto na visão atual, mantém o comportamento anterior (primeira categoria).
-  const cimentoMontesClaros = filteredProducts.find((p) => /montes\s*claros/i.test(p.name));
-  const allCategoryEntries = Array.from(categoryMap.entries());
-  const sideCategories = cimentoMontesClaros
-    ? allCategoryEntries.slice(1).filter(([cat]) => cat !== cimentoMontesClaros.category).slice(0, 3)
+  // "Mais vendido": produto marcado para a empresa ativa (um por empresa).
+  // Na visão do grupo, vale o da primeira empresa que tiver um.
+  const bestSellerOf = (companyId: string): Product | undefined =>
+    products.filter((p) => p.best_seller_for?.includes(companyId)).sort((a, b) => ts(b.updated_at) - ts(a.updated_at))[0];
+  const bestSeller: Product | undefined = isGrupoView
+    ? COMPANY_ORDER.map((id) => bestSellerOf(id)).find(Boolean)
+    : bestSellerOf(activeCompany as string);
+
+  // Categorias Principais: produtos que o admin vinculou à empresa ativa (escolha separada do "Produtos em Destaque").
+  // Cada empresa tem até 3 vagas; o mais antigo marcado vem primeiro. Sem "mais vendido" escolhido,
+  // o primeiro assume o card grande da esquerda.
+  const mainCategoryPool = products
+    .filter((p) => p.main_category_company && (isGrupoView || p.main_category_company === activeCompany))
+    .sort((a, b) => ts(a.main_category_at) - ts(b.main_category_at));
+  const usedCats = new Set<string>(bestSeller ? [bestSeller.category.trim().toLowerCase()] : []);
+  const slotProducts: Product[] = [];
+  for (const p of mainCategoryPool) {
+    if (slotProducts.length >= 3) break;
+    if (p.id === bestSeller?.id) continue;
+    const key = p.category.trim().toLowerCase();
+    if (usedCats.has(key)) continue;
+    usedCats.add(key);
+    slotProducts.push(p);
+  }
+  const mainProduct: Product | undefined = bestSeller ?? slotProducts.shift();
+  const hasAdminChoice = !!mainProduct;
+
+  // Só se o admin ainda não marcou NADA, a home usa as categorias com mais produtos para não ficar vazia
+  const categoryMap = new Map<string, Product>();
+  if (!hasAdminChoice) {
+    filteredProducts.forEach((p) => {
+      const current = categoryMap.get(p.category);
+      if (!current || (!current.image_url && p.image_url)) categoryMap.set(p.category, p);
+    });
+  }
+  const categories = Array.from(categoryMap.entries()).slice(0, 4);
+  const sideCategories: [string, Product][] = hasAdminChoice
+    ? slotProducts.map((p) => [p.category, p] as [string, Product])
     : categories.slice(1);
 
   const getCatImage = (cat: string, product: Product) =>
@@ -89,9 +114,12 @@ export default function ProductsPreview() {
   // Foto real do produto → 'contain' (inteira, sem cortes). Foto ambientada de fallback → 'cover'.
   const getCatFit = (product: Product) => (product.image_url ? 'contain' : 'cover');
 
-  // Destaques controlados pelo admin (is_featured); se nenhum estiver marcado, mostra os 4 primeiros
-  const flagged = filteredProducts.filter((p) => p.is_featured);
-  const featured = (flagged.length > 0 ? flagged : filteredProducts).slice(0, 4);
+  // "Produtos em Destaque": escolha própria do admin (⭐), independente das Categorias Principais.
+  // Se o produto também estiver nas Categorias Principais, ele aparece nos dois lugares — quem decide é o admin.
+  const featured = filteredProducts
+    .filter((p) => p.is_featured)
+    .sort(byRecentFlag)
+    .slice(0, 4);
 
   // Todas as categorias (com contagem) para a faixa animada
   const marqueeCategories = Array.from(
@@ -146,21 +174,23 @@ export default function ProductsPreview() {
         )}
 
         {/* Bento grid de categorias */}
-        {(cimentoMontesClaros || categories.length > 0) && (
+        {(mainProduct || categories.length > 0) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
-            {cimentoMontesClaros ? (
-              <Link href={`/products/${cimentoMontesClaros.id}`}
+            {mainProduct ? (
+              <Link href={`/products/${mainProduct.id}`}
                 className="lg:col-span-5 product-card group relative rounded-4xl overflow-hidden shadow-red-lg hover-lift cursor-pointer bg-white border border-border block">
                 <div className="relative h-[400px] overflow-hidden">
-                  <ProductImage src={getCatImage(cimentoMontesClaros.category, cimentoMontesClaros)} alt={cimentoMontesClaros.name}
-                    variant="fill" fit={getCatFit(cimentoMontesClaros)} padding="24px 24px 140px"
+                  <ProductImage src={getCatImage(mainProduct.category, mainProduct)} alt={mainProduct.name}
+                    variant="fill" fit={getCatFit(mainProduct)} padding="24px 24px 140px"
                     imgClassName="product-img transition-transform duration-700 group-hover:scale-105" />
                   <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/85 via-foreground/35 to-transparent pointer-events-none" />
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <span className="badge mb-3 bg-primary text-white">Mais vendido</span>
-                  <h3 className="text-2xl font-bold text-white mb-1">{toUpperText(cimentoMontesClaros.name)}</h3>
-                  <p className="text-sm text-white/70">{toUpperText(cimentoMontesClaros.category)}</p>
+                  <span className={`badge mb-3 ${bestSeller ? 'bg-primary text-white' : 'bg-surface-2 text-foreground'}`}>
+                    {bestSeller ? 'Mais vendido' : 'Destaque'}
+                  </span>
+                  <h3 className="text-2xl font-bold text-white mb-1">{toUpperText(mainProduct.name)}</h3>
+                  <p className="text-sm text-white/70">{toUpperText(mainProduct.category)}</p>
                 </div>
               </Link>
             ) : categories[0] && (

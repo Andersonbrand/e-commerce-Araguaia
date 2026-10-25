@@ -556,7 +556,9 @@ export default function AdminPanel() {
                         <div className="min-w-0">
                           <a href={`/products/${product.id}`} target="_blank" rel="noopener noreferrer"
                             className="text-sm font-bold text-foreground truncate hover:text-primary transition-colors block">
-                            {(product as any).is_featured && <span className="text-amber-500 mr-1">⭐</span>}
+                            {(product as any).is_featured && <span className="text-amber-500 mr-1" title="Destaque na home">⭐</span>}
+                            {((product as any).best_seller_for?.length ?? 0) > 0 && <span className="mr-1" title="Item mais vendido da empresa">🏆</span>}
+                            {(product as any).main_category_company && <span className="mr-1" title="Categoria principal da home">📂</span>}
                             {toUpperText(product.name)}
                           </a>
                           <div className="flex items-center gap-1.5 mt-0.5">
