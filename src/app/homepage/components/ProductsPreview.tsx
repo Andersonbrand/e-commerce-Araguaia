@@ -34,6 +34,9 @@ const CATEGORY_IMAGES: Record<string, string> = {
 };
 const FALLBACK_IMAGE = '/assets/images/about/estoque.jpg';
 
+// Card "Destaque" das Categorias Principais; companyId só existe na visão do grupo
+type Slot = { category: string; product: Product; companyId?: string };
+
 export default function ProductsPreview() {
   const [products, setProducts] = useState<Product[]>([]);
   const { showPrices }          = usePrices();
@@ -77,26 +80,59 @@ export default function ProductsPreview() {
     ? COMPANY_ORDER.map((id) => bestSellerOf(id)).find(Boolean)
     : bestSellerOf(activeCompany as string);
 
-  // Categorias Principais: produtos que o admin vinculou à empresa ativa (escolha separada do "Produtos em Destaque").
-  // Cada empresa tem até 3 vagas; o mais antigo marcado vem primeiro. Sem "mais vendido" escolhido,
-  // o primeiro assume o card grande da esquerda.
-  const mainCategoryPool = products
-    .filter((p) => p.main_category_company && (isGrupoView || p.main_category_company === activeCompany))
-    .sort((a, b) => ts(a.main_category_at) - ts(b.main_category_at));
-  const usedCats = new Set<string>(bestSeller ? [bestSeller.category.trim().toLowerCase()] : []);
-  const slotProducts: Product[] = [];
-  for (const p of mainCategoryPool) {
-    if (slotProducts.length >= 3) break;
-    if (p.id === bestSeller?.id) continue;
-    const key = p.category.trim().toLowerCase();
-    if (usedCats.has(key)) continue;
-    usedCats.add(key);
-    slotProducts.push(p);
+  const catKey = (c: string) => c.trim().toLowerCase();
+  const principalsOf = (companyId: string) =>
+    products.filter((p) => p.main_category_company === companyId).sort((a, b) => ts(a.main_category_at) - ts(b.main_category_at));
+
+  let mainProduct: Product | undefined;     // card grande da esquerda
+  let mainIsBestSeller = false;
+  let slots: Slot[] = [];                   // 3 cards "Destaque" (2 pequenos + 1 grande)
+
+  if (isGrupoView) {
+    // Nenhuma empresa selecionada: 4 cards — 2 da Araguaia, 1 da Aços Confiance e 1 da Confiança Indústria.
+    // Cada empresa entra com o seu "mais vendido" (o primeiro marcado) ou, sem ele, com a 1ª categoria principal
+    // marcada no painel; a 2ª da Araguaia vem das categorias principais dela. Nenhuma categoria repete entre os cards.
+    const used = new Set<string>();
+    const autoPick = (id: string) =>
+      products.find((p) => p.companies?.includes(id) && p.image_url && !used.has(catKey(p.category)))
+      ?? products.find((p) => p.companies?.includes(id) && !used.has(catKey(p.category)));
+    const pick = (id: string, preferBestSeller: boolean): Product | undefined => {
+      const candidates = [...(preferBestSeller ? [bestSellerOf(id)] : []), ...principalsOf(id)];
+      const chosen = candidates.find((p) => p && !used.has(catKey(p.category))) ?? autoPick(id);
+      if (chosen) used.add(catKey(chosen.category));
+      return chosen;
+    };
+    const araguaiaMain = pick('araguaia', true);
+    const acos         = pick('acos-confiance', true);
+    const industria    = pick('confiance-industria', true);
+    const araguaia2    = pick('araguaia', false);
+    mainProduct       = araguaiaMain;
+    mainIsBestSeller  = !!araguaiaMain && bestSellerOf('araguaia')?.id === araguaiaMain.id;
+    slots = ([
+      araguaia2 && { category: araguaia2.category, product: araguaia2, companyId: 'araguaia' },
+      acos      && { category: acos.category,      product: acos,      companyId: 'acos-confiance' },
+      industria && { category: industria.category, product: industria, companyId: 'confiance-industria' },
+    ].filter(Boolean)) as Slot[];
+  } else {
+    // Empresa selecionada: "mais vendido" + até 3 categorias principais vinculadas a ela (escolha do admin).
+    // Cada empresa tem até 3 vagas; o mais antigo marcado vem primeiro. Sem "mais vendido" escolhido,
+    // o primeiro assume o card grande da esquerda.
+    const usedCats = new Set<string>(bestSeller ? [catKey(bestSeller.category)] : []);
+    const slotProducts: Product[] = [];
+    for (const p of principalsOf(activeCompany as string)) {
+      if (slotProducts.length >= 3) break;
+      if (p.id === bestSeller?.id) continue;
+      if (usedCats.has(catKey(p.category))) continue;
+      usedCats.add(catKey(p.category));
+      slotProducts.push(p);
+    }
+    mainProduct      = bestSeller ?? slotProducts.shift();
+    mainIsBestSeller = !!bestSeller;
+    slots            = slotProducts.map((p) => ({ category: p.category, product: p }));
   }
-  const mainProduct: Product | undefined = bestSeller ?? slotProducts.shift();
   const hasAdminChoice = !!mainProduct;
 
-  // Só se o admin ainda não marcou NADA, a home usa as categorias com mais produtos para não ficar vazia
+  // Só se não houver nada para mostrar, a home usa as categorias com mais produtos para não ficar vazia
   const categoryMap = new Map<string, Product>();
   if (!hasAdminChoice) {
     filteredProducts.forEach((p) => {
@@ -105,9 +141,7 @@ export default function ProductsPreview() {
     });
   }
   const categories = Array.from(categoryMap.entries()).slice(0, 4);
-  const sideCategories: [string, Product][] = hasAdminChoice
-    ? slotProducts.map((p) => [p.category, p] as [string, Product])
-    : categories.slice(1);
+  if (!hasAdminChoice) slots = categories.slice(1).map(([category, product]) => ({ category, product }));
 
   const getCatImage = (cat: string, product: Product) =>
     product.image_url || CATEGORY_IMAGES[cat] || FALLBACK_IMAGE;
@@ -186,11 +220,13 @@ export default function ProductsPreview() {
                   <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/85 via-foreground/35 to-transparent pointer-events-none" />
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <span className={`badge mb-3 ${bestSeller ? 'bg-primary text-white' : 'bg-surface-2 text-foreground'}`}>
-                    {bestSeller ? 'Mais vendido' : 'Destaque'}
+                  <span className={`badge mb-3 ${mainIsBestSeller ? 'bg-primary text-white' : 'bg-surface-2 text-foreground'}`}>
+                    {mainIsBestSeller ? 'Mais vendido' : 'Destaque'}
                   </span>
                   <h3 className="text-2xl font-bold text-white mb-1">{toUpperText(mainProduct.name)}</h3>
-                  <p className="text-sm text-white/70">{toUpperText(mainProduct.category)}</p>
+                  <p className="text-sm text-white/70">
+                    {toUpperText(mainProduct.category)}{isGrupoView ? ` · ${toUpperText(COMPANIES['araguaia'].shortName)}` : ''}
+                  </p>
                 </div>
               </Link>
             ) : categories[0] && (
@@ -213,8 +249,9 @@ export default function ProductsPreview() {
             )}
 
             <div className="lg:col-span-3 grid grid-rows-2 gap-5">
-              {[sideCategories[0], sideCategories[1]].filter(Boolean).map(([cat, prod]) => (
+              {[slots[0], slots[1]].filter(Boolean).map(({ category: cat, product: prod, companyId }) => (
                 <Link key={cat} href={`/products?categoria=${encodeURIComponent(cat)}`}
+                  onClick={companyId ? () => setActiveCompany(companyId as CompanyId) : undefined}
                   className="product-card group relative rounded-4xl overflow-hidden shadow-sm hover-lift cursor-pointer bg-white border border-border block">
                   <div className="relative h-full min-h-[190px] overflow-hidden">
                     <ProductImage src={getCatImage(cat, prod)} alt={cat}
@@ -223,25 +260,32 @@ export default function ProductsPreview() {
                     <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-foreground/80 via-foreground/30 to-transparent pointer-events-none" />
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <span className="badge mb-2 bg-surface-2 text-foreground">Destaque</span>
+                    <span className="badge mb-2 bg-surface-2 text-foreground inline-flex items-center gap-1.5">
+                      {companyId && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COMPANIES[companyId as CompanyId].primaryColor }} />}
+                      {companyId ? COMPANIES[companyId as CompanyId].shortName : 'Destaque'}
+                    </span>
                     <h3 className="text-base font-bold text-white">{toUpperText(cat)}</h3>
                   </div>
                 </Link>
               ))}
             </div>
 
-            {sideCategories[2] && (
-              <Link href={`/products?categoria=${encodeURIComponent(sideCategories[2][0])}`}
+            {slots[2] && (
+              <Link href={`/products?categoria=${encodeURIComponent(slots[2].category)}`}
+                onClick={slots[2].companyId ? () => setActiveCompany(slots[2].companyId as CompanyId) : undefined}
                 className="lg:col-span-4 product-card group relative rounded-4xl overflow-hidden shadow-red-lg hover-lift cursor-pointer bg-white border border-border block">
                 <div className="relative h-[400px] overflow-hidden">
-                  <ProductImage src={getCatImage(sideCategories[2][0], sideCategories[2][1])} alt={sideCategories[2][0]}
-                    variant="fill" fit={getCatFit(sideCategories[2][1])} padding="24px 24px 120px"
+                  <ProductImage src={getCatImage(slots[2].category, slots[2].product)} alt={slots[2].category}
+                    variant="fill" fit={getCatFit(slots[2].product)} padding="24px 24px 120px"
                     imgClassName="product-img transition-transform duration-700 group-hover:scale-105" />
                   <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-foreground/85 via-foreground/35 to-transparent pointer-events-none" />
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <span className="badge mb-3 bg-surface-2 text-foreground">Destaque</span>
-                  <h3 className="text-2xl font-bold text-white mb-1">{toUpperText(sideCategories[2][0])}</h3>
+                  <span className="badge mb-3 bg-surface-2 text-foreground inline-flex items-center gap-1.5">
+                    {slots[2].companyId && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COMPANIES[slots[2].companyId as CompanyId].primaryColor }} />}
+                    {slots[2].companyId ? COMPANIES[slots[2].companyId as CompanyId].shortName : 'Destaque'}
+                  </span>
+                  <h3 className="text-2xl font-bold text-white mb-1">{toUpperText(slots[2].category)}</h3>
                 </div>
               </Link>
             )}
