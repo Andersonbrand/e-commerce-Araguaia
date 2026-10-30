@@ -12,8 +12,12 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string, captchaToken?: string | null) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, name: string, captchaToken?: string | null) => Promise<{ error: string | null }>;
+  /** Envia o link de redefinição de senha (a resposta é sempre a mesma, exista o e-mail ou não). */
+  resetPassword: (email: string, captchaToken?: string | null) => Promise<{ error: string | null }>;
+  /** Reenvia o e-mail de confirmação do cadastro. */
+  resendConfirmation: (email: string, captchaToken?: string | null) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -24,8 +28,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = user?.app_metadata?.role === 'admin' ||
-                  user?.user_metadata?.role === 'admin';
+  // SOMENTE app_metadata: o user_metadata pode ser alterado pelo próprio usuário (supabase.auth.updateUser),
+  // então nunca deve conceder poderes de administrador.
+  const isAdmin = user?.app_metadata?.role === 'admin';
 
   useEffect(() => {
     let mounted = true;
@@ -54,16 +59,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (email: string, password: string, captchaToken?: string | null) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email, password, options: captchaToken ? { captchaToken } : undefined,
+    });
     return { error: error?.message ?? null };
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string, captchaToken?: string | null) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: { data: { full_name: name }, ...(captchaToken ? { captchaToken } : {}) },
+    });
+    return { error: error?.message ?? null };
+  };
+
+  const resetPassword = async (email: string, captchaToken?: string | null) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, captchaToken ? { captchaToken } : undefined);
+    return { error: error?.message ?? null };
+  };
+
+  const resendConfirmation = async (email: string, captchaToken?: string | null) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup', email, options: captchaToken ? { captchaToken } : undefined,
     });
     return { error: error?.message ?? null };
   };
@@ -73,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, loading, signIn, signUp, resetPassword, resendConfirmation, signOut }}>
       {children}
     </AuthContext.Provider>
   );

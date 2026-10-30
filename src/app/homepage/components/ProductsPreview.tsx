@@ -51,7 +51,7 @@ export default function ProductsPreview() {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
   const handleAdd = (product: Product) => {
-    addToCart(product);
+    if (!addToCart(product)) return; // sem login: leva ao login e adiciona depois
     toast.success(`${toUpperText(product.name)} adicionado ao orçamento!`);
   };
 

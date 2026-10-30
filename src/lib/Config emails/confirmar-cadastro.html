@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confirme seu cadastro</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6fa;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Falta só um passo para ativar sua conta no Grupo HC.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6fa;padding:32px 12px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:20px;border:1px solid #dde3ed;overflow:hidden;">
+        <tr>
+          <td style="background-color:#0a1a3a;padding:26px 32px;text-align:center;">
+            <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;font-weight:bold;color:#ffffff;letter-spacing:0.5px;">Grupo HC</div>
+            <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:3px;color:#b9c4d8;margin-top:6px;text-transform:uppercase;">Confiança &amp; Responsabilidade</div>
+          </td>
+        </tr>
+        <tr><td style="height:4px;background-color:#af1518;font-size:0;line-height:0;">&nbsp;</td></tr>
+        <tr>
+          <td style="padding:36px 32px 12px 32px;font-family:Arial,Helvetica,sans-serif;color:#1c2333;">
+            <h1 style="margin:0 0 14px 0;font-size:22px;line-height:1.3;color:#0a1a3a;">Confirme seu cadastro</h1>
+            <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#4a5468;">Obrigado por se cadastrar! Para ativar sua conta e poder montar seus orçamentos, confirme seu e-mail clicando no botão abaixo.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+              <tr>
+                <td align="center" style="background-color:#af1518;border-radius:12px;">
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email" style="display:inline-block;padding:15px 34px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#ffffff;text-decoration:none;">Confirmar e-mail</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 6px 0;font-size:13px;line-height:1.6;color:#6b7385;">Se você não criou uma conta no Grupo HC, pode ignorar esta mensagem com segurança.</p>
+            <p style="margin:0 0 20px 0;font-size:12px;line-height:1.6;color:#8a91a3;word-break:break-all;">Se o botão não funcionar, copie e cole este endereço no navegador:<br>{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px 28px 32px;border-top:1px solid #eef1f6;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#8a91a3;text-align:center;">
+            Enviado para {{ .Email }}.<br>
+            Grupo HC &middot; Guanambi &middot; Bahia
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

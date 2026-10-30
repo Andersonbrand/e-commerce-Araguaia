@@ -91,6 +91,11 @@ export default function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Entrar: depois do login a pessoa volta para a página (e o filtro) em que estava
+  const goToLogin = (e: React.MouseEvent) => {
+    e.preventDefault();
+    router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+  };
   const handleSignOut = async () => { await signOut(); router.push('/homepage'); }; // usado em <Button>: trava e mostra "Carregando..." até concluir
   const headerAccent = company?.primaryColor ?? '#af1518';
 
@@ -199,7 +204,7 @@ export default function Header() {
                 </Button>
               </div>
             ) : (
-              <Link href="/login" className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border hover:bg-surface transition-all text-[11px] font-bold text-muted uppercase tracking-widest">
+              <Link href="/login" onClick={goToLogin} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border hover:bg-surface transition-all text-[11px] font-bold text-muted uppercase tracking-widest">
                 <AppIcon name="UserIcon" size={14} />Entrar
               </Link>
             )}
@@ -295,7 +300,7 @@ export default function Header() {
                 </Button>
               </div>
             ) : (
-              <Link href="/login" onClick={() => setMenuOpen(false)}
+              <Link href="/login" onClick={(e) => { setMenuOpen(false); goToLogin(e); }}
                 className="flex items-center gap-2 mx-3 px-4 py-3 rounded-xl border border-border text-[13px] font-bold text-muted hover:bg-surface transition-all">
                 <AppIcon name="UserIcon" size={15} />Entrar
               </Link>

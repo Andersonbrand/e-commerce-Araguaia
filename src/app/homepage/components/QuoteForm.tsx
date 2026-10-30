@@ -19,6 +19,7 @@ export default function QuoteForm() {
     const [form, setForm] = useState<FormData>(EMPTY);
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [trap, setTrap] = useState(''); // campo-armadilha (honeypot): invisível para pessoas, robôs costumam preencher
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -27,6 +28,7 @@ export default function QuoteForm() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (loading) return; // evita envio duplicado
+        if (trap) { setSubmitted(true); return; } // robô: finge sucesso e não grava nada
         setLoading(true);
         try {
             const { error } = await supabase.from('quotes').insert([{
@@ -79,6 +81,11 @@ export default function QuoteForm() {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-10">
+                            <div aria-hidden="true" style={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' }}>
+                                <label>Não preencha este campo
+                                    <input type="text" name="website" tabIndex={-1} autoComplete="off" value={trap} onChange={(e) => setTrap(e.target.value)} />
+                                </label>
+                            </div>
                             <div className="grid md:grid-cols-2 gap-x-12 gap-y-8">
                                 {[
                                     { label: 'Nome Completo *', name: 'name', type: 'text', required: true, placeholder: 'João da Silva' },

@@ -62,8 +62,7 @@ export default function QuoteResponseModal({ request, onClose, onSent }: Props) 
         const { error: uploadErr } = await supabase.storage
           .from('quote-pdfs').upload(filename, pdfFile, { contentType: 'application/pdf', upsert: true });
         if (uploadErr) throw uploadErr;
-        const { data: urlData } = supabase.storage.from('quote-pdfs').getPublicUrl(filename);
-        pdf_url  = urlData.publicUrl;
+        pdf_url  = filename; // bucket privado: guarda só o caminho; o link temporário é gerado na hora de abrir
         pdf_name = pdfFile.name;
         setUploading(false);
       }

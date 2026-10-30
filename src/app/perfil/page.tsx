@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { UserProfile, QuoteResponse } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import { toUpperText } from '@/lib/format';
+import { openQuotePdf } from '@/lib/quote-pdf';
 
 type Tab = 'profile' | 'responses';
 
@@ -103,6 +104,12 @@ export default function PerfilPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // PDF de orçamento: bucket privado → link temporário gerado na hora
+  const handleOpenPdf = async (pdfUrl: string, download = false, fileName?: string) => {
+    const ok = await openQuotePdf(createClient(), pdfUrl, { download, fileName });
+    if (!ok) toast.error('Não foi possível abrir o PDF agora. Tente novamente em instantes.');
   };
 
   const markRead = async (id: string) => {
@@ -295,11 +302,11 @@ export default function PerfilPage() {
                       </div>
                     )}
                     {reply.pdf_url && (
-                      <a href={reply.pdf_url} target="_blank" rel="noopener noreferrer"
+                      <button type="button" onClick={() => handleOpenPdf(reply.pdf_url as string)}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border text-[11px] font-bold text-muted hover:text-primary hover:border-primary/30 transition-all">
                         <AppIcon name="DocumentArrowDownIcon" size={13} />
                         {reply.pdf_name ?? 'Ver PDF'}
-                      </a>
+                      </button>
                     )}
                   </div>
                 ))}
@@ -395,16 +402,16 @@ export default function PerfilPage() {
                           <p className="text-[11px] text-muted">Documento PDF anexado</p>
                         </div>
                         <div className="flex gap-2">
-                          <a href={resp.pdf_url} target="_blank" rel="noopener noreferrer"
+                          <button type="button" onClick={() => handleOpenPdf(resp.pdf_url as string)}
                             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-border text-sm font-bold text-muted hover:text-primary hover:border-primary/30 transition-all">
                             <AppIcon name="EyeIcon" size={14} />
                             <span className="hidden sm:inline">Visualizar</span>
-                          </a>
-                          <a href={resp.pdf_url} download={resp.pdf_name ?? 'orcamento.pdf'}
+                          </button>
+                          <button type="button" onClick={() => handleOpenPdf(resp.pdf_url as string, true, resp.pdf_name ?? 'orcamento.pdf')}
                             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary-dark transition-all shadow-red-lg">
                             <AppIcon name="ArrowDownTrayIcon" size={14} />
                             <span className="hidden sm:inline">Baixar</span>
-                          </a>
+                          </button>
                         </div>
                       </div>
                     )}

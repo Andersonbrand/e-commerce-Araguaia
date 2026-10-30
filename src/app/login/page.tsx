@@ -8,12 +8,18 @@ import AppIcon from '@/components/ui/AppIcon';
 import { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import { friendlyAuthError } from '@/lib/auth-errors';
+import Turnstile, { TURNSTILE_ENABLED } from '@/components/ui/Turnstile';
 
 function LoginForm() {
   const [form, setForm]                 = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
-  const { signIn }                      = useAuth();
+  const { signIn, resendConfirmation } = useAuth();
+  const [captcha, setCaptcha]           = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset]   = useState(0);
+  const [unconfirmed, setUnconfirmed]     = useState(false); // e-mail ainda não confirmado
+  const [resending, setResending]         = useState(false);
   const router                          = useRouter();
   const searchParams                    = useSearchParams();
   const redirectTo                      = searchParams.get('redirect') ?? '/homepage';
@@ -24,10 +30,18 @@ function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return; // evita envio duplicado
+    if (TURNSTILE_ENABLED && !captcha) { toast.error('Aguarde a verificação anti-robô carregar e tente de novo.'); return; }
     setLoading(true);
+    setUnconfirmed(false);
     try {
-      const { error } = await signIn(form.email, form.password);
-      if (error) { setLoading(false); toast.error('E-mail ou senha inválidos.'); return; }
+      const { error } = await signIn(form.email, form.password, captcha);
+      if (error) {
+        setLoading(false);
+        setCaptchaReset((n) => n + 1); // o token vale para uma única tentativa
+        if (error.toLowerCase().includes('email not confirmed')) setUnconfirmed(true);
+        toast.error(friendlyAuthError(error, 'login'));
+        return;
+      }
       toast.success('Bem-vindo!');
       // Aguarda o Supabase propagar a sessão nos cookies antes de navegar.
       // router.refresh() logo após router.push() cancela a navegação em curso
@@ -36,7 +50,22 @@ function LoginForm() {
       window.location.href = redirectTo; // o botão permanece em "Carregando..." até a página trocar
     } catch {
       setLoading(false);
+      setCaptchaReset((n) => n + 1);
       toast.error('Não foi possível entrar agora. Verifique sua conexão e tente novamente.');
+    }
+  };
+
+  const handleResend = async () => {
+    if (resending) return;
+    if (TURNSTILE_ENABLED && !captcha) { toast.error('Aguarde a verificação anti-robô carregar e tente de novo.'); return; }
+    setResending(true);
+    try {
+      const { error } = await resendConfirmation(form.email, captcha);
+      if (error) toast.error(friendlyAuthError(error, 'cadastro'), { duration: 6000 });
+      else toast.success('Enviamos um novo e-mail de confirmação. Veja também o spam.');
+    } finally {
+      setResending(false);
+      setCaptchaReset((n) => n + 1);
     }
   };
 
@@ -86,6 +115,21 @@ function LoginForm() {
                 </button>
               </div>
             </div>
+            <div className="-mt-2 text-right">
+              <Link href="/forgot-password" className="text-[12px] font-bold hover:underline" style={{ color: '#af1518' }}>
+                Esqueci minha senha
+              </Link>
+            </div>
+            <Turnstile onToken={setCaptcha} resetSignal={captchaReset} />
+            {unconfirmed && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-[13px] text-amber-900 space-y-2">
+                <p>Seu e-mail ainda não foi confirmado. Abra a mensagem que enviamos no cadastro (veja também o spam).</p>
+                <button type="button" onClick={handleResend} disabled={resending}
+                  className="font-bold underline disabled:opacity-60">
+                  {resending ? 'Enviando...' : 'Reenviar e-mail de confirmação'}
+                </button>
+              </div>
+            )}
             <Button type="submit" loading={loading}
               className="w-full py-3.5 rounded-xl text-white text-[12px] font-bold uppercase tracking-widest transition-all shadow-lg disabled:opacity-60 flex items-center justify-center gap-2" style={{ backgroundColor: '#0a1a3a' }}>
               Entrar
@@ -97,7 +141,7 @@ function LoginForm() {
           </div>
           <p className="text-center text-sm text-muted">
             Não tem uma conta?{' '}
-            <Link href="/register" className="font-bold hover:underline transition-colors" style={{ color: '#af1518' }}>
+            <Link href={`/register?redirect=${encodeURIComponent(redirectTo)}`} className="font-bold hover:underline transition-colors" style={{ color: '#af1518' }}>
               Cadastre-se grátis
             </Link>
           </p>

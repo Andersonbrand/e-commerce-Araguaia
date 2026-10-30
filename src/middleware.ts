@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createMiddlewareClient } from '@/lib/supabase/middleware-client';
 
-const PUBLIC_PATHS = new Set(['/', '/homepage', '/login', '/register']);
+// Públicas: home, login/cadastro, catálogo (/products e /products/[id]) e /sobre.
+// Continuam exigindo login: /cart (enviar orçamento), /perfil e /admin-dashboard.
+// Adicionar item ao orçamento também pede login (veja CartContext).
+const PUBLIC_PATHS = new Set([
+  '/', '/homepage', '/login', '/register', '/products', '/sobre',
+  '/forgot-password', '/reset-password', '/auth/confirm', // fluxo de conta: abertos pelos links dos e-mails
+]);
 
 function isPublic(pathname: string): boolean {
-  if (PUBLIC_PATHS.has(pathname)) return true;
+  const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  if (PUBLIC_PATHS.has(normalized)) return true;
+  if (normalized.startsWith('/products/')) return true;
   if (pathname.startsWith('/_next/')) return true;
   if (pathname.startsWith('/assets/')) return true;
   if (pathname.startsWith('/images/')) return true;
@@ -33,6 +41,17 @@ export async function middleware(request: NextRequest) {
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Painel administrativo: só quem tem role "admin" em app_metadata (gravado apenas pelo servidor/SQL).
+  // user_metadata NÃO conta: o próprio usuário consegue editá-lo.
+  if (pathname === '/admin-dashboard' || pathname.startsWith('/admin-dashboard/')) {
+    if (user.app_metadata?.role !== 'admin') {
+      const home = request.nextUrl.clone();
+      home.pathname = '/homepage';
+      home.search = '';
+      return NextResponse.redirect(home);
+    }
   }
 
   return response;

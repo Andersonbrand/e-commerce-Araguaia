@@ -199,7 +199,7 @@ export default function ProductCatalog() {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleAdd = (product: Product) => {
-    addToCart(product, activeCompany);
+    if (!addToCart(product, activeCompany)) return; // sem login: leva ao login e adiciona depois
     toast.success(`${toUpperText(product.name)} adicionado ao orçamento!`);
   };
 

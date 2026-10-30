@@ -200,9 +200,10 @@ export default function ProductDetailPage() {
       toast.error(`Você marcou ${lines.length} combinações. Reduza para até ${MAX_LINES} por vez.`);
       return;
     }
-    lines.forEach((ln) =>
+    const added = lines.map((ln) =>
       addToCart(product, activeCompany, ln.first, ln.variantsMap, ln.brand?.name ?? null, qty)
     );
+    if (added.some((ok) => !ok)) return; // sem login: leva ao login e adiciona depois
     if (lines.length > 1) {
       toast.success(`${lines.length} itens de ${toUpperText(product.name)} (${qty}x cada) adicionados ao orçamento!`);
     } else {

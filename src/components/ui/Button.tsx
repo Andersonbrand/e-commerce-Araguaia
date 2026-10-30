@@ -40,7 +40,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   const [busy, setBusy] = useState(false);
   const locked = useRef(false);      // trava imediata (antes do React redesenhar)
   const mounted = useRef(true);
-  useEffect(() => () => { mounted.current = false; }, []);
+  // StrictMode (npm run dev) monta → desmonta → monta de novo: precisa voltar para true na montagem,
+  // senão o botão nunca sai do "Carregando..." depois que a operação termina.
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   const isBusy = !!loading || busy;
 

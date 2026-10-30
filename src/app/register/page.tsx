@@ -8,12 +8,17 @@ import AppLogo, { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
+import { friendlyAuthError } from '@/lib/auth-errors';
+import { passwordProblem } from '@/lib/password';
+import Turnstile, { TURNSTILE_ENABLED } from '@/components/ui/Turnstile';
 
 export default function RegisterPage() {
   const [form, setForm]                 = useState({ name: '', email: '', password: '', confirm: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
   const { signUp }                      = useAuth();
+  const [captcha, setCaptcha]           = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset]   = useState(0);
   const router                          = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -23,16 +28,19 @@ export default function RegisterPage() {
     e.preventDefault();
     if (loading) return; // evita cadastro duplicado
     if (form.password !== form.confirm) { toast.error('As senhas não coincidem.'); return; }
-    if (form.password.length < 6)       { toast.error('Senha mínima de 6 caracteres.'); return; }
+    const problem = passwordProblem(form.password);
+    if (problem) { toast.error(problem); return; }
+    if (TURNSTILE_ENABLED && !captcha) { toast.error('Aguarde a verificação anti-robô carregar e tente de novo.'); return; }
     setLoading(true);
     try {
-      const { error } = await signUp(form.email, form.password, form.name);
-      if (error) { toast.error(error); }
-      else       { toast.success('Cadastro realizado! Verifique seu e-mail.'); router.push('/login'); }
+      const { error } = await signUp(form.email.trim(), form.password, form.name.trim(), captcha);
+      if (error) { toast.error(friendlyAuthError(error, 'cadastro'), { duration: 6000 }); }
+      else       { toast.success('Cadastro realizado! Verifique seu e-mail.'); router.push('/login' + window.location.search); } // mantém ?redirect= para voltar à página de origem
     } catch {
       toast.error('Não foi possível criar a conta agora. Verifique sua conexão e tente novamente.');
     } finally {
       setLoading(false);
+      setCaptchaReset((n) => n + 1); // o token vale para uma única tentativa
     }
   };
 
@@ -85,6 +93,8 @@ export default function RegisterPage() {
               </div>
             ))}
 
+            <p className="-mt-2 text-[11px] text-muted">Use pelo menos 8 caracteres.</p>
+            <Turnstile onToken={setCaptcha} resetSignal={captchaReset} />
             <Button type="submit" loading={loading}
               className="w-full py-3.5 rounded-xl text-white text-[12px] font-bold uppercase tracking-widest transition-all shadow-lg disabled:opacity-60 flex items-center justify-center gap-2" style={{ backgroundColor: '#0a1a3a' }}>
               Criar Conta
@@ -98,7 +108,7 @@ export default function RegisterPage() {
           </div>
           <p className="text-center text-sm text-muted">
             Já tem uma conta?{' '}
-            <Link href="/login" className="text-primary font-bold hover:text-primary-dark transition-colors">Entrar</Link>
+            <a href="#" onClick={(e) => { e.preventDefault(); router.push('/login' + window.location.search); }} className="text-primary font-bold hover:text-primary-dark transition-colors">Entrar</a>
           </p>
         </div>
         <div className="text-center mt-6">
