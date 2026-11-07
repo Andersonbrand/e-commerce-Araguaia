@@ -9,6 +9,7 @@ import { toUpperText } from '@/lib/format';
 import { supabase, Product } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
 import { useCart } from '@/context/CartContext';
+import { useProductsWithOptions } from '@/lib/use-products-with-options';
 import { useCompany, COMPANIES, COMPANY_ORDER, COMPANY_CATEGORIES, CompanyId } from '@/context/CompanyContext';
 import toast from 'react-hot-toast';
 
@@ -103,6 +104,7 @@ export default function ProductCatalog() {
   const releaseTimerRef                     = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { showPrices }                      = usePrices();
   const { addToCart }                       = useCart();
+  const { hasOptions, checkOptions }        = useProductsWithOptions();
   const { activeCompany, company, setActiveCompany, isGrupoView } = useCompany();
 
   useEffect(() => {
@@ -198,7 +200,15 @@ export default function ProductCatalog() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const handleAdd = (product: Product) => {
+  // Produto com variações (medidas/espessuras) ou marcas: o cliente precisa escolher na página do produto
+  // antes de pedir o orçamento — senão o pedido chega sem especificação.
+  const goChooseOptions = (product: Product) => {
+    toast(`${toUpperText(product.name)} tem mais de uma opção. Escolha a medida/marca para pedir o orçamento.`, { icon: '👆' });
+    router.push(`/products/${product.id}`);
+  };
+
+  const handleAdd = async (product: Product) => {
+    if (hasOptions(product.id) || await checkOptions(product.id)) { goChooseOptions(product); return; }
     if (!addToCart(product, activeCompany)) return; // sem login: leva ao login e adiciona depois
     toast.success(`${toUpperText(product.name)} adicionado ao orçamento!`);
   };
@@ -492,6 +502,9 @@ export default function ProductCatalog() {
                         </div>
                         <h4 className="text-sm font-bold text-foreground leading-snug flex-1">{toUpperText(product.name)}</h4>
                         <p className="text-[11px] text-muted">{product.unit}</p>
+                        {hasOptions(product.id) && (
+                          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accentColor }}>Várias opções disponíveis</p>
+                        )}
                         <div className="flex items-center justify-between pt-1">
                           {showPrices && product.price > 0
                             ? <span className="text-base font-bold text-foreground">R$ {product.price.toFixed(2).replace('.', ',')}</span>
@@ -499,7 +512,7 @@ export default function ProductCatalog() {
                           <button onClick={() => handleAdd(product)}
                             className="px-3 py-1.5 rounded-xl text-white text-[11px] font-bold hover:opacity-90 transition-all"
                             style={{ backgroundColor: accentColor }}>
-                            + Orçamento
+                            {hasOptions(product.id) ? 'Escolher opções' : '+ Orçamento'}
                           </button>
                         </div>
                       </div>

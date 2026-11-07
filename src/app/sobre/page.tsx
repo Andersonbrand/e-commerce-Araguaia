@@ -46,7 +46,7 @@ const EMPRESAS = [
   },
   {
     id: 'confiance-industria',
-    nome: 'Confiance Indústria',
+    nome: 'Indústria Confiance',
     fundacao: '2020',
     anos: '5+',
     cor: '#1a3a6b',
@@ -62,9 +62,9 @@ const EMPRESAS = [
     nome: 'Aços Confiance',
     fundacao: '2022',
     anos: '3+',
-    cor: '#b04d00',
-    gradiente: 'linear-gradient(135deg, #b04d00, #803800)',
-    bgLight: '#fff7f0',
+    cor: '#204289',
+    gradiente: 'linear-gradient(135deg, #204289, #bc2024)',
+    bgLight: '#f0f3fb',
     segmento: 'Distribuição de Aço',
     descricao: 'A mais jovem do grupo, fundada em 2022, a Aços Confiance nasce para atender serralherias e construtoras com preços de atacado. Distribuidora especializada em vergalhões, barras e perfis, chapas e arames — sempre com a qualidade que o Grupo HC garante.',
     categorias: ['Vergalhões', 'Barras e Perfis', 'Chapas', 'Arames', 'Aços Planos'],
@@ -90,7 +90,7 @@ export default function SobrePage() {
           <div className="absolute top-0 left-0 right-0 h-1.5 flex">
             <div className="flex-1" style={{ backgroundColor: '#af1518' }} />
             <div className="flex-1" style={{ backgroundColor: '#1a3a6b' }} />
-            <div className="flex-1" style={{ backgroundColor: '#b04d00' }} />
+            <div className="flex-1" style={{ backgroundColor: '#204289' }} />
           </div>
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full">
@@ -145,13 +145,13 @@ export default function SobrePage() {
                 Com o crescimento e a consolidação da Araguaia no mercado regional, expandimos o grupo com a criação
                 da <strong className="text-[#1a3a6b]">Confiance Indústria</strong> em 2020, passando a fabricar
                 nossos próprios produtos metálicos. Em 2022, fundamos a{' '}
-                <strong className="text-[#b04d00]">Aços Confiance</strong>, distribuidora especializada no atacado.
+                <strong className="text-[#204289]">Aços Confiance</strong>, distribuidora especializada no atacado.
               </p>
               <div className="grid grid-cols-3 gap-4 pt-2">
                 {[
                   { v: '35+', l: 'anos de mercado', c: '#af1518' },
                   { v: '3',   l: 'empresas do grupo', c: '#1a3a6b' },
-                  { v: '800+', l: 'produtos no portfólio', c: '#b04d00' },
+                  { v: '800+', l: 'produtos no portfólio', c: '#204289' },
                 ].map(s => (
                   <div key={s.l} className="text-center p-4 rounded-2xl border border-[#dde3ed]">
                     <p className="text-3xl font-display font-bold" style={{ color: s.c }}>{s.v}</p>
@@ -232,7 +232,7 @@ export default function SobrePage() {
                 pequena distribuidora em um grupo empresarial sólido. Em 2020, liderou a criação da{' '}
                 <strong className="text-[#1a3a6b]">Confiance Indústria</strong>, tornando o grupo
                 autossuficiente na fabricação de telhas e estruturas metálicas. Em 2022, fundou a{' '}
-                <strong className="text-[#b04d00]">Aços Confiance</strong>, fechando o ciclo do grupo no
+                <strong className="text-[#204289]">Aços Confiance</strong>, fechando o ciclo do grupo no
                 mercado do aço — da indústria ao atacado.
               </p>
               <blockquote className="pl-5 border-l-4 border-primary">
@@ -245,7 +245,7 @@ export default function SobrePage() {
                 {[
                   { v: '1990', l: 'Início da jornada', c: '#af1518' },
                   { v: '3',   l: 'Empresas fundadas', c: '#1a3a6b' },
-                  { v: '+35', l: 'Anos no mercado', c: '#b04d00' },
+                  { v: '+35', l: 'Anos no mercado', c: '#204289' },
                 ].map(s => (
                   <div key={s.l} className="text-center p-3 rounded-2xl border border-[#dde3ed] bg-white">
                     <p className="text-2xl font-display font-bold" style={{ color: s.c }}>{s.v}</p>
@@ -348,7 +348,7 @@ export default function SobrePage() {
             {[
               { icon: 'TruckIcon',     title: 'Logística Própria',   desc: 'Frota dedicada para entregas em Guanambi e região.', cor: '#af1518' },
               { icon: 'ShieldCheckIcon', title: 'Qualidade Garantida', desc: 'Parceiros das maiores marcas do setor. Produtos verificados e com garantia de procedência.', cor: '#1a3a6b' },
-              { icon: 'UserGroupIcon', title: 'Atendimento Humano',  desc: 'Equipe capacitada presente para auxiliar na escolha certa — do projeto à entrega.', cor: '#b04d00' },
+              { icon: 'UserGroupIcon', title: 'Atendimento Humano',  desc: 'Equipe capacitada presente para auxiliar na escolha certa — do projeto à entrega.', cor: '#204289' },
             ].map(v => (
               <div key={v.title} className="p-7 rounded-4xl border border-[#dde3ed] bg-white hover:-translate-y-1 transition-transform duration-300">
                 <div className="flex justify-center mb-5">
@@ -370,7 +370,7 @@ export default function SobrePage() {
         <div className="absolute top-0 left-0 right-0 h-1 flex">
           <div className="flex-1" style={{ backgroundColor: '#af1518' }} />
           <div className="flex-1" style={{ backgroundColor: '#1a3a6b' }} />
-          <div className="flex-1" style={{ backgroundColor: '#b04d00' }} />
+          <div className="flex-1" style={{ backgroundColor: '#204289' }} />
         </div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-white/40 mb-4">Grupo HC</p>

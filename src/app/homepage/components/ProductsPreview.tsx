@@ -11,6 +11,8 @@ import CategoryMarquee from './CategoryMarquee';
 import { supabase, Product } from '@/lib/supabase';
 import { usePrices } from '@/context/PriceContext';
 import { useCart } from '@/context/CartContext';
+import { useRouter } from 'next/navigation';
+import { useProductsWithOptions } from '@/lib/use-products-with-options';
 import { useCompany, COMPANIES, CompanyId, COMPANY_ORDER, COMPANY_CATEGORIES } from '@/context/CompanyContext';
 import toast from 'react-hot-toast';
 
@@ -41,6 +43,8 @@ export default function ProductsPreview() {
   const [products, setProducts] = useState<Product[]>([]);
   const { showPrices }          = usePrices();
   const { addToCart }           = useCart();
+  const router                  = useRouter();
+  const { hasOptions, checkOptions } = useProductsWithOptions();
   const { activeCompany, company, setActiveCompany, isGrupoView } = useCompany();
 
   const fetchProducts = useCallback(() => {
@@ -50,7 +54,13 @@ export default function ProductsPreview() {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
-  const handleAdd = (product: Product) => {
+  const handleAdd = async (product: Product) => {
+    // Com variações/marcas: escolher na página do produto antes de pedir o orçamento
+    if (hasOptions(product.id) || await checkOptions(product.id)) {
+      toast(`${toUpperText(product.name)} tem mais de uma opção. Escolha a medida/marca para pedir o orçamento.`, { icon: '👆' });
+      router.push(`/products/${product.id}`);
+      return;
+    }
     if (!addToCart(product)) return; // sem login: leva ao login e adiciona depois
     toast.success(`${toUpperText(product.name)} adicionado ao orçamento!`);
   };
@@ -321,7 +331,7 @@ export default function ProductsPreview() {
                         : <span className="text-sm text-muted italic">Sob consulta</span>}
                       <button onClick={() => handleAdd(product)}
                         className="px-3 py-1.5 rounded-xl bg-primary text-white text-[11px] font-bold hover:bg-primary-dark transition-all">
-                        + Orçamento
+                        {hasOptions(product.id) ? 'Escolher opções' : '+ Orçamento'}
                       </button>
                     </div>
                   </div>

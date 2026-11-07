@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import AppLogo from '@/components/ui/AppLogo';
+import AppLogo, { GrupoHCLogoFull, CompanyWordmark, hasWordmark } from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
@@ -98,6 +98,8 @@ export default function Header() {
   };
   const handleSignOut = async () => { await signOut(); router.push('/homepage'); }; // usado em <Button>: trava e mostra "Carregando..." até concluir
   const headerAccent = company?.primaryColor ?? '#af1518';
+  // Comercial Araguaia: nome em azul, como no logotipo oficial (símbolo vermelho + nome azul)
+  const nameColor = company?.id === 'araguaia' ? '#024a91' : headerAccent;
 
   return (
     <header className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled ? 'py-0' : 'py-2'}`}>
@@ -105,7 +107,7 @@ export default function Header() {
       <div
         className="absolute top-0 left-0 right-0 h-0.5 transition-all duration-700"
         style={{ background: isGrupoView
-          ? 'linear-gradient(90deg, #af1518 0%, #af1518 33%, #1a3a6b 33%, #1a3a6b 66%, #b04d00 66%, #b04d00 100%)'
+          ? 'linear-gradient(90deg, #af1518 0%, #af1518 33%, #183159 33%, #183159 66%, #204289 66%, #204289 100%)'
           : company?.gradient ?? '#af1518'
         }}
       />
@@ -119,30 +121,30 @@ export default function Header() {
 
           {/* Logo */}
           <Link href="/homepage" data-no-ripple onClick={() => setActiveCompany(null)} className="flex items-center gap-3 group flex-shrink-0">
+            {isGrupoView ? (
+              /* Visão do Grupo: logotipo completo (HC colorido + GRUPO / HUGO COSTA / CONFIANÇA & RESPONSABILIDADE) */
+              <GrupoHCLogoFull width={124} tight />
+            ) : hasWordmark(company?.id) ? (
+              /* Aços / Indústria Confiance: o logotipo oficial já traz o nome — ocupa o lugar do ícone + texto */
+              <CompanyWordmark companyId={company!.id} height={46} />
+            ) : (<>
             <AppLogo size={38} />
             <div className="flex flex-col leading-none">
-              {isGrupoView ? (
+              {/* Todas as marcas usam o padrão da Comercial Araguaia: nome em maiúsculas, negrito, em duas linhas,
+                  com o complemento em cinza logo abaixo. */}
+              {
                 <>
-                  <span className="font-display font-bold text-base tracking-tight text-foreground">
-                    Grupo <span className="text-foreground">HC</span>
+                  <span className="font-brand-hc font-extrabold uppercase text-[14px] leading-[1.02] tracking-tight transition-colors duration-300"
+                    style={{ color: nameColor }}>
+                    {(company?.name ?? '').split(' ')[0]}<br />{(company?.name ?? '').split(' ').slice(1).join(' ')}
                   </span>
-                  <span className="text-[8px] uppercase tracking-[0.25em] text-muted font-medium hidden sm:block">
-                    Hugo Costa · Confiança & Responsabilidade
+                  <span className="font-brand-hc text-[9px] font-semibold tracking-[0.04em] mt-1 hidden sm:block" style={{ color: '#7b808a' }}>
+                    {company?.brandTagline ?? company?.segment}
                   </span>
                 </>
-              ) : (
-                <>
-                  <span className="font-display font-bold text-base tracking-tight transition-colors duration-300"
-                    style={{ color: headerAccent }}>
-                    {company?.name}
-                  </span>
-                  <span className="text-[8px] uppercase tracking-[0.25em] font-medium hidden sm:block transition-colors duration-300"
-                    style={{ color: `${headerAccent}80` }}>
-                    {company?.segment}
-                  </span>
-                </>
-              )}
+              }
             </div>
+            </>)}
           </Link>
 
           {/* Seletor de empresa — desktop */}

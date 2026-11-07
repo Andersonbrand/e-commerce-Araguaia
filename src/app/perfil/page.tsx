@@ -417,7 +417,7 @@ export default function PerfilPage() {
                     )}
                     <div className="pt-4 border-t border-border/40 flex items-center justify-between">
                       <p className="text-[11px] text-muted">Dúvidas? Entre em contato com nossa equipe.</p>
-                      <a href="https://wa.me/5577981046133?text=Olá! Recebi a resposta do meu orçamento e gostaria de continuar."
+                      <a href="https://wa.me/557734512175?text=Olá! Recebi a resposta do meu orçamento e gostaria de continuar."
                         target="_blank" rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-border hover:border-primary/30 hover:bg-primary/5 text-sm font-bold text-muted hover:text-primary transition-all">
                         <AppIcon name="ChatBubbleLeftRightIcon" size={16} />

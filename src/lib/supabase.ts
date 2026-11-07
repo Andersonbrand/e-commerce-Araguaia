@@ -65,6 +65,9 @@ export interface Order {
   customer_name: string;
   customer_email: string;
   customer_phone: string;
+  contact_methods?: string[] | null;
+  contact_email?: string | null;
+  observation?: string | null;
   created_at: string;
 }
 

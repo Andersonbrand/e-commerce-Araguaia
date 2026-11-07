@@ -26,7 +26,7 @@ export default function Footer({ compact = false, hideOnGateway = false }: { com
 
         return (
             <footer className="border-t border-border bg-white">
-                <div className="h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#b04d00]" />
+                <div className="h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#204289]" />
 
                 {/* Tudo em uma única linha no desktop (fonte e espaçamentos reduzidos); quebra em telas menores */}
                 <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 py-4">
@@ -74,7 +74,7 @@ export default function Footer({ compact = false, hideOnGateway = false }: { com
     return (
         <footer className="border-t border-border bg-white">
             {/* Faixa tricolor do grupo */}
-            <div className="h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#b04d00]" />
+            <div className="h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#204289]" />
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
                 {/* Grupo HC header */}

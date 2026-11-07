@@ -11,6 +11,7 @@ export interface Company {
   tagline: string;
   description: string;
   segment: string;
+  brandTagline?: string;   // complemento do logotipo oficial (aparece no cabeçalho no lugar do segmento)
   founded: string;
   primaryColor: string;
   primaryDark: string;
@@ -41,6 +42,7 @@ export const COMPANIES: Record<CompanyId, Company> = {
     tagline: 'Tudo para sua obra, com os melhores preços.',
     description: 'A pioneira do grupo. Desde 1990 abastecendo Guanambi e toda a região com materiais de construção civil de qualidade, preços justos e atendimento técnico especializado.',
     segment: 'Materiais de Construção',
+    brandTagline: 'Confiança se constrói.',
     founded: '1990',
     primaryColor: '#af1518',
     primaryDark: '#8a0f12',
@@ -49,24 +51,24 @@ export const COMPANIES: Record<CompanyId, Company> = {
     gradient: 'linear-gradient(135deg, #af1518 0%, #c41a1d 50%, #8a0f12 100%)',
     gradientText: 'linear-gradient(135deg, #af1518 0%, #e03235 60%, #8a0f12 100%)',
     categories: COMPANY_CATEGORIES['araguaia'],
-    whatsapp: '5577981046133',
+    whatsapp: '557734512175',
   },
   'confiance-industria': {
     id: 'confiance-industria',
-    name: 'Confiance Indústria',
+    name: 'Indústria Confiance',
     shortName: 'Confiance',
     tagline: 'Inovação em ferro e aço direto da fábrica.',
     description: 'A indústria do grupo, com mais de 5 anos fabricando telhas de zinco, bobinas, treliças, colunas e painéis com tecnologia própria e qualidade superior.',
     segment: 'Indústria de Aço',
     founded: '2020',
-    primaryColor: '#1a3a6b',
-    primaryDark: '#0f2247',
+    primaryColor: '#183159',
+    primaryDark: '#0f2040',
     accentColor: '#4a7fd4',
     bgLight: '#f0f4ff',
     gradient: 'linear-gradient(135deg, #1a3a6b 0%, #2552a0 50%, #0f2247 100%)',
     gradientText: 'linear-gradient(135deg, #1a3a6b 0%, #3366cc 60%, #0f2247 100%)',
     categories: COMPANY_CATEGORIES['confiance-industria'],
-    whatsapp: '5577981046133',
+    whatsapp: '557734512175',
   },
   'acos-confiance': {
     id: 'acos-confiance',
@@ -74,16 +76,17 @@ export const COMPANIES: Record<CompanyId, Company> = {
     shortName: 'Aços',
     tagline: 'Aço e serralheria com expertise do atacado.',
     description: 'A distribuidora mais recente do grupo, com 3 anos focando em serralheria profissional, vergalhões e malhas para construtoras com preços de atacado.',
-    segment: 'Distribuição de Aço',
+    segment: 'Inovação em Ferro e Aço',
     founded: '2022',
-    primaryColor: '#b04d00',
-    primaryDark: '#803800',
-    accentColor: '#e67e22',
-    bgLight: '#fff7f0',
-    gradient: 'linear-gradient(135deg, #b04d00 0%, #d45f00 50%, #803800 100%)',
-    gradientText: 'linear-gradient(135deg, #b04d00 0%, #e06500 60%, #803800 100%)',
+    // Cores do logotipo oficial: azul + vermelho (mistura Araguaia/Confiance). Ativa, usa as duas ao mesmo tempo.
+    primaryColor: '#204289',
+    primaryDark: '#162e60',
+    accentColor: '#bc2024',
+    bgLight: '#f0f3fb',
+    gradient: 'linear-gradient(135deg, #204289 0%, #204289 45%, #bc2024 100%)',
+    gradientText: 'linear-gradient(135deg, #204289 0%, #204289 50%, #bc2024 100%)',
     categories: COMPANY_CATEGORIES['acos-confiance'],
-    whatsapp: '5577981046133',
+    whatsapp: '557734512175',
   },
 };
 

@@ -39,9 +39,15 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Entregue', cancelled: 'Cancelado', read: 'Lido', replied: 'Respondido',
 };
 
+const CONTACT_METHOD_LABELS: Record<string, string> = {
+  whatsapp: 'WhatsApp', email: 'E-mail', site: 'Pelo nosso site',
+};
+
 interface UnifiedRequest {
   id: string; source: 'cart' | 'form';
   customer_name: string; customer_email: string; customer_phone: string; company?: string | null;
+  contact_methods?: string[] | null;
+  contact_email?: string | null;
   items?: any[]; total?: number;
   category?: string; message?: string;
   status: string; created_at: string;
@@ -100,6 +106,8 @@ export default function AdminPanel() {
     const fromCart: UnifiedRequest[] = (orders ?? []).map((o: Order) => ({
       id: o.id, source: 'cart' as const,
       customer_name: o.customer_name, customer_email: o.customer_email, customer_phone: o.customer_phone,
+      contact_methods: o.contact_methods ?? null,
+      contact_email: o.contact_email ?? null,
       items: o.items as any[], total: o.total, status: o.status, created_at: o.created_at,
     }));
     const fromForm: UnifiedRequest[] = (quotes ?? []).map((q: Quote) => ({
@@ -660,8 +668,20 @@ export default function AdminPanel() {
                           </span>
                           <span className={`badge text-[9px] border ${STATUS_STYLES[req.status] ?? 'bg-surface text-muted border-border'}`}>{STATUS_LABELS[req.status] ?? req.status}</span>
                         </div>
-                        <p className="text-sm text-muted">{req.customer_email} · {req.customer_phone}</p>
+                        <p className="text-sm text-muted">{[req.customer_email, req.customer_phone].filter(Boolean).join(' · ')}</p>
                         {req.company && <p className="text-sm text-muted">Empresa: {req.company}</p>}
+                        {req.contact_methods && req.contact_methods.length > 0 && (
+                          <p className="text-sm text-muted flex items-center gap-1.5 flex-wrap">
+                            Retorno preferido:
+                            {req.contact_methods.map((m) => (
+                              <span key={m} className="badge text-[9px] border bg-green-50 text-green-700 border-green-200">
+                                {CONTACT_METHOD_LABELS[m] ?? m}
+                                {m === 'whatsapp' && req.customer_phone ? `: ${req.customer_phone}` : ''}
+                                {m === 'email' && req.contact_email ? `: ${req.contact_email}` : ''}
+                              </span>
+                            ))}
+                          </p>
+                        )}
                         <p className="text-[11px] text-muted">{new Date(req.created_at).toLocaleString('pt-BR')}</p>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">

@@ -33,7 +33,7 @@ export default function GrupoHCSection() {
     <section ref={sectionRef} id="grupo-hc" className="py-16 sm:py-24 lg:py-32 relative overflow-hidden bg-white">
       {/* Decoração de fundo sutil */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#b04d00]" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#204289]" />
         <div className="absolute top-1/3 right-[-200px] w-[500px] h-[500px] rounded-full blur-[120px] opacity-[0.04]"
           style={{ background: 'radial-gradient(circle, #1a3a6b, transparent)' }} />
         <div className="absolute bottom-1/4 left-[-100px] w-[350px] h-[350px] rounded-full blur-[100px] opacity-[0.04]"
@@ -55,7 +55,7 @@ export default function GrupoHCSection() {
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] text-[#0d1117] mb-6">
             Três empresas,{' '}
             <span className="font-display italic" style={{
-              background: 'linear-gradient(135deg, #af1518 0%, #1a3a6b 50%, #b04d00 100%)',
+              background: 'linear-gradient(135deg, #af1518 0%, #1a3a6b 50%, #204289 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -160,7 +160,7 @@ export default function GrupoHCSection() {
         {/* Banner linha do tempo do grupo */}
         <div className="reveal opacity-0 translate-y-8 transition-all duration-1000 delay-300">
           <div className="relative rounded-4xl overflow-hidden border border-[#dde3ed] bg-[#f5f7fa] p-8 md:p-12">
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#b04d00]" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#204289]" />
 
             <div className="text-center mb-10">
               <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-[#5a6272] mb-2">Linha do Tempo</p>
@@ -169,13 +169,13 @@ export default function GrupoHCSection() {
 
             <div className="relative">
               {/* Linha conectora */}
-              <div className="absolute top-8 left-0 right-0 h-px bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#b04d00] hidden md:block" />
+              <div className="absolute top-8 left-0 right-0 h-px bg-gradient-to-r from-[#af1518] via-[#1a3a6b] to-[#204289] hidden md:block" />
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
                 {[
                   { year: '1990', company: 'Comercial Araguaia', event: 'Fundação da primeira empresa do grupo em Guanambi, BA. Início como distribuidora de materiais de construção civil.', color: '#af1518' },
                   { year: '2020', company: 'Confiance Indústria', event: 'Criação da indústria própria para fabricação de telhas de zinco, bobinas e estruturas metálicas. Desde 2020 no mercado.', color: '#1a3a6b' },
-                  { year: '2022', company: 'Aços Confiance', event: 'Expansão com a distribuidora de aço no atacado, atendendo serralherias e construtoras com os melhores preços.', color: '#b04d00' },
+                  { year: '2022', company: 'Aços Confiance', event: 'Expansão com a distribuidora de aço no atacado, atendendo serralherias e construtoras com os melhores preços.', color: '#204289' },
                 ].map((item, i) => (
                   <div key={item.year} className="flex flex-col items-center text-center gap-4">
                     {/* Nó da timeline */}

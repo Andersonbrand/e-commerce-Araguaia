@@ -69,7 +69,7 @@ export default function AboutSection() {
           {/* Right: conteúdo */}
           <div className="space-y-10 animate-on-scroll opacity-0 translate-y-8 transition-all duration-1000 delay-200">
             <div className="space-y-4">
-              <span className="text-[10px] uppercase tracking-[0.4em] font-bold" style={{ color: '#b04d00' }}>
+              <span className="text-[10px] uppercase tracking-[0.4em] font-bold" style={{ color: '#204289' }}>
                 Nossa Filosofia
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05] text-foreground">

@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fraunces:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:wght@300;400;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
 :root {
     /* Vermelho como cor primária */
@@ -31,6 +31,9 @@ body {
 }
 
 .font-display { font-family: 'Fraunces', serif; }
+/* Fontes das marcas (logotipos oficiais) */
+.font-brand-hc        { font-family: 'Montserrat', sans-serif; }   /* Grupo HC e Comercial Araguaia */
+.font-brand-confiance { font-family: 'Orbitron', 'Montserrat', sans-serif; } /* Confiance Indústria */
 
 .text-gradient-red {
     background: linear-gradient(135deg, #af1518 0%, #e03235 60%, #8a0f12 100%);

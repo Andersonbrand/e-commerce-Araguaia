@@ -15,6 +15,7 @@ import { useCompany, COMPANIES, CompanyId } from '@/context/CompanyContext';
 import { usePrices } from '@/context/PriceContext';
 import toast from 'react-hot-toast';
 import { toUpperText } from '@/lib/format';
+import { OrderMessageData, whatsappLink } from '@/lib/order-message';
 
 function pluralUnit(unit: string, qty: number): string {
   if (qty <= 1) return unit;
@@ -32,6 +33,19 @@ function pluralUnit(unit: string, qty: number): string {
 
 interface CheckoutForm { name: string; email: string; phone: string; observation: string; }
 
+type ContactMethod = 'whatsapp' | 'email' | 'site';
+
+const CONTACT_METHODS: { id: ContactMethod; label: string; reply: string }[] = [
+  { id: 'whatsapp', label: 'WhatsApp',        reply: 'pelo WhatsApp' },
+  { id: 'email',    label: 'E-mail',          reply: 'por e-mail' },
+  { id: 'site',     label: 'Pelo nosso site', reply: 'pelo nosso site' },
+];
+
+function joinReplies(list: string[]): string {
+  if (list.length <= 1) return list[0] ?? '';
+  return list.slice(0, -1).join(', ') + ' e ' + list[list.length - 1];
+}
+
 export default function CartPage() {
   const { items, totalItems, subtotal, removeFromCart, updateQuantity, clearCart } = useCart();
   const { user } = useAuth();
@@ -40,6 +54,8 @@ export default function CartPage() {
   const [done, setDone]           = useState(false);
   const [loading, setLoading]     = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [contactMethods, setContactMethods] = useState<ContactMethod[]>(['whatsapp']);
+  const [waUrl, setWaUrl] = useState<string | null>(null);   // link do WhatsApp com a mensagem pronta
   const [form, setForm]           = useState<CheckoutForm>({
     name: user?.user_metadata?.full_name ?? '',
     email: user?.email ?? '',
@@ -49,11 +65,38 @@ export default function CartPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
+  // WhatsApp e E-mail podem ser combinados; "Pelo nosso site" é escolha única
+  const toggleContactMethod = (id: ContactMethod) =>
+    setContactMethods((prev) => {
+      if (id === 'site') return prev.includes('site') ? [] : ['site'];
+      const base = prev.filter((m) => m !== 'site');
+      return base.includes(id) ? base.filter((m) => m !== id) : [...base, id];
+    });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!items.length) return;
+    if (contactMethods.length === 0) {
+      toast.error('Escolha como prefere receber o retorno.');
+      return;
+    }
+    const wantsWhatsapp = contactMethods.includes('whatsapp');
+    const wantsEmail    = contactMethods.includes('email');
+    if (wantsWhatsapp && form.phone.replace(/\D/g, '').length < 10) {
+      toast.error('Informe um número de WhatsApp válido, com DDD.');
+      return;
+    }
+    if (wantsEmail && !form.email.trim()) {
+      toast.error('Informe o e-mail para o retorno.');
+      return;
+    }
     if (loading) return; // evita envio duplicado
     setLoading(true);
+
+    // Abre a aba do WhatsApp já no clique (antes de qualquer espera) para o navegador não bloquear;
+    // o endereço com a mensagem é colocado nela depois que o pedido for salvo.
+    const waWindow = wantsWhatsapp ? window.open('', '_blank') : null;
+
     try {
       const orderItems = items.map((i) => ({
         product_id: i.product.id,
@@ -64,21 +107,73 @@ export default function CartPage() {
         variant_label: i.selectedVariant?.label ?? null,
         companies: (i.product as any).companies ?? [],
       }));
-      const { error } = await supabase.from('orders').insert([{
+      const observation = form.observation.trim() || null;
+
+      const { data: saved, error } = await supabase.from('orders').insert([{
         user_id: user?.id ?? null,
         items: orderItems,
         total: subtotal,
         customer_name: form.name,
-        customer_email: form.email,
-        customer_phone: form.phone,
+        // e-mail da conta: é por ele que o cliente vê a resposta no perfil
+        customer_email: user?.email ?? form.email.trim(),
+        customer_phone: wantsWhatsapp ? form.phone.trim() : '',
+        contact_email: wantsEmail ? form.email.trim() : null,
+        contact_methods: contactMethods,
+        observation,
         status: 'pending',
-      }]);
+      }]).select('id').single();
       if (error) throw error;
+
+      // Mensagem padrão: informações pessoais (cadastro) + informações solicitadas (carrinho)
+      const message: OrderMessageData = {
+        accountName: (user?.user_metadata?.full_name as string) || form.name.trim(),
+        accountEmail: user?.email ?? form.email.trim(),
+        registeredAt: user?.created_at ?? null,
+        requestName: form.name.trim(),
+        phone: wantsWhatsapp ? form.phone.trim() : null,
+        returnEmail: wantsEmail ? form.email.trim() : null,
+        methods: contactMethods,
+        items: orderItems.map((i) => ({ name: i.name, quantity: i.quantity, unit: i.unit, variant_label: i.variant_label })),
+        observation,
+      };
+
+      // WhatsApp → abre a conversa com o (77) 3451-2175 com a mensagem pronta
+      if (wantsWhatsapp) {
+        const url = whatsappLink(message);
+        setWaUrl(url);
+        if (waWindow) waWindow.location.href = url;
+      }
+
+      // E-mail → o servidor envia o resumo para robertaaraguaia10@gmail.com
+      let emailFailed = false;
+      if (wantsEmail) {
+        try {
+          const { data: sess } = await supabase.auth.getSession();
+          const res = await fetch('/api/enviar-orcamento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${sess.session?.access_token ?? ''}` },
+            body: JSON.stringify({ orderId: saved?.id }),
+          });
+          if (!res.ok) throw new Error(`e-mail: HTTP ${res.status}`);
+        } catch (err) {
+          console.error('Erro ao enviar o e-mail do orçamento:', err);
+          emailFailed = true;
+        }
+      }
+
       clearCart();
       setDone(true);
-      toast.success('Solicitação de orçamento enviada!');
-    } catch {
-      toast.error('Erro ao enviar. Tente novamente.');
+      if (emailFailed) {
+        toast('Orçamento registrado, mas não conseguimos enviar o e-mail. Nossa equipe verá sua solicitação no painel.', { icon: '⚠️', duration: 6000 });
+      } else {
+        toast.success('Solicitação de orçamento enviada!');
+      }
+    } catch (err) {
+      // detalhes completos no Console (code/message/details/hint vêm do PostgREST/Postgres)
+      const e = err as { code?: string; message?: string; details?: string; hint?: string };
+      console.error('Erro ao salvar o orçamento:', { code: e?.code, message: e?.message, details: e?.details, hint: e?.hint });
+      waWindow?.close();
+      toast.error(`Erro ao enviar. Tente novamente.${e?.code ? ` (código ${e.code})` : ''}`);
     } finally {
       setLoading(false);
     }
@@ -94,12 +189,14 @@ export default function CartPage() {
               <AppIcon name="CheckCircleIcon" size={48} className="text-green-500" variant="solid" />
             </div>
             <h2 className="text-3xl font-bold text-foreground">Orçamento Solicitado!</h2>
-            <p className="text-muted leading-relaxed">Nossa equipe retornará em breve pelo WhatsApp ou e-mail com os valores.</p>
-            <a href="https://wa.me/5577981046133" target="_blank" rel="noopener noreferrer"
+            <p className="text-muted leading-relaxed">
+              Nossa equipe retornará em breve {joinReplies(CONTACT_METHODS.filter((m) => contactMethods.includes(m.id)).map((m) => m.reply))} com os valores.
+            </p>
+            <a href={waUrl ?? 'https://wa.me/557734512175'} target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-primary text-white text-[12px] font-bold uppercase tracking-widest hover:bg-primary-dark transition-all shadow-red-lg">
               <AppIcon name="ChatBubbleLeftRightIcon" size={16} />Falar no WhatsApp
             </a>
-            <div><Link href="/products" className="text-sm text-muted hover:text-primary transition-colors font-medium">Continuar comprando</Link></div>
+            <div><Link href="/products" className="text-sm text-muted hover:text-primary transition-colors font-medium">Continuar visualizando os nossos produtos</Link></div>
           </div>
         </section>
         <Footer />
@@ -270,22 +367,51 @@ export default function CartPage() {
               <div className="lg:col-span-1">
                 <div className="glass rounded-2xl p-6 border border-primary/8 shadow-red-xl sticky top-28">
                   <h2 className="text-[11px] uppercase tracking-[0.2em] font-bold text-muted mb-1">Solicitar orçamento</h2>
-                  <p className="text-xs text-muted mb-5">{totalItems} produto{totalItems > 1 ? 's' : ''} · retorno em até 2h</p>
+                  <p className="text-xs text-muted mb-5">{totalItems} produto{totalItems > 1 ? 's' : ''} · retorno em até 4h úteis</p>
 
                   <form onSubmit={handleSubmit} className="space-y-3">
-                    {[
-                      { label: 'Nome completo', name: 'name', type: 'text', placeholder: 'João da Silva' },
-                      { label: 'E-mail', name: 'email', type: 'email', placeholder: 'joao@email.com' },
-                      { label: 'WhatsApp / Telefone', name: 'phone', type: 'tel', placeholder: '(77) 9 8104-6133' },
-                    ].map((f) => (
-                      <div key={f.name}>
-                        <label className="text-[10px] text-muted font-medium block mb-1">{f.label}</label>
-                        <input type={f.type} name={f.name} required
-                          value={(form as any)[f.name]} onChange={handleChange}
-                          placeholder={f.placeholder}
+                    <div>
+                      <label className="text-[10px] text-muted font-medium block mb-1">Nome completo</label>
+                      <input type="text" name="name" required value={form.name} onChange={handleChange}
+                        placeholder="João da Silva"
+                        className="w-full px-3 py-2.5 rounded-xl border border-border bg-white/80 text-sm text-foreground placeholder:text-muted/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted font-medium block mb-1">Como prefere receber o retorno?</span>
+                      <div className="flex flex-wrap gap-2">
+                        {CONTACT_METHODS.map((m) => {
+                          const active = contactMethods.includes(m.id);
+                          return (
+                            <button key={m.id} type="button" onClick={() => toggleContactMethod(m.id)}
+                              aria-pressed={active}
+                              className={`px-3 py-2 rounded-xl border text-xs font-semibold transition-all ${active ? 'bg-primary text-white border-primary' : 'bg-white/80 text-muted border-border hover:border-primary/40'}`}>
+                              {m.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {contactMethods.includes('whatsapp') && (
+                      <div>
+                        <label className="text-[10px] text-muted font-medium block mb-1">Seu WhatsApp (com DDD)</label>
+                        <input type="tel" name="phone" required value={form.phone} onChange={handleChange}
+                          maxLength={20} placeholder="(77) 9 9999-9999"
                           className="w-full px-3 py-2.5 rounded-xl border border-border bg-white/80 text-sm text-foreground placeholder:text-muted/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
                       </div>
-                    ))}
+                    )}
+                    {contactMethods.includes('email') && (
+                      <div>
+                        <label className="text-[10px] text-muted font-medium block mb-1">Seu e-mail para o retorno</label>
+                        <input type="email" name="email" required value={form.email} onChange={handleChange}
+                          maxLength={254} placeholder="joao@email.com"
+                          className="w-full px-3 py-2.5 rounded-xl border border-border bg-white/80 text-sm text-foreground placeholder:text-muted/40 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+                      </div>
+                    )}
+                    {contactMethods.includes('site') && (
+                      <p className="text-[11px] text-muted bg-surface border border-border rounded-xl px-3 py-2.5 leading-relaxed">
+                        A resposta com os valores ficará disponível no seu perfil aqui no site, na conta com a qual você está logado.
+                      </p>
+                    )}
                     <div>
                       <label className="text-[10px] text-muted font-medium block mb-1">Observação (opcional)</label>
                       <textarea name="observation" rows={2} value={form.observation} onChange={handleChange}
@@ -297,7 +423,7 @@ export default function CartPage() {
                       <AppIcon name="PaperAirplaneIcon" size={16} />Solicitar Orçamento
                     </Button>
                     <p className="text-[11px] text-muted text-center flex items-center justify-center gap-1 mt-1">
-                      <AppIcon name="LockClosedIcon" size={11} />Sem compromisso · retorno em 2h úteis
+                      <AppIcon name="LockClosedIcon" size={11} />Sem compromisso · retorno em até 4h úteis
                     </p>
                   </form>
                 </div>

@@ -54,7 +54,8 @@ export default function RequestEditModal({ request, onClose, onSaved }: Props) {
     if (saving) return; // evita envio duplicado
     if (!name.trim())  { toast.error('Informe o nome do cliente.'); return; }
     if (!email.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) { toast.error('Informe um e-mail válido.'); return; }
-    if (!phone.trim()) { toast.error('Informe o telefone do cliente.'); return; }
+    // pedidos do carrinho podem não ter telefone (cliente escolheu só e-mail ou site)
+    if (request.source === 'form' && !phone.trim()) { toast.error('Informe o telefone do cliente.'); return; }
     if (request.source === 'form') {
       if (!category.trim()) { toast.error('Informe a categoria da solicitação.'); return; }
       if (!message.trim())  { toast.error('A mensagem da solicitação não pode ficar vazia.'); return; }
