@@ -1,5 +1,7 @@
 // Traduz as mensagens (em inglês) do Supabase Auth para o cliente.
 export function friendlyAuthError(message: string, action: 'login' | 'cadastro' | 'senha'): string {
+  if (message === 'EMAIL_EXISTS')      return 'Este e-mail já possui cadastro. Entre na sua conta ou use "Esqueci minha senha".';
+  if (message === 'EMAIL_UNCONFIRMED') return 'Este e-mail já foi cadastrado, mas ainda não foi confirmado. Procure o e-mail de confirmação na sua caixa de entrada (ou no spam).';
   const m = message.toLowerCase();
   if (m.includes('captcha'))
     return 'Não foi possível validar a verificação anti-robô. Aguarde o quadro carregar e tente de novo.';

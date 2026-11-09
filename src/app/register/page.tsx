@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AppLogo, { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import AppIcon from '@/components/ui/AppIcon';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth, EmailStatus } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import { friendlyAuthError } from '@/lib/auth-errors';
 import { passwordProblem } from '@/lib/password';
@@ -16,17 +16,30 @@ export default function RegisterPage() {
   const [form, setForm]                 = useState({ name: '', email: '', password: '', confirm: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]           = useState(false);
-  const { signUp }                      = useAuth();
+  const { signUp, checkEmail }          = useAuth();
+  const [emailStatus, setEmailStatus]   = useState<EmailStatus | 'checking' | null>(null);
   const [captcha, setCaptcha]           = useState<string | null>(null);
   const [captchaReset, setCaptchaReset]   = useState(0);
   const router                          = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (e.target.name === 'email') setEmailStatus(null); // mudou o e-mail: a verificação anterior não vale mais
+  };
+
+  // Ao sair do campo e-mail, avisa na hora se o e-mail já tem cadastro
+  const verifyEmail = async () => {
+    const email = form.email.trim();
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setEmailStatus(null); return; }
+    setEmailStatus('checking');
+    const status = await checkEmail(email);
+    setEmailStatus((cur) => (cur === 'checking' ? status : cur));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return; // evita cadastro duplicado
+    if (emailStatus === 'confirmed' || emailStatus === 'unconfirmed') { toast.error(friendlyAuthError(emailStatus === 'confirmed' ? 'EMAIL_EXISTS' : 'EMAIL_UNCONFIRMED', 'cadastro'), { duration: 6000 }); return; }
     if (form.password !== form.confirm) { toast.error('As senhas não coincidem.'); return; }
     const problem = passwordProblem(form.password);
     if (problem) { toast.error(problem); return; }
@@ -68,8 +81,21 @@ export default function RegisterPage() {
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"><AppIcon name={f.icon} size={16} /></span>
                   <input type={f.type} name={f.name} value={(form as any)[f.name]} onChange={handleChange}
                     placeholder={f.placeholder} required
+                    onBlur={f.name === 'email' ? verifyEmail : undefined}
                     className="w-full pl-10 pr-4 py-3.5 rounded-xl border border-border bg-white text-sm text-foreground placeholder:text-muted/50 focus:outline-none focus:border-[#0a1a3a] focus:ring-2 focus:ring-[#0a1a3a]/10 transition-all" />
                 </div>
+                {f.name === 'email' && emailStatus === 'checking' && <p className="text-[11px] text-muted">Verificando e-mail…</p>}
+                {f.name === 'email' && emailStatus === 'confirmed' && (
+                  <p className="text-[12px] text-red-600 font-medium">
+                    Este e-mail já possui cadastro.{' '}
+                    <a href="#" onClick={(e) => { e.preventDefault(); router.push('/login' + window.location.search); }} className="underline font-bold">Entrar na conta</a>
+                  </p>
+                )}
+                {f.name === 'email' && emailStatus === 'unconfirmed' && (
+                  <p className="text-[12px] text-amber-700 font-medium">
+                    Este e-mail já foi cadastrado, mas ainda não foi confirmado. Procure o e-mail de confirmação na caixa de entrada (ou no spam).
+                  </p>
+                )}
               </div>
             ))}
 
@@ -95,7 +121,7 @@ export default function RegisterPage() {
 
             <p className="-mt-2 text-[11px] text-muted">Use pelo menos 8 caracteres.</p>
             <Turnstile onToken={setCaptcha} resetSignal={captchaReset} />
-            <Button type="submit" loading={loading}
+            <Button type="submit" loading={loading} disabled={emailStatus === 'confirmed' || emailStatus === 'unconfirmed'}
               className="w-full py-3.5 rounded-xl text-white text-[12px] font-bold uppercase tracking-widest transition-all shadow-lg disabled:opacity-60 flex items-center justify-center gap-2" style={{ backgroundColor: '#0a1a3a' }}>
               Criar Conta
             </Button>

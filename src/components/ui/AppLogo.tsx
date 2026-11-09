@@ -15,7 +15,7 @@ interface AppLogoProps {
 // ── Grupo HC — logotipo oficial: HC colorido (azul / vermelho / cinza), "GRUPO" em cima, "HUGO COSTA" ao lado
 // e "CONFIANÇA & RESPONSABILIDADE" embaixo, em cinza. Fonte padrão das marcas (mesma da Comercial Araguaia).
 const BRAND_FONT = 'Montserrat, Arial, sans-serif';
-const HC_GRAY = '#85858a';
+const HC_GRAY = '#1a2a5c'; // azul-escuro (letras e monograma do Grupo HC)
 // A altura sempre acompanha a largura (proporção do logotipo); `height` é aceito só por compatibilidade.
 // `tight`: recorta as margens do desenho (usado no header, onde o espaço é pequeno).
 export function GrupoHCLogoFull({ width = 340, className = '', tight = false }: { width?: number; height?: number; className?: string; tight?: boolean }) {
@@ -26,9 +26,9 @@ export function GrupoHCLogoFull({ width = 340, className = '', tight = false }: 
     <svg viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`} xmlns="http://www.w3.org/2000/svg" width={width} height={h}
       style={{ display: 'block' }} className={className} role="img" aria-label="Grupo HC — Hugo Costa">
       <text fontFamily={BRAND_FONT} fontWeight="600" fontSize="16" letterSpacing="13" x="54" y="50" fill={HC_GRAY}>GRUPO</text>
-      <g transform={`translate(52 66) scale(${k})`}><HCMarkPaths /></g>
-      <text fontFamily={BRAND_FONT} fontWeight="300" fontSize="76" letterSpacing="1" x="318" y="132" fill={HC_GRAY}>HUGO</text>
-      <text fontFamily={BRAND_FONT} fontWeight="300" fontSize="76" letterSpacing="1" x="318" y="206" fill={HC_GRAY}>COSTA</text>
+      <g transform={`translate(52 66) scale(${k})`}><HCMarkPaths color={HC_GRAY} /></g>
+      <text fontFamily={BRAND_FONT} fontWeight="400" fontSize="68" letterSpacing="0" x="318" y="130" fill={HC_GRAY}>HUGO</text>
+      <text fontFamily={BRAND_FONT} fontWeight="400" fontSize="68" letterSpacing="0" x="318" y="198" fill={HC_GRAY}>COSTA</text>
       <text fontFamily={BRAND_FONT} fontWeight="600" fontSize="12.5" letterSpacing="6" x="340" y="258" textAnchor="middle" fill={HC_GRAY}>CONFIANÇA &amp; RESPONSABILIDADE</text>
     </svg>
   );
@@ -48,7 +48,7 @@ function AraguaiaLogo({ size }: { size: number }) {
 
 // Indústria / Aços Confiance: no ícone (card da empresa, etc.) aparece só o símbolo da marca.
 function ConfianceIndustriaLogo({ size }: { size: number }) {
-  return <div style={{ width: size, height: size }} className="rounded-xl overflow-hidden"><ConfianceSymbol size={size} /></div>;
+  return <ConfianceSymbol size={size} />;
 }
 
 function AcosConfianceLogo({ size }: { size: number }) {
@@ -72,7 +72,7 @@ export function CompanyWordmark({ companyId, height = 46 }: { companyId: string;
 function GrupoHCLogo({ size }: { size: number }) {
   return (
     <svg viewBox={`0 0 ${HC_MARK_W} ${HC_MARK_H}`} xmlns="http://www.w3.org/2000/svg" width={size} height={size} role="img" aria-label="Grupo HC">
-      <HCMarkPaths />
+      <HCMarkPaths color={HC_GRAY} />
     </svg>
   );
 }
