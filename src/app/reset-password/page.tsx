@@ -8,7 +8,7 @@ import Button from '@/components/ui/Button';
 import AppIcon from '@/components/ui/AppIcon';
 import AuthCard, { authInputClass, authPrimaryButtonClass } from '@/components/auth/AuthCard';
 import { createClient } from '@/lib/supabase/client';
-import { friendlyAuthError } from '@/lib/auth-errors';
+import { toastAuthError } from '@/lib/auth-toast';
 import { PASSWORD_MIN_LENGTH, passwordProblem } from '@/lib/password';
 
 /**
@@ -43,7 +43,7 @@ function ResetPasswordForm() {
       if (verifyError) { setExpired(true); return; }
 
       const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) { toast.error(friendlyAuthError(updateError.message, 'senha'), { duration: 6000 }); return; }
+      if (updateError) { toastAuthError(updateError.message, 'senha', { duration: 6000 }); return; }
 
       // Encerra as outras sessões abertas dessa conta (se alguém tinha acesso, perde)
       await supabase.auth.signOut({ scope: 'others' }).catch(() => {});

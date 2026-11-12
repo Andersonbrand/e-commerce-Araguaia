@@ -8,6 +8,7 @@ import AppLogo, { GrupoHCLogoFull, CompanyWordmark, hasWordmark } from '@/compon
 import AppIcon from '@/components/ui/AppIcon';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { firstTwoNames } from '@/lib/format';
 import { usePathname } from 'next/navigation';
 import { useCompany, COMPANIES, CompanyId, Company } from '@/context/CompanyContext';
 
@@ -81,9 +82,9 @@ export default function Header() {
     }
   }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const displayName = user?.user_metadata?.full_name
-    ? (user.user_metadata.full_name as string).split(' ')[0]
-    : user?.email?.split('@')[0] ?? '';
+  // Nome informado no cadastro, limitado aos dois primeiros nomes; sem nome, usa a parte inicial do e-mail.
+  const displayName = firstTwoNames(user?.user_metadata?.full_name as string | undefined)
+    || user?.email?.split('@')[0] || '';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -199,7 +200,7 @@ export default function Header() {
                     style={{ backgroundColor: `${headerAccent}15`, border: `1px solid ${headerAccent}30` }}>
                     <AppIcon name="UserIcon" size={14} style={{ color: headerAccent }} />
                   </div>
-                  <span className="text-[12px] font-bold text-foreground max-w-[80px] truncate">{displayName}</span>
+                  <span className="text-[12px] font-bold text-foreground max-w-[150px] truncate">{displayName}</span>
                 </Link>
                 <Button onClick={handleSignOut} className="text-[11px] uppercase tracking-widest font-bold text-muted hover:text-foreground transition-colors flex items-center gap-1">
                   <AppIcon name="ArrowLeftEndOnRectangleIcon" size={13} />Sair

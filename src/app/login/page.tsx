@@ -8,7 +8,7 @@ import AppIcon from '@/components/ui/AppIcon';
 import { GrupoHCLogoFull } from '@/components/ui/AppLogo';
 import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
-import { friendlyAuthError } from '@/lib/auth-errors';
+import { toastAuthError } from '@/lib/auth-toast';
 import Turnstile, { TURNSTILE_ENABLED } from '@/components/ui/Turnstile';
 
 function LoginForm() {
@@ -39,7 +39,7 @@ function LoginForm() {
         setLoading(false);
         setCaptchaReset((n) => n + 1); // o token vale para uma única tentativa
         if (error.toLowerCase().includes('email not confirmed')) setUnconfirmed(true);
-        toast.error(friendlyAuthError(error, 'login'));
+        toastAuthError(error, 'login');
         return;
       }
       toast.success('Bem-vindo!');
@@ -61,7 +61,7 @@ function LoginForm() {
     setResending(true);
     try {
       const { error } = await resendConfirmation(form.email, captcha);
-      if (error) toast.error(friendlyAuthError(error, 'cadastro'), { duration: 6000 });
+      if (error) toastAuthError(error, 'cadastro', { duration: 6000 });
       else toast.success('Enviamos um novo e-mail de confirmação. Veja também o spam.');
     } finally {
       setResending(false);

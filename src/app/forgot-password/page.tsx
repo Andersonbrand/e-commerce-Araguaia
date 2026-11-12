@@ -8,7 +8,7 @@ import AppIcon from '@/components/ui/AppIcon';
 import Turnstile, { TURNSTILE_ENABLED } from '@/components/ui/Turnstile';
 import AuthCard, { authInputClass, authPrimaryButtonClass } from '@/components/auth/AuthCard';
 import { useAuth } from '@/context/AuthContext';
-import { friendlyAuthError } from '@/lib/auth-errors';
+import { toastAuthError } from '@/lib/auth-toast';
 
 const RESEND_SECONDS = 60;
 
@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       const { error } = await resetPassword(email.trim(), captcha);
-      if (error) { toast.error(friendlyAuthError(error, 'senha'), { duration: 6000 }); return; }
+      if (error) { toastAuthError(error, 'senha', { duration: 6000 }); return; }
       // Mesma resposta exista o e-mail ou não: não revela quem tem conta no site
       setSent(true);
       setCooldown(RESEND_SECONDS);

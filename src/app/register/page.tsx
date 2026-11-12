@@ -9,6 +9,7 @@ import AppIcon from '@/components/ui/AppIcon';
 import { useAuth, EmailStatus } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 import { friendlyAuthError } from '@/lib/auth-errors';
+import { toastAuthError } from '@/lib/auth-toast';
 import { passwordProblem } from '@/lib/password';
 import Turnstile, { TURNSTILE_ENABLED } from '@/components/ui/Turnstile';
 
@@ -47,7 +48,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const { error } = await signUp(form.email.trim(), form.password, form.name.trim(), captcha);
-      if (error) { toast.error(friendlyAuthError(error, 'cadastro'), { duration: 6000 }); }
+      if (error) { toastAuthError(error, 'cadastro', { duration: 6000 }); }
       else       { toast.success('Cadastro realizado! Verifique seu e-mail.'); router.push('/login' + window.location.search); } // mantém ?redirect= para voltar à página de origem
     } catch {
       toast.error('Não foi possível criar a conta agora. Verifique sua conexão e tente novamente.');

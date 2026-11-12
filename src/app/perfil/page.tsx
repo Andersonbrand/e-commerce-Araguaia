@@ -50,10 +50,11 @@ export default function PerfilPage() {
         .eq('id', user.id)
         .single();
 
-      setProfile(profileData ?? {
-        id:        user.id,
-        full_name: user.user_metadata?.full_name ?? '',
-      });
+      // Nome vem do cadastro (user_metadata) quando o perfil ainda não tem nome salvo.
+      const signupName = (user.user_metadata?.full_name as string | undefined) ?? '';
+      setProfile(profileData
+        ? { ...profileData, full_name: profileData.full_name?.trim() ? profileData.full_name : signupName }
+        : { id: user.id, full_name: signupName });
 
       if (isAdmin) {
         // Admin: carrega respostas que ELE enviou (sem filtro de email)
@@ -98,6 +99,11 @@ export default function PerfilPage() {
         { onConflict: 'id' }
       );
       if (error) { toast.error(friendlyError(error, 'salvar o perfil')); return; }
+      // Mantém o nome do cabeçalho sincronizado com o perfil.
+      const newName = (profile.full_name ?? '').trim();
+      if (newName && newName !== user.user_metadata?.full_name) {
+        await supabase.auth.updateUser({ data: { full_name: newName } });
+      }
       toast.success('Perfil atualizado!');
     } catch (err: any) {
       toast.error(friendlyError(err, 'salvar o perfil'));
