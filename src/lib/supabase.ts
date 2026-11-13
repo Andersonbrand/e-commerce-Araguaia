@@ -118,6 +118,7 @@ export interface UserProfile {
   full_name: string | null;
   phone: string | null;
   birth_date: string | null;
+  cpf_cnpj: string | null;
   address_street: string | null;
   address_number: string | null;
   address_comp: string | null;

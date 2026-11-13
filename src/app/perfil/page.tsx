@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { UserProfile, QuoteResponse } from '@/lib/supabase';
 import toast from 'react-hot-toast';
-import { toUpperText } from '@/lib/format';
+import { toUpperText, formatCpfCnpj, isValidCpfCnpj } from '@/lib/format';
 import { openQuotePdf } from '@/lib/quote-pdf';
 
 type Tab = 'profile' | 'responses';
@@ -53,7 +53,7 @@ export default function PerfilPage() {
       // Nome vem do cadastro (user_metadata) quando o perfil ainda não tem nome salvo.
       const signupName = (user.user_metadata?.full_name as string | undefined) ?? '';
       setProfile(profileData
-        ? { ...profileData, full_name: profileData.full_name?.trim() ? profileData.full_name : signupName }
+        ? { ...profileData, full_name: profileData.full_name?.trim() ? profileData.full_name : signupName, cpf_cnpj: formatCpfCnpj(profileData.cpf_cnpj) }
         : { id: user.id, full_name: signupName });
 
       if (isAdmin) {
@@ -85,17 +85,24 @@ export default function PerfilPage() {
     loadData();
   }, [user, authLoading]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setProfile((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setProfile((prev) => ({ ...prev, [name]: name === 'cpf_cnpj' ? formatCpfCnpj(value) : value }));
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || saving) return; // evita gravação duplicada
+    const doc = (profile.cpf_cnpj ?? '').replace(/\D/g, '');
+    if (doc && !isValidCpfCnpj(doc)) {
+      toast.error(doc.length <= 11 ? 'CPF inválido. Confira os números digitados.' : 'CNPJ inválido. Confira os números digitados.');
+      return;
+    }
     setSaving(true);
     try {
       const supabase = createClient();
       const { error } = await supabase.from('user_profiles').upsert(
-        { ...profile, id: user.id, updated_at: new Date().toISOString() },
+        { ...profile, cpf_cnpj: doc || null, id: user.id, updated_at: new Date().toISOString() },
         { onConflict: 'id' }
       );
       if (error) { toast.error(friendlyError(error, 'salvar o perfil')); return; }
@@ -131,6 +138,8 @@ export default function PerfilPage() {
 
   const profileFields = [
     { label: 'Nome completo',        name: 'full_name',      type: 'text', placeholder: 'João da Silva',    col: 2 },
+    { label: 'E-mail',               name: 'email',          type: 'email', placeholder: '',                 col: 1, readOnly: true },
+    { label: 'CPF / CNPJ',           name: 'cpf_cnpj',       type: 'text', placeholder: '000.000.000-00 ou 00.000.000/0000-00', col: 1, inputMode: 'numeric' as const, maxLength: 18 },
     { label: 'Telefone / WhatsApp',  name: 'phone',          type: 'tel',  placeholder: '(77) 9 8765-4321', col: 1 },
     { label: 'Data de nascimento',   name: 'birth_date',     type: 'date', placeholder: '',                  col: 1 },
     { label: 'Rua / Avenida',        name: 'address_street', type: 'text', placeholder: 'Rua das Flores',    col: 2 },
@@ -226,11 +235,17 @@ export default function PerfilPage() {
                       <input
                         type={f.type}
                         name={f.name}
-                        value={(profile as any)[f.name] ?? ''}
+                        value={f.name === 'email' ? (user?.email ?? '') : ((profile as any)[f.name] ?? '')}
                         onChange={handleChange}
                         placeholder={f.placeholder}
-                        className="w-full px-4 py-3 rounded-xl border border-border bg-white text-sm text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all"
+                        readOnly={(f as any).readOnly}
+                        inputMode={(f as any).inputMode}
+                        maxLength={(f as any).maxLength}
+                        className={`w-full px-4 py-3 rounded-xl border border-border text-sm text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all ${(f as any).readOnly ? 'bg-surface text-muted cursor-not-allowed' : 'bg-white'}`}
                       />
+                      {(f as any).readOnly && (
+                        <p className="text-[11px] text-muted mt-1.5">O e-mail é o do seu cadastro e não pode ser alterado aqui.</p>
+                      )}
                     </div>
                   ))}
 

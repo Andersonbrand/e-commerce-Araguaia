@@ -56,6 +56,8 @@ export default function HowItWorks() {
               return (
                 <motion.li
                   key={s.title}
+                  data-anim=""
+
                   initial={reduce ? false : { opacity: 0, y: 28 }}
                   animate={inView || reduce ? { opacity: 1, y: 0 } : undefined}
                   transition={{ duration: 0.7, delay: reduce ? 0 : i * 0.15, ease: [0.22, 1, 0.36, 1] }}

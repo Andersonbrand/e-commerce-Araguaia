@@ -121,7 +121,7 @@ export default function Header() {
         <div className="flex items-center justify-between gap-4">
 
           {/* Logo */}
-          <Link href="/homepage" data-no-ripple onClick={() => setActiveCompany(null)} className="flex items-center gap-3 group flex-shrink-0">
+          <Link href="/homepage" data-no-ripple onClick={() => setActiveCompany(null)} className="flex items-center gap-3 group flex-shrink-0 desk:w-[210px]">
             {isGrupoView ? (
               /* Visão do Grupo: logotipo completo (HC colorido + GRUPO / HUGO COSTA / CONFIANÇA & RESPONSABILIDADE) */
               <GrupoHCLogoFull width={124} tight />
@@ -164,15 +164,18 @@ export default function Header() {
                 locked={isLockedPage}
               />
             ))}
-            {!isGrupoView && (
-              <button
-                onClick={() => setActiveCompany(null)}
-                className="ml-1 w-6 h-6 flex items-center justify-center rounded-lg bg-[#dde3ed] hover:bg-[#c8cdd8] transition-colors text-muted"
-                title="Ver grupo completo"
-              >
-                <AppIcon name="XMarkIcon" size={12} />
-              </button>
-            )}
+            {/* O botão fica sempre no layout (só invisível na visão do Grupo) para a barra não mudar de largura */}
+            <button
+              onClick={() => setActiveCompany(null)}
+              disabled={isGrupoView}
+              aria-hidden={isGrupoView}
+              tabIndex={isGrupoView ? -1 : 0}
+              data-no-ripple
+              className={`ml-1 w-6 h-6 flex items-center justify-center rounded-lg bg-[#dde3ed] hover:bg-[#c8cdd8] transition-colors text-muted ${isGrupoView ? 'invisible pointer-events-none' : ''}`}
+              title="Ver grupo completo"
+            >
+              <AppIcon name="XMarkIcon" size={12} />
+            </button>
           </div>
 
           {/* Nav desktop */}

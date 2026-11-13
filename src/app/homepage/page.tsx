@@ -9,11 +9,13 @@ import AboutSection from './components/AboutSection';
 import QuoteForm from './components/QuoteForm';
 import HowItWorks from './components/HowItWorks';
 import Reveal from '@/components/ui/Reveal';
+import HashScroll from './components/HashScroll';
 
 export default function HomePage() {
     return (
         <main className="min-h-screen bg-white">
             <Header />
+            <HashScroll />
             <HeroSection />
             <Reveal><GrupoHCSection /></Reveal>
             <StatsSection />

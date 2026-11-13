@@ -48,6 +48,7 @@ export default function HeroSection() {
     reduce
       ? {}
       : {
+          'data-anim': '',
           initial: { opacity: 0, y: 24 },
           animate: { opacity: 1, y: 0 },
           transition: { duration: 0.8, delay, ease: EASE },
@@ -57,6 +58,7 @@ export default function HeroSection() {
     reduce
       ? {}
       : {
+          'data-anim': '',
           initial: { opacity: 0, scale: 0.9, y: 30 },
           animate: { opacity: 1, scale: 1, y: 0 },
           transition: { duration: 0.9, delay, ease: EASE },
