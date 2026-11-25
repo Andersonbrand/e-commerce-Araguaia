@@ -78,7 +78,7 @@ export default function HeroSection() {
             <span className="text-[10px] uppercase tracking-[0.3em] font-bold">Guanambi e Região · Bahia</span>
           </motion.div>
 
-          <motion.h1 {...enter(0.15)} className="text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] tracking-tight text-foreground">
+          <motion.h1 {...enter(0.15)} className="text-4xl min-[400px]:text-5xl md:text-6xl lg:text-5xl desk:text-6xl xl:text-7xl font-bold leading-[1.05] tracking-tight text-foreground">
             Tudo que sua{' '}
             <span className="font-display italic text-gradient-red">obra precisa,</span>
             <br />
@@ -89,7 +89,7 @@ export default function HeroSection() {
           <motion.p {...enter(0.3)} className="text-lg text-muted max-w-lg leading-relaxed">
             Cimento, vergalhões, ferragens e materiais de serralheiro com qualidade garantida.
             A <strong className="text-foreground">Comercial Araguaia</strong> é sua parceira em
-            Guanambi para todas as etapas da construção.
+            Guanambi e região para todas as etapas da construção.
           </motion.p>
 
           <motion.div {...enter(0.45)} className="flex flex-wrap gap-4">
@@ -135,7 +135,7 @@ export default function HeroSection() {
           <motion.div {...pop(0.2)} style={reduce ? undefined : { x: aX, y: aY }}
             className="absolute top-0 right-0 w-[58%] aspect-[4/5] z-10">
             <div className="relative w-full h-full rounded-4xl overflow-hidden shadow-2xl border border-border/40 animate-float">
-              <AppImage src="/assets/images/hero-3.jpg" alt="Metalons" className="product-img w-full h-full object-cover" fill />
+              <AppImage src="/assets/images/hero-3.jpg" alt="Cimento Montes Claros empilhado em armazém" className="product-img w-full h-full object-cover" fill />
             </div>
           </motion.div>
 
@@ -149,7 +149,7 @@ export default function HeroSection() {
           <motion.div {...pop(0.5)} style={reduce ? undefined : { x: cX, y: cY }}
             className="absolute bottom-[-2%] left-[22%] w-[42%] aspect-[3/4] z-30">
             <div className="relative w-full h-full rounded-4xl overflow-hidden shadow-2xl border border-border/40 animate-float-slow">
-              <AppImage src="/assets/images/hero-2.jpg" alt="Sacos de cimento" className="product-img w-full h-full object-cover" fill />
+              <AppImage src="/assets/images/hero-2.jpg" alt="Gaiolas de aço reforçado" className="product-img w-full h-full object-cover" fill />
             </div>
           </motion.div>
 
@@ -158,7 +158,6 @@ export default function HeroSection() {
             className="absolute top-[8%] left-[8%] z-40">
             <div className="glass rounded-2xl px-5 py-4 shadow-red-lg animate-float-delay">
               <p className="text-2xl font-display font-bold text-primary">Desde 1990</p>
-              <p className="text-[10px] uppercase tracking-widest text-muted font-bold">Servindo Guanambi</p>
             </div>
           </motion.div>
         </div>

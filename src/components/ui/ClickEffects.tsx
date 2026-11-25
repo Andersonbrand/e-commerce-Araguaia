@@ -45,10 +45,9 @@ export default function ClickEffects() {
   useEffect(() => {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-    const onDown = (e: PointerEvent) => {
+    const play = (target: Element | null, clientX: number, clientY: number) => {
       if (reduce.matches) return;
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      const el = (e.target as Element | null)?.closest<HTMLElement>(TARGETS);
+      const el = target?.closest<HTMLElement>(TARGETS);
       if (!el || el.matches(SKIP) || el.closest('[data-no-ripple]')) return;
 
       const rect = el.getBoundingClientRect();
@@ -72,7 +71,7 @@ export default function ClickEffects() {
       Object.assign(dot.style, {
         position: 'absolute', borderRadius: '50%', background: rippleColor(el),
         width: `${size}px`, height: `${size}px`,
-        left: `${e.clientX - rect.left - size / 2}px`, top: `${e.clientY - rect.top - size / 2}px`,
+        left: `${clientX - rect.left - size / 2}px`, top: `${clientY - rect.top - size / 2}px`,
         transform: 'scale(0)', opacity: '1',
         transition: 'transform 520ms cubic-bezier(.2,.6,.2,1), opacity 560ms ease-out',
       } as CSSStyleDeclaration);
@@ -83,8 +82,44 @@ export default function ClickEffects() {
       window.setTimeout(() => wrap.remove(), 650);
     };
 
+    // Mouse/caneta: onda imediata ao pressionar.
+    // Toque: só vira "clique" se o dedo levantar no mesmo lugar (um toque de verdade). Se o dedo se
+    // mover (rolagem) ou o navegador cancelar o gesto, nenhuma onda é criada.
+    const MOVE_LIMIT = 10;
+    let touch: { id: number; x: number; y: number; target: Element | null; moved: boolean } | null = null;
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') {
+        touch = { id: e.pointerId, x: e.clientX, y: e.clientY, target: e.target as Element | null, moved: false };
+        return;
+      }
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      play(e.target as Element | null, e.clientX, e.clientY);
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!touch || e.pointerId !== touch.id || touch.moved) return;
+      if (Math.hypot(e.clientX - touch.x, e.clientY - touch.y) > MOVE_LIMIT) touch.moved = true;
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!touch || e.pointerId !== touch.id) return;
+      const t = touch; touch = null;
+      if (!t.moved) play(t.target, e.clientX, e.clientY);
+    };
+    const onCancel = () => { touch = null; };
+    const onScroll = () => { if (touch) touch.moved = true; };
+
     document.addEventListener('pointerdown', onDown, { passive: true });
-    return () => document.removeEventListener('pointerdown', onDown);
+    document.addEventListener('pointermove', onMove, { passive: true });
+    document.addEventListener('pointerup', onUp, { passive: true });
+    document.addEventListener('pointercancel', onCancel, { passive: true });
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      document.removeEventListener('pointercancel', onCancel);
+      window.removeEventListener('scroll', onScroll, { capture: true });
+    };
   }, []);
 
   return null;

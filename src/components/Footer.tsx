@@ -50,14 +50,14 @@ export default function Footer({ compact = false, hideOnGateway = false }: { com
 
                         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
                             <a href="https://wa.me/557734512175" target="_blank" rel="noopener noreferrer"
-                                className="hover:text-[#af1518] transition-colors whitespace-nowrap">
+                                className="hover:text-[#af1518] transition-colors sm:whitespace-nowrap [overflow-wrap:anywhere]">
                                 <span className="font-bold text-[#af1518]">WhatsApp:</span> (77) 3451-2175
                             </a>
                             <a href="mailto:comercialaraguaia2018@outlook.com"
-                                className="hover:text-[#af1518] transition-colors whitespace-nowrap">
+                                className="hover:text-[#af1518] transition-colors sm:whitespace-nowrap [overflow-wrap:anywhere]">
                                 <span className="font-bold text-[#af1518]">E-mail:</span> comercialaraguaia2018@outlook.com
                             </a>
-                            <p className="whitespace-nowrap"><span className="font-bold text-[#af1518]">Horário de funcionamento:</span> Seg–Sex, 7h–17h · Sáb, 8h–12h</p>
+                            <p className="sm:whitespace-nowrap"><span className="font-bold text-[#af1518]">Horário de funcionamento:</span> Seg–Sex, 7h–17h · Sáb, 8h–12h</p>
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
@@ -98,7 +98,7 @@ export default function Footer({ compact = false, hideOnGateway = false }: { com
                     </div>
                 </div>
 
-                <div className="grid md:grid-cols-4 gap-10 mb-12">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 mb-12">
                     {/* 3 empresas */}
                     {COMPANY_ORDER.map((id) => {
                         const co = COMPANIES[id];
@@ -146,12 +146,12 @@ export default function Footer({ compact = false, hideOnGateway = false }: { com
                             <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-foreground mb-3">Contato</p>
                             <div className="space-y-2 text-xs text-muted">
                                 <a href="https://wa.me/557734512175" target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 hover:text-[#af1518] transition-colors">
-                                    <span className="font-bold text-[#af1518]">WhatsApp:</span>(77) 3451-2175
+                                    className="block hover:text-[#af1518] transition-colors">
+                                    <span className="font-bold text-[#af1518]">WhatsApp:</span> (77) 3451-2175
                                 </a>
                                 <a href="mailto:comercialaraguaia2018@outlook.com"
-                                    className="flex items-center gap-1.5 hover:text-[#af1518] transition-colors break-all">
-                                    <span className="font-bold text-[#af1518]">E-mail:</span>comercialaraguaia2018@outlook.com
+                                    className="block hover:text-[#af1518] transition-colors [overflow-wrap:anywhere]">
+                                    <span className="font-bold text-[#af1518]">E-mail:</span> comercialaraguaia2018@outlook.com
                                 </a>
                                 <p><span className="font-bold text-[#af1518]">Endereço:</span> Guanambi / Bahia</p>
                                 <p><span className="font-bold text-[#af1518]">Horário de funcionamento:</span> Seg–Sex, 7h–17h · Sáb, 8h–12h</p>

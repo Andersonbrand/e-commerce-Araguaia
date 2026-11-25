@@ -47,7 +47,7 @@ export default function QuoteForm() {
     };
 
     return (
-        <section id="orcamento" className="py-32 relative overflow-hidden">
+        <section id="orcamento" className="pt-12 sm:pt-16 lg:pt-20 pb-20 sm:pb-24 lg:pb-32 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-white to-accent/3 -z-10" />
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] -z-10" />
 
@@ -128,7 +128,7 @@ export default function QuoteForm() {
                 </div>
 
                 {/* Contact cards */}
-                <div className="mt-12 grid sm:grid-cols-3 gap-6">
+                <div className="mt-12 grid sm:grid-cols-2 desk:grid-cols-3 gap-4 sm:gap-6">
                     {[
                         { icon: 'ChatBubbleLeftRightIcon', label: 'WhatsApp', value: '(77) 3451-2175', sub: 'Respostas em até 4 horas', href: 'https://wa.me/557734512175' },
                         { icon: 'EnvelopeIcon', label: 'E-mail', value: 'comercialaraguaia2018@outlook.com', sub: 'Resposta em 24h', href: 'mailto:comercialaraguaia2018@outlook.com' },
@@ -142,7 +142,7 @@ export default function QuoteForm() {
                             </div>
                             <div className="min-w-0">
                                 <p className="text-[10px] uppercase tracking-widest font-bold text-muted">{item.label}</p>
-                                <p className="text-sm font-bold text-foreground truncate">{item.value}</p>
+                                <p className="text-sm font-bold text-foreground [overflow-wrap:anywhere]">{item.value}</p>
                                 <p className="text-[11px] text-muted">{item.sub}</p>
                             </div>
                         </a>

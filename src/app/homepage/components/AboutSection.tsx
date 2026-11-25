@@ -31,12 +31,12 @@ export default function AboutSection() {
   }, []);
 
   return (
-    <section id="sobre" ref={sectionRef} className="py-16 sm:py-24 lg:py-32 relative overflow-hidden">
+    <section id="sobre" ref={sectionRef} className="pt-16 sm:pt-24 lg:pt-28 pb-10 sm:pb-12 lg:pb-14 relative overflow-hidden">
       <div className="absolute inset-0 bg-surface/40 -z-10" />
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/3 rounded-full blur-[150px] -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="grid lg:grid-cols-2 gap-20 items-center mb-24">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: image collage */}
           <div className="grid grid-cols-2 gap-5 animate-on-scroll opacity-0 translate-y-8 transition-all duration-1000">
             <div className="space-y-5">
@@ -49,7 +49,6 @@ export default function AboutSection() {
               <div className="rounded-4xl p-8 text-white" style={{ background: 'linear-gradient(135deg, #af1518, #8a0f12)' }}>
                 <p className="text-4xl font-display font-bold italic">Desde</p>
                 <p className="text-5xl font-display font-bold">1990</p>
-                <p className="text-[11px] uppercase tracking-[0.25em] opacity-80 mt-1">Servindo Guanambi</p>
               </div>
             </div>
             <div className="pt-16 space-y-5">

@@ -374,9 +374,9 @@ export default function ProductCatalog() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
-        <div className="flex gap-8">
+        <div className="flex gap-4 lg:gap-8">
           {/* Sidebar */}
-          <aside className="hidden md:block w-56 shrink-0">
+          <aside className="hidden md:block w-44 lg:w-56 shrink-0">
             {/* Fixa durante toda a rolagem da seção de produtos: ocupa a altura visível (abaixo do header e acima
                 da faixa "Visualizando") e só a lista de categorias rola por dentro. */}
             <div className="sticky top-24 pt-6 flex flex-col gap-2 max-h-[calc(100vh-6rem-6.5rem)]">
@@ -453,7 +453,7 @@ export default function ProductCatalog() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 min-[900px]:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
                 {Array.from({ length: 16 }).map((_, i) => <div key={i} className="bg-surface rounded-4xl h-72 animate-pulse" />)}
               </div>
             ) : filtered.length === 0 ? (
@@ -471,7 +471,7 @@ export default function ProductCatalog() {
               <>
                 <div
                   ref={gridRef}
-                  className={`grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-5 content-start transition-[opacity,transform] ${
+                  className={`grid grid-cols-2 min-[900px]:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 content-start transition-[opacity,transform] ${
                     changing ? 'opacity-0 translate-y-2 duration-150 ease-in' : 'opacity-100 translate-y-0 duration-300 ease-out'
                   }`}
                   style={lockedHeight ? { minHeight: lockedHeight } : undefined}

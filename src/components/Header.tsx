@@ -29,7 +29,7 @@ function CompanyPill({ company, isActive, onClick, locked }: {
       onClick={onClick}
       data-ripple-color={isActive ? 'rgba(255,255,255,0.4)' : company.primaryColor}
       title={locked ? 'Navegue para outra página para trocar de empresa' : undefined}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border whitespace-nowrap ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''}`}
+      className={`flex items-center gap-1.5 xl:gap-2 px-2.5 xl:px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-300 border whitespace-nowrap ${locked && !isActive ? 'opacity-40 cursor-not-allowed' : ''}`}
       style={{
         backgroundColor: isActive ? company.primaryColor : 'transparent',
         color: isActive ? '#fff' : company.primaryColor,
@@ -113,15 +113,15 @@ export default function Header() {
         }}
       />
 
-      <div className={`mx-4 md:mx-8 desk:mx-12 transition-all duration-500 ${
+      <div className={`mx-3 sm:mx-4 md:mx-8 desk:mx-5 xl:mx-12 transition-all duration-500 ${
         scrolled
-          ? 'bg-white/95 backdrop-blur-xl border border-border/60 shadow-lg rounded-2xl mt-3 px-6 py-3'
-          : 'bg-white/85 backdrop-blur-md border border-white/40 rounded-2xl mt-4 px-6 py-4'
+          ? 'bg-white/95 backdrop-blur-xl border border-border/60 shadow-lg rounded-2xl mt-3 px-4 sm:px-6 py-3'
+          : 'bg-white/85 backdrop-blur-md border border-white/40 rounded-2xl mt-4 px-4 sm:px-6 py-4'
       }`}>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-2 desk:gap-3 xl:gap-4">
 
           {/* Logo */}
-          <Link href="/homepage" data-no-ripple onClick={() => setActiveCompany(null)} className="flex items-center gap-3 group flex-shrink-0 desk:w-[210px]">
+          <Link href="/homepage" data-no-ripple onClick={() => setActiveCompany(null)} className="flex items-center gap-3 group flex-shrink-0 desk:w-[140px] xl:w-[210px]">
             {isGrupoView ? (
               /* Visão do Grupo: logotipo completo (HC colorido + GRUPO / HUGO COSTA / CONFIANÇA & RESPONSABILIDADE) */
               <GrupoHCLogoFull width={124} tight />
@@ -149,9 +149,9 @@ export default function Header() {
           </Link>
 
           {/* Seletor de empresa — desktop */}
-          <div className="hidden desk:flex items-center gap-1.5 bg-[#f5f7fa] rounded-2xl px-3 py-2 border border-[#dde3ed]">
-            <span className="text-[9px] uppercase tracking-[0.25em] font-bold text-muted/60 mr-0.5">Grupo HC</span>
-            <div className="w-px h-3.5 bg-[#dde3ed] mx-0.5" />
+          <div className="hidden desk:flex items-center gap-1 xl:gap-1.5 bg-[#f5f7fa] rounded-2xl px-2 xl:px-3 py-2 border border-[#dde3ed] flex-shrink-0">
+            <span className="hidden xl:inline whitespace-nowrap text-[9px] uppercase tracking-[0.25em] font-bold text-muted/60 mr-0.5">Grupo HC</span>
+            <div className="hidden xl:block w-px h-3.5 bg-[#dde3ed] mx-0.5" />
             {COMPANY_ORDER.map((id) => (
               <CompanyPill
                 key={id}
@@ -179,7 +179,7 @@ export default function Header() {
           </div>
 
           {/* Nav desktop */}
-          <nav className="hidden desk:flex items-center gap-3">
+          <nav className="hidden desk:flex items-center gap-2 xl:gap-3 min-w-0">
             {NAV_LINKS.map((link) => (
               <Link key={link.href} href={link.href} data-ripple-color="rgba(175,21,24,0.16)"
                 aria-current={isNavActive(link.href) ? 'page' : undefined}
@@ -191,7 +191,7 @@ export default function Header() {
           </nav>
 
           {/* Direita */}
-          <div className="hidden desk:flex items-center gap-3 flex-shrink-0">
+          <div className="hidden desk:flex items-center gap-2 xl:gap-3 flex-shrink-0">
             {isAdmin && (
               <Link href="/admin-dashboard" className="text-[11px] uppercase tracking-widest font-bold transition-colors"
                 style={{ color: headerAccent }}>Admin</Link>
@@ -203,7 +203,7 @@ export default function Header() {
                     style={{ backgroundColor: `${headerAccent}15`, border: `1px solid ${headerAccent}30` }}>
                     <AppIcon name="UserIcon" size={14} style={{ color: headerAccent }} />
                   </div>
-                  <span className="text-[12px] font-bold text-foreground max-w-[150px] truncate">{displayName}</span>
+                  <span className="text-[12px] font-bold text-foreground max-w-[90px] xl:max-w-[150px] truncate">{displayName}</span>
                 </Link>
                 <Button onClick={handleSignOut} className="text-[11px] uppercase tracking-widest font-bold text-muted hover:text-foreground transition-colors flex items-center gap-1">
                   <AppIcon name="ArrowLeftEndOnRectangleIcon" size={13} />Sair

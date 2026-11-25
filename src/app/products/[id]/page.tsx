@@ -273,7 +273,7 @@ export default function ProductDetailPage() {
             <span className="text-foreground font-medium truncate max-w-xs">{toUpperText(product.name)}</span>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
+          <div className="grid lg:grid-cols-2 gap-10 xl:gap-16 items-start">
             {/* Imagem com moldura */}
             <div className="relative group">
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 to-accent/5 rounded-5xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />

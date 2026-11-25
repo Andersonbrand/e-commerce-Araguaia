@@ -232,10 +232,13 @@ input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; marg
 
 /* ---------- Efeito de clique e estado dos botões ---------- */
 /* "Afundar" leve enquanto o botão está pressionado (a onda de clique vem de components/ui/ClickEffects.tsx) */
-button:not(:disabled):not([role='option']):not(.no-press):not([data-no-press]):active,
-a[data-ripple]:not([data-no-ripple]):active,
-header a:not([data-no-ripple]):active {
-    transform: scale(0.97);
+/* Só em mouse/caneta: no toque o :active dispara ao encostar o dedo, inclusive durante a rolagem. */
+@media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):not([role='option']):not(.no-press):not([data-no-press]):active,
+    a[data-ripple]:not([data-no-ripple]):active,
+    header a:not([data-no-ripple]):active {
+        transform: scale(0.97);
+    }
 }
 @layer base {
     button, a[data-ripple], header a {
