@@ -258,19 +258,13 @@ export default function ProductDetailPage() {
       <div className="pt-28 pb-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-3 mb-8 text-sm text-muted">
+          {/* Voltar (mesmo padrão dos demais links de voltar: login, cadastro) */}
+          <div className="mb-8">
             <button onClick={backToProducts}
-              className="flex items-center gap-2 font-semibold hover:text-primary transition-colors group">
-              <span className="w-8 h-8 rounded-xl border border-border flex items-center justify-center group-hover:border-primary/40 group-hover:bg-primary/5 transition-all">
-                <AppIcon name="ArrowLeftIcon" size={14} />
-              </span>
+              className="inline-flex items-center gap-2 whitespace-nowrap text-[13px] text-muted hover:text-primary font-semibold transition-colors">
+              <AppIcon name="ArrowLeftIcon" size={14} />
               Voltar aos produtos
             </button>
-            <span className="text-border">›</span>
-            <span className="font-medium" style={{ color: '#151826' }}>{toUpperText(product.category)}</span>
-            <span className="text-border">›</span>
-            <span className="text-foreground font-medium truncate max-w-xs">{toUpperText(product.name)}</span>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-10 xl:gap-16 items-start">
